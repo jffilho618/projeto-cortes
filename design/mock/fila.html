@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="pt-BR" data-tema="escuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Picorte — Fila (mock)</title>
+<link rel="icon" href="../brand/picorte-icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../tokens/tokens.css">
+<script>document.documentElement.dataset.tema = new URLSearchParams(location.search).get('tema') || 'escuro';</script>
+<style>
+*{box-sizing:border-box}
+html{background:var(--fundo);color:var(--texto);font:400 var(--t-corpo)/1.45 var(--fonte-ui);-webkit-font-smoothing:antialiased;color-scheme:dark;scrollbar-color:var(--superficie-3) transparent}
+[data-tema="claro"]{color-scheme:light}
+body{margin:0}
+::selection{background:var(--marca);color:var(--marca-texto)}
+:focus-visible{outline:2px solid var(--marca);outline-offset:2px;border-radius:4px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+button{font:inherit;color:inherit}
+
+/* Esqueleto do estúdio */
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+.lateral{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:var(--e2);padding:var(--e5) var(--e3);border-right:1px solid var(--fio);background:var(--fundo)}
+.lateral .logo{padding:0 var(--e3) var(--e4)}
+.lateral .logo img{height:26px;display:block}
+.canal{display:flex;align-items:center;gap:10px;padding:var(--e3);margin-bottom:var(--e3);border-radius:var(--raio);background:var(--superficie)}
+.canal .av{width:36px;height:36px;border-radius:50%;background:var(--marca);display:grid;place-items:center;font:700 15px/1 var(--fonte-titulo);color:var(--marca-texto)}
+.canal b{display:block;font-size:var(--t-dado)}
+.canal small{color:var(--texto-2);font-size:var(--t-rotulo)}
+.lateral ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.lateral a{display:flex;align-items:center;gap:var(--e3);padding:10px var(--e3);border-radius:var(--raio-p);color:var(--texto-2);text-decoration:none;font-weight:600;font-size:var(--t-dado);transition:background var(--dur-curta) var(--ease-saida),color var(--dur-curta) var(--ease-saida)}
+.lateral a:hover{background:var(--superficie);color:var(--texto)}
+.lateral a[aria-current]{background:var(--superficie-2);color:var(--texto)}
+.lateral a[aria-current] svg{color:var(--marca)}
+.lateral .cont{margin-left:auto;font-size:var(--t-rotulo);color:var(--texto-2)}
+.lateral .cont.pede{background:var(--pede);color:var(--pede-texto);padding:2px 7px;border-radius:99px;font-weight:700}
+.lateral .rodape{margin-top:auto;font-size:var(--t-rotulo);color:var(--texto-2);padding:0 var(--e3)}
+
+.topo{display:flex;align-items:center;gap:var(--e4);padding:var(--e3) var(--e6);border-bottom:1px solid var(--fio);position:sticky;top:0;z-index:4;background:var(--fundo)}
+.busca{flex:1;max-width:520px;display:flex;align-items:center;gap:var(--e2);padding:9px var(--e4);border:1px solid var(--fio);border-radius:99px;color:var(--texto-2);font-size:var(--t-dado);background:var(--superficie)}
+.worker{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-dado);font-weight:600;color:var(--sobe)}
+.worker::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.exemplo{font:600 12px/1 var(--fonte-ui);color:var(--texto-2);border:1px dashed var(--texto-2);padding:5px 8px;border-radius:var(--raio-p)}
+.tema{margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--fio);border-radius:99px;padding:7px 12px;font-size:var(--t-rotulo);font-weight:600;cursor:pointer;color:var(--texto-2)}
+.tema:hover{color:var(--texto);border-color:var(--texto-2)}
+
+.conteudo{display:grid;grid-template-columns:minmax(0,1fr) 336px;gap:var(--e5);padding:var(--e5) var(--e6) var(--e7);align-items:start}
+h1{font:700 var(--t-pagina)/1 var(--fonte-titulo);text-transform:uppercase;letter-spacing:.01em;margin:0 0 var(--e4)}
+.abas{display:flex;gap:var(--e5);border-bottom:1px solid var(--fio);margin-bottom:var(--e4)}
+.abas a{padding:0 0 var(--e3);color:var(--texto-2);text-decoration:none;font-weight:600;font-size:var(--t-dado);border-bottom:2px solid transparent;margin-bottom:-1px}
+.abas a[aria-current]{color:var(--texto);border-color:var(--texto)}
+.abas a span{color:var(--texto-2);font-weight:400;margin-left:4px}
+.chips{display:flex;gap:var(--e2);flex-wrap:wrap;margin-bottom:var(--e4)}
+.chip{border:0;background:var(--superficie-2);padding:7px 12px;border-radius:var(--raio-p);font-size:var(--t-dado);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background var(--dur-curta) var(--ease-saida)}
+.chip:hover{background:var(--superficie-3)}
+.chip[aria-pressed="true"]{background:var(--texto);color:var(--fundo)}
+.chip .g{font-size:var(--t-rotulo)}
+.pico-chip{background:var(--marca);color:var(--marca-texto);font:700 11px/1 var(--fonte-ui);text-transform:uppercase;letter-spacing:.04em;padding:3px 5px;border-radius:3px;margin-left:6px}
+
+/* Tabela da fila */
+.quadro{background:var(--superficie);border-radius:var(--raio);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{font:600 var(--t-rotulo)/1.2 var(--fonte-ui);color:var(--texto-2);text-align:left;padding:12px 12px;border-bottom:1px solid var(--fio);white-space:nowrap}
+th.dir,td.dir{text-align:right}
+tbody.grupo th{padding:var(--e4) var(--e3) var(--e2);text-align:left;border-bottom:1px solid var(--fio)}
+.gt{display:flex;align-items:center;gap:var(--e3);flex-wrap:wrap}
+.gt h2{margin:0;font:700 var(--t-secao)/1.1 var(--fonte-titulo);text-transform:uppercase;letter-spacing:.02em}
+.gt .pico{background:var(--marca);color:var(--marca-texto);font:700 11px/1 var(--fonte-ui);letter-spacing:.05em;text-transform:uppercase;padding:4px 7px;border-radius:4px}
+.gt .ctx{color:var(--texto-2);font-size:var(--t-dado)}
+.gt .ret{color:var(--carimbo-retido);font-weight:600;text-underline-offset:3px}
+td{padding:10px 12px;border-bottom:1px solid var(--fio);vertical-align:middle;font-size:var(--t-dado)}
+tr.linha{transition:background var(--dur-curta) var(--ease-saida)}
+tr.linha:focus-visible{outline-offset:-2px}
+tr.linha:hover{background:var(--superficie-2)}
+.mini{display:flex;gap:var(--e3);align-items:flex-start}
+.mini .txt{min-width:0}
+.thumb{position:relative;flex:none;width:44px}
+.thumb svg{display:block;width:44px;height:78px;border-radius:var(--raio-miniatura)}
+.dchip{position:absolute;right:3px;top:3px;background:rgb(0 0 0 / .78);color:#fff;font:600 11px/1 var(--fonte-ui);padding:2px 3px;border-radius:3px}
+.dur{display:block;height:3px;margin-top:4px;background:var(--superficie-3);border-radius:2px;overflow:hidden}
+.dur i{display:block;height:100%;background:var(--texto-2)}
+.titulo{font-weight:600;margin:0 0 3px;line-height:1.3}
+.meta{color:var(--texto-2);font-size:var(--t-rotulo)}
+.cod{font:600 12px/1 var(--fonte-titulo);letter-spacing:.06em;color:var(--texto-2);margin-right:6px}
+.porque{max-width:62ch;margin-top:6px;color:var(--texto-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.porque em{font-style:normal;font-weight:600;color:var(--texto)}
+.s{color:var(--sobe)}.d{color:var(--desce)}
+.g{display:inline-flex;align-items:center;gap:2px;font-weight:700}
+.g svg.i{width:13px;height:13px;stroke-width:2.6}
+
+/* Assinatura: curva do mais repetido com o trecho do corte */
+.curva{position:relative;width:156px}
+.curva svg{display:block;width:156px;height:40px;overflow:visible}
+.curva .area{fill:var(--curva)}
+.curva .linha-c{fill:none;stroke:var(--texto-2);stroke-width:1.25;opacity:.7}
+.curva .trecho{fill:var(--marca-suave)}
+.curva .pico-l{fill:none;stroke:var(--marca);stroke-width:2.25}
+.curva .base{stroke:var(--fio);stroke-width:1}
+.curva .seg{fill:var(--marca)}
+.curva small{display:block;font-size:11px;color:var(--texto-2);margin-top:3px;white-space:nowrap}
+.curva .tip{position:absolute;bottom:calc(100% + 6px);left:var(--x,50%);transform:translateX(-50%);background:var(--texto);color:var(--fundo);font-size:var(--t-rotulo);font-weight:600;padding:6px 8px;border-radius:var(--raio-p);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity var(--dur-curta) var(--ease-saida),transform var(--dur-curta) var(--ease-saida)}
+tr.linha:hover .curva .tip,tr.linha:focus-within .curva .tip{opacity:1;transform:translateX(-50%) translateY(-2px)}
+.desenha .linha-c{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:traca var(--dur-curva) var(--ease-saida) forwards}
+.desenha .area,.desenha .trecho,.desenha .pico-l{opacity:0;animation:aparece .6s var(--ease-saida) .5s forwards}
+@keyframes traca{to{stroke-dashoffset:0}}
+@keyframes aparece{to{opacity:1}}
+
+.nt{font:700 20px/1 var(--fonte-titulo)}
+.fonte b{font-weight:600;white-space:nowrap;display:block}
+.carimbo{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font:700 11px/1 var(--fonte-ui);letter-spacing:.06em;text-transform:uppercase;border:1.5px solid currentColor;padding:3px 6px;border-radius:4px;transform:rotate(-2deg);white-space:nowrap}
+.carimbo svg.i{width:12px;height:12px;stroke-width:2.2}
+.carimbo.ok{color:var(--carimbo-ok)}.carimbo.retido{color:var(--carimbo-retido)}.carimbo.pausado{color:var(--carimbo-pausado)}
+.redes{color:var(--texto-2);white-space:nowrap}
+.hora{font-weight:700;white-space:nowrap}
+.hora small{display:block;font-weight:400;color:var(--texto-2)}
+.acoes-linha{display:flex;gap:6px;justify-content:flex-end;margin-top:8px;opacity:0;transition:opacity var(--dur-curta) var(--ease-saida)}
+tr.linha:hover .acoes-linha,tr.linha:focus-within .acoes-linha{opacity:1}
+.mini-bt{font:600 12px/1 var(--fonte-ui);padding:6px 9px;border-radius:99px;border:1px solid var(--fio);background:var(--superficie);cursor:pointer}
+.mini-bt:hover{border-color:var(--texto-2)}
+tr.retido .thumb svg{opacity:.45}
+tr.retido .titulo{color:var(--texto-2)}
+
+/* Coluna direita */
+.lado{display:grid;gap:var(--e4);position:sticky;top:76px}
+.cartao{background:var(--superficie);border-radius:var(--raio);padding:var(--e4) var(--e4) var(--e3)}
+.cartao h2{font:700 var(--t-secao)/1 var(--fonte-titulo);text-transform:uppercase;letter-spacing:.02em;margin:0 0 4px;display:flex;align-items:center;gap:var(--e2)}
+.cartao .sub{color:var(--texto-2);font-size:var(--t-rotulo);margin:0 0 var(--e3)}
+.pausa{margin-left:auto;display:inline-flex;align-items:center;gap:4px;background:transparent;border:1px solid var(--fio);border-radius:99px;padding:4px 9px;font:600 11px/1 var(--fonte-ui);color:var(--texto-2);cursor:pointer;text-transform:none;letter-spacing:0}
+.pausa svg.i{width:13px;height:13px}
+.pausa:hover{color:var(--texto)}
+.assunto{display:grid;grid-template-columns:1fr auto;align-items:end;gap:2px var(--e3);padding:var(--e2) 0;border-top:1px solid var(--fio)}
+.assunto:first-of-type{border-top:0}
+.assunto b{font:700 15px/1.1 var(--fonte-titulo);text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center;gap:6px}
+.assunto b .pico{background:var(--marca);color:var(--marca-texto);font:700 11px/1 var(--fonte-ui);padding:3px 5px;border-radius:3px;letter-spacing:.04em}
+.assunto .g{justify-self:end}
+.barras{grid-column:1/-1;display:flex;align-items:flex-end;gap:2px;height:26px}
+.barras i{flex:1;background:var(--barra);border-radius:1px;transition:height .5s var(--ease-saida),background .5s var(--ease-saida)}
+.assunto.no-pico .barras i{background:var(--marca)}
+.n{display:inline-flex}.n span{display:inline-block}
+.n span.vira{animation:vira .45s var(--ease-saida)}
+@keyframes vira{from{transform:perspective(60px) rotateX(-90deg);opacity:.3}}
+
+.pede-bloco{background:var(--superficie);border-radius:var(--raio);padding:var(--e4);box-shadow:inset 0 0 0 1.5px var(--pede)}
+.pede-bloco h2{font:700 var(--t-secao)/1 var(--fonte-titulo);text-transform:uppercase;letter-spacing:.02em;margin:0 0 var(--e3);display:flex;align-items:center;gap:var(--e2)}
+.pede-bloco h2 .q{background:var(--pede);color:var(--pede-texto);font:700 13px/1 var(--fonte-ui);padding:3px 8px;border-radius:99px}
+.pede{padding:var(--e3) 0;border-top:1px solid var(--fio)}
+.pede:first-of-type{border-top:0;padding-top:0}
+.pede h3{margin:0 0 4px;font:700 var(--t-dado)/1.35 var(--fonte-ui);display:flex;gap:8px;align-items:flex-start}
+.pede h3 svg.i{width:18px;height:18px;color:var(--pede);margin-top:1px}
+.pede p{margin:0 0 var(--e3) 26px;font-size:var(--t-rotulo);color:var(--texto-2)}
+.pede .acoes{margin-left:26px}
+.faixa-pede{display:none}
+.acoes{display:flex;gap:var(--e2);flex-wrap:wrap}
+.bt{font-weight:600;font-size:var(--t-dado);padding:9px 14px;border-radius:99px;border:0;cursor:pointer;background:var(--superficie-3);color:var(--texto);transition:background var(--dur-curta) var(--ease-saida),color var(--dur-curta) var(--ease-saida)}
+.bt:hover{background:var(--fio)}
+.bt.pri{background:var(--texto);color:var(--fundo)}
+.bt.pri:hover{background:var(--marca);color:var(--marca-texto)}
+.bt:disabled{opacity:.45;cursor:not-allowed}
+.nota-lado{font-size:var(--t-rotulo);color:var(--texto-2);margin:0;padding:0 var(--e2)}
+
+.nav-cel{display:none}
+.exemplo-mob{display:none}
+
+@media (max-width:1599px) and (min-width:901px){
+  .app{grid-template-columns:76px minmax(0,1fr)}
+  .lateral{padding:var(--e4) var(--e1);align-items:stretch}
+  .lateral .logo{padding:0 0 var(--e4);display:flex;justify-content:center}
+  .lateral .logo img{content:url(../brand/picorte-icone.svg);height:32px}
+  .canal{justify-content:center;padding:var(--e2) 0;background:transparent}.canal>span:last-child{display:none}
+  .lateral a{flex-direction:column;gap:4px;padding:10px 2px;font-size:11px;font-weight:600;text-align:center}
+  .lateral .cont{position:absolute;margin:0;transform:translate(14px,-8px);font-size:11px}
+  .lateral .cont:not(.pede){display:none}
+  .lateral li{position:relative}.lateral a{position:relative}
+  .lateral .rodape{display:none}
+}
+@media (max-width:1240px){.faixa-pede{display:flex;align-items:center;gap:var(--e2);padding:var(--e3) var(--e4);margin-bottom:var(--e4);border-radius:var(--raio);background:var(--pede-suave);box-shadow:inset 0 0 0 1.5px var(--pede);color:var(--texto);text-decoration:none;font-size:var(--t-dado)}.faixa-pede svg.i{color:var(--pede)}.conteudo{grid-template-columns:minmax(0,1fr)}.lado{position:static;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .lateral{display:none}
+  .topo{padding:var(--e3) var(--e4);gap:var(--e3)}
+  .topo .logo-cel{display:block;height:22px}
+  .busca,.exemplo-top{display:none}
+  .conteudo{padding:var(--e4) var(--e3) 96px}
+  h1{font-size:1.75rem;margin-bottom:var(--e3)}
+  .abas{gap:var(--e4);overflow-x:auto}
+  .chips{flex-wrap:nowrap;overflow-x:auto;margin-right:calc(-1 * var(--e3))}
+  .chip{flex:none}
+  thead{display:none}
+  table.fila,table.fila tbody,table.fila tr,table.fila td,table.fila th{display:block}
+  tr.linha{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"mini mini mini" "cur cur cur" "fon nt hora";gap:var(--e3);padding:var(--e3)}
+  .acoes-linha{opacity:1}
+  tr.linha>td{min-width:0}
+  table.fila td{border:0;padding:0}
+  tr.linha{border-bottom:1px solid var(--fio)}
+  td.c-mini{grid-area:mini}td.c-cur{grid-area:cur}td.c-fon{grid-area:fon}td.c-hora{grid-area:hora;text-align:right}
+  td.c-nt{grid-area:nt;align-self:center}
+  .mini{min-width:0}
+  .porque{max-width:none}
+  .curva,.curva svg{width:100%}
+  .nav-cel{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:5;justify-content:space-around;background:var(--superficie);border-top:1px solid var(--fio);padding:6px 0 10px}
+  .nav-cel a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--texto-2);text-decoration:none;padding:4px 8px;position:relative}
+  .nav-cel a[aria-current]{color:var(--texto)}
+  .nav-cel a[aria-current] svg{color:var(--marca)}
+  .nav-cel .pt{position:absolute;top:-2px;right:4px;min-width:18px;height:18px;border-radius:99px;background:var(--pede);color:var(--pede-texto);font:700 11px/18px var(--fonte-ui);text-align:center}
+  .exemplo-mob{display:inline-block!important;margin-bottom:var(--e3)}
+}
+@media (min-width:901px){.logo-cel{display:none}}
+.sem-animacao *,.sem-animacao *::before{animation:none!important;transition:none!important;stroke-dashoffset:0!important}
+.sem-animacao .desenha .area,.sem-animacao .desenha .trecho,.sem-animacao .desenha .pico-l{opacity:1!important}
+@media (prefers-reduced-motion:reduce){.desenha .linha-c,.desenha .pico-l,.desenha .area,.desenha .trecho{animation:none;stroke-dashoffset:0;opacity:1}.n span.vira{animation:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-sobe" viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></symbol>
+  <symbol id="i-desce" viewBox="0 0 16 16"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></symbol>
+  <symbol id="i-escudo" viewBox="0 0 16 16"><path d="M8 1.75 2.75 3.5v4c0 3.2 2.2 5.6 5.25 6.75 3.05-1.15 5.25-3.55 5.25-6.75v-4Z"/><path d="M8 5.25v3M8 10.6v.15"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 16 16"><path d="m3.5 8.5 3 3 6-7"/></symbol>
+  <symbol id="i-pausa" viewBox="0 0 16 16"><path d="M6 4v8M10 4v8"/></symbol>
+  <symbol id="i-play" viewBox="0 0 16 16"><path d="M5 3.5v9l7.5-4.5Z"/></symbol>
+  <symbol id="i-fila" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="9" rx="1.5"/><path d="M11 6h10M11 10h7M3 17h18M3 20.5h12"/></symbol>
+  <symbol id="i-radar" viewBox="0 0 24 24"><path d="M3 18c3-1 4-9 7-9s3 6 5 6 3-8 6-11"/><path d="M3 21h18"/></symbol>
+  <symbol id="i-fontes" viewBox="0 0 24 24"><path d="M12 3 4.5 5.75v5.5c0 4.6 3.1 8.2 7.5 9.75 4.4-1.55 7.5-5.15 7.5-9.75v-5.5Z"/><path d="m8.75 12 2.25 2.25 4.25-4.5"/></symbol>
+  <symbol id="i-pub" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9.5 5 2.5-5 2.5Z"/></symbol>
+  <symbol id="i-result" viewBox="0 0 24 24"><path d="M4 20h16M7 16v-4M12 16V7M17 16v-6"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+  <symbol id="i-lua" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="lateral" aria-label="Navegação">
+    <div class="logo"><img src="../brand/picorte-logo-negativo.svg" alt="Picorte" id="logo"></div>
+    <div class="canal"><span class="av" aria-hidden="true">G</span><span><b>Games BR</b><small>canal de exemplo · 3 redes</small></span></div>
+    <ul>
+      <li><a href="#" aria-current="page"><svg class="i"><use href="#i-fila"/></svg>Fila<span class="cont num">14</span></a></li>
+      <li><a href="#"><svg class="i"><use href="#i-radar"/></svg>Radar</a></li>
+      <li><a href="#"><svg class="i"><use href="#i-fontes"/></svg>Fontes</a></li>
+      <li><a href="#"><svg class="i"><use href="#i-pub"/></svg>Publicados</a></li>
+      <li><a href="#"><svg class="i"><use href="#i-result"/></svg>Resultados</a></li>
+      <li><a href="#pede"><svg class="i"><use href="#i-alerta"/></svg>Alertas<span class="cont pede num">2</span></a></li>
+    </ul>
+    <p class="rodape">Dados de exemplo · nomes fictícios</p>
+  </aside>
+
+  <div>
+    <header class="topo">
+      <img class="logo-cel" src="../brand/picorte-logo-negativo.svg" alt="Picorte">
+      <label class="busca"><svg class="i" aria-hidden="true"><use href="#i-busca"/></svg><span>Buscar cortes, assuntos ou fontes</span></label>
+      <span class="worker">Worker do PC online</span>
+      <span class="exemplo exemplo-top">Dados de exemplo</span>
+      <button class="tema" id="tema"><svg class="i" style="width:15px;height:15px"><use href="#i-lua"/></svg><span>Tema claro</span></button>
+    </header>
+
+    <div class="conteudo">
+      <main>
+        <h1>Fila</h1>
+        <span class="exemplo exemplo-mob">Dados de exemplo · nomes fictícios</span>
+        <a class="faixa-pede" href="#pede"><svg class="i"><use href="#i-escudo"/></svg><span><b>2 pedem você:</b> fonte em alta não liberada · claim pausou 9 cortes</span></a>
+        <nav class="abas" aria-label="Estado dos cortes">
+          <a href="#" aria-current="page">Prontos<span class="num">14</span></a>
+          <a href="#">Retidos<span class="num">1</span></a>
+          <a href="#">Pausados<span class="num">9</span></a>
+          <a href="#">Publicados hoje<span class="num">3</span></a>
+        </nav>
+        <div class="chips" id="chips" role="group" aria-label="Filtrar por assunto"></div>
+        <div class="quadro">
+          <table class="fila">
+            <caption class="sr">Cortes prontos, agrupados por assunto, com o motivo da escolha e o pico de origem</caption>
+            <thead><tr><th>Corte e por que foi escolhido</th><th>Pico de origem</th><th class="dir">Nota</th><th>Fonte</th><th class="dir">Sai</th></tr></thead>
+            <tbody id="corpo"></tbody>
+          </table>
+        </div>
+      </main>
+
+      <aside class="lado">
+        <section class="cartao" aria-labelledby="h-sub">
+          <h2 id="h-sub">Subindo agora <button class="pausa" id="pausa" aria-pressed="false"><svg class="i"><use href="#i-pausa"/></svg><span>Pausar</span></button></h2>
+          <p class="sub">Interesse nas últimas 48 horas, por hora</p>
+          <div id="assuntos"></div>
+        </section>
+        <section class="pede-bloco" id="pede" aria-labelledby="h-pede">
+          <h2 id="h-pede">Pede você <span class="q num">2</span></h2>
+          <div class="pede">
+            <h3><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg>Kiko Raio subiu 21% em 24h, mas a fonte “Kiko Raio · Twitch” está como desconhecida.</h3>
+            <p>Nada foi baixado nem cortado. Para liberar, registre a autorização do streamer ou entre numa campanha ativa.</p>
+            <div class="acoes"><button class="bt pri">Registrar autorização</button><button class="bt">Manter bloqueada</button></div>
+          </div>
+          <div class="pede">
+            <h3><svg class="i" aria-hidden="true"><use href="#i-escudo"/></svg>Claim de Content ID em FAL-0131 (Shorts): música licenciada no trecho 0:12–0:31.</h3>
+            <p>Os 9 cortes da fonte “Falcão Plays · YouTube” foram pausados em todas as redes às 19h02.</p>
+            <div class="acoes"><button class="bt pri">Ver o claim</button><button class="bt">Pôr na lista negra</button></div>
+          </div>
+        </section>
+        <p class="nota-lado">Resultados de mais de uma semana pesam metade a cada 7 dias: o que funcionou ontem pode não funcionar hoje.</p>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<nav class="nav-cel" aria-label="Navegação">
+  <a href="#" aria-current="page"><svg class="i"><use href="#i-fila"/></svg>Fila</a>
+  <a href="#"><svg class="i"><use href="#i-radar"/></svg>Radar</a>
+  <a href="#"><svg class="i"><use href="#i-fontes"/></svg>Fontes</a>
+  <a href="#"><svg class="i"><use href="#i-result"/></svg>Resultados</a>
+  <a href="#pede"><svg class="i"><use href="#i-alerta"/></svg>Alertas<span class="pt num">2<span class="sr"> pedem você</span></span></a>
+</nav>
+
+<script>
+// ---------- Tema
+const raiz = document.documentElement, bt = document.getElementById('tema');
+function rotTema(){ bt.querySelector('span').textContent = raiz.dataset.tema === 'claro' ? 'Tema escuro' : 'Tema claro';
+  const src = raiz.dataset.tema === 'claro' ? '../brand/picorte-logo.svg' : '../brand/picorte-logo-negativo.svg';
+  document.querySelectorAll('#logo,.logo-cel').forEach(i=>i.src=src); }
+bt.addEventListener('click',()=>{ raiz.dataset.tema = raiz.dataset.tema==='claro'?'escuro':'claro'; rotTema(); });
+rotTema();
+
+// ---------- Dados de exemplo (nomes de streamers, fontes e campanhas são fictícios)
+const A = {
+  gta:  {nome:'GTA 6', d:38, ctx:'Lançamento em 19/11 · topo da Twitch há 2 dias · <a href="#" class="ret">1 corte retido pelo freio de spoiler</a>'},
+  kiko: {nome:'Kiko Raio', d:21, ctx:'Fonte não liberada'},
+  ff:   {nome:'Free Fire', d:12, ctx:'Mundial em 6 dias: jogadas de habilidade sobem antes de campeonato'},
+  duda: {nome:'Duda Clutch', d:9, ctx:'Views por corte subiram 3 dias seguidos, em qualquer jogo'},
+  fc:   {nome:'EA FC 26', d:4, ctx:'Estável, com rodada de fim de semana'},
+  val:  {nome:'Valorant', d:-3, ctx:'Três semanas em queda: de 2 cortes por dia para 1'},
+};
+const PICO = 30, estado = k => A[k].d >= PICO ? 'pico' : A[k].d < 0 ? 'frio' : 'sobe';
+const seta = v => `<svg class="i" aria-hidden="true"><use href="#i-${v>=0?'sobe':'desce'}"/></svg>`;
+const digitos = v => `<span class="n">${[...(Math.abs(v)+'%')].map(c=>`<span>${c}</span>`).join('')}</span>`;
+const varia = k => `<span class="g ${A[k].d>=0?'s':'d'}" data-var="${k}">${seta(A[k].d)}<span class="sr" data-dir>${A[k].d>=0?'subiu':'caiu'} </span>${digitos(A[k].d)}</span>`;
+
+// [código, cena, legenda, título, duração(s), formato, por quê, fonte-vídeo, duração-fonte(min), pico(0-1), nota, fonte, status, redes, hora, quando]
+const fila = [
+  {a:'gta', rows:[
+    ['GTA6-0142','carro','DE NOVO?!','O NPC sai do carro e entra de novo quatro vezes',41,'Vertical','<em>GTA 6 no topo da Twitch</em> e física quebrada é o que dá mais views neste canal: 2,1× a mediana em 2 semanas.','Live de 3h12',192,.53,94,'Gameplay próprio','ok','Shorts · TikTok · Reels','22h00','hoje'],
+    ['GTA6-0144','figura','QUE ISSO','O policial que desistiu da perseguição no meio da ponte',36,'Vertical','<em>Humor com NPC</em> é o gancho que mais segura os 3 primeiros segundos em GTA 6.','Live de 3h12',192,.78,89,'Gameplay próprio','ok','Shorts · TikTok','20h30','hoje'],
+    ['GTA6-0146','cidade','OLHA O CÉU','A primeira tempestade em Vice City, vista do alto do prédio',44,'Vertical','<em>Busca por “clima GTA 6”</em> subiu hoje; paisagem ainda não foi testada neste canal.','Gameplay de 58 min',58,.31,77,'Gameplay próprio','ok','Shorts · Reels','23h30','hoje'],
+    ['GTA6-0143','cidade','FUGIU PRA ONDE?','A perseguição terminou no lugar mais improvável de Vice City',252,'Longo','<em>Perseguição é o assunto da semana</em> e os cortes longos de GTA 6 seguram 58% do público até o fim.','VOD de 4h05',245,.64,86,'Duda Clutch · Twitch','contrato','YouTube','12h00','amanhã'],
+  ]},
+  {a:'ff', rows:[
+    ['FF-0098','mira','UM TIRO SÓ','Capa de um tiro só no último segundo da rodada',33,'Vertical','<em>Mundial em 6 dias.</em> Na última semana, cortes de habilidade passaram os de humor neste assunto.','Campeonato, 2h30',150,.71,88,'Campanha Arena Clips','campanha','TikTok · Shorts','22h30','hoje'],
+    ['FF-0099','explosao','CALMA, CALMA','Quatro contra um, e ele nem trocou de arma',47,'Vertical','<em>Teste:</em> o formato de 45–50 s ainda não foi tentado neste assunto; 1 corte separado para medir.','Campeonato, 2h30',150,.42,71,'Campanha Arena Clips','campanha','Reels','09h00','amanhã'],
+    ['FF-0100','mira','ATRÁS DE VOCÊ','O revive impossível no meio da zona',31,'Vertical','<em>Clutch é o gancho que dá mais views</em> em Free Fire antes de campeonato.','Campeonato, 2h30',150,.86,84,'Campanha Arena Clips','campanha','TikTok','13h00','amanhã'],
+  ]},
+  {a:'duda', rows:[
+    ['DUDA-0021','figura','E AGORA?','A reação dela ao chefe final, sem cortar nada',52,'Vertical','<em>A streamer subiu, não só o jogo:</em> cortes da Duda dão mais views em qualquer jogo desde sexta.','Live de 5h20',320,.6,87,'Duda Clutch · Twitch','contrato','Reels · Facebook','23h00','hoje'],
+    ['DUDA-0022','carro','SEGURA!','A corrida que virou briga no último retão',39,'Vertical','<em>Mesmo efeito da streamer</em> num jogo de corrida: teste para separar streamer de jogo.','Live de 5h20',320,.27,74,'Duda Clutch · Twitch','contrato','Shorts · TikTok','10h00','amanhã'],
+    ['DUDA-0023','figura','EU AVISEI','O chat avisou, ela não ouviu',28,'Vertical','<em>Interação com o chat</em> segura a retenção nos cortes curtos dela.','Live de 5h20',320,.83,72,'Duda Clutch · Twitch','contrato','TikTok','15h00','amanhã'],
+  ]},
+  {a:'fc', rows:[
+    ['FC-0057','mira','DE LETRA','O gol de letra no último minuto da Ultimate Team',24,'Vertical','<em>Rodada de fim de semana:</em> gols de habilidade mantêm o assunto estável.','Gameplay de 42 min',42,.94,76,'Gameplay próprio','ok','Shorts · Reels','21h00','hoje'],
+    ['FC-0058','carro','QUE CANETA','A caneta no goleiro e o gol de cobertura',27,'Vertical','<em>Habilidade com nome do jogo no título</em> é o formato que mais segura este assunto.','Gameplay de 42 min',42,.38,73,'Gameplay próprio','ok','TikTok','14h00','amanhã'],
+  ]},
+  {a:'val', rows:[
+    ['VAL-0310','mira','SÓ NA FACA','Ace só na faca no round decisivo',29,'Vertical','<em>Mantido como teste:</em> o assunto esfriou, mas ace é o gancho que mais resiste à queda.','Partida de 48 min',48,.88,68,'Gameplay próprio','ok','Shorts','18h00','amanhã'],
+    ['VAL-0311','explosao','1 CONTRA 4','A virada no último round, sem trocar de posição',34,'Vertical','<em>Último corte da semana:</em> se não reagir, o assunto sai da rotação.','Partida de 48 min',48,.95,61,'Gameplay próprio','ok','Shorts','18h00','quarta'],
+  ]},
+];
+
+// ---------- Miniaturas ilustrativas (cena chapada; exemplo, não é gameplay real)
+const pares = {gta:['#efe3c8','#3b2a14'],ff:['#b98cff','#2e1757'],duda:['#7bd3ea','#123447'],fc:['#f3a6d8','#4a1840'],val:['#cfcfcf','#2b2b2e']};
+const cenas = {
+  carro:`<rect x="4" y="66" width="46" height="13" rx="3"/><path d="M11 66l6-11h20l7 11Z"/><circle cx="15" cy="80" r="5"/><circle cx="39" cy="80" r="5"/><circle cx="41" cy="20" r="8"/>`,
+  cidade:`<path d="M0 96V58h8V42h8v16h6V32h10v26h6V48h10v48Z"/><circle cx="14" cy="18" r="7"/>`,
+  figura:`<circle cx="27" cy="36" r="12"/><path d="M5 96c0-22 10-34 22-34s22 12 22 34Z"/>`,
+  mira:`<circle cx="27" cy="44" r="15" fill="none" stroke-width="5"/><path d="M27 19v13M27 56v13M2 44h13M39 44h13" stroke-width="5"/><circle cx="27" cy="44" r="4"/>`,
+  explosao:`<path d="M27 16l6 16 16-6-9 15 13 9-17 3 4 17-13-11-13 11 4-17-17-3 13-9-9-15 16 6Z"/>`,
+};
+const thumb = (a,cena,leg) => { const [bg,fg]=pares[a];
+  return `<svg viewBox="0 0 54 96" role="img" aria-label="Miniatura ilustrativa"><rect width="54" height="96" fill="${bg}"/><g fill="${fg}" stroke="${fg}">${cenas[cena]}</g><rect x="0" y="82" width="54" height="14" fill="${fg}"/><text x="27" y="92" text-anchor="middle" font-family="Antonio" font-weight="700" font-size="7.5" fill="${bg}">${leg}</text></svg>`; };
+
+// ---------- Assinatura: curva do "mais repetido" do vídeo-fonte com o trecho do corte
+function semente(s){ let h=2166136261; for(const c of s){ h^=c.charCodeAt(0); h=Math.imul(h,16777619);} return ()=>((h=Math.imul(h^(h>>>15),2246822507),h^=h>>>13,(h>>>0)/4294967296)); }
+function curva(id, pico, durFonte, durCorte){
+  const W=168,H=34,N=56, r=semente(id), larg=Math.max(.025, durCorte/(durFonte*60));
+  const ys=[]; for(let i=0;i<N;i++){ const x=i/(N-1); let v=.18+.22*r()+.12*Math.sin(x*9+r()*3);
+    v+= .9*Math.exp(-Math.pow((x-pico)/.045,2)); ys.push(Math.min(1,Math.max(.05,v))); }
+  const pt=i=>[i/(N-1)*W, H - ys[i]*(H-4)];
+  let d=`M${pt(0)}`; for(let i=1;i<N;i++){ const [x0,y0]=pt(i-1),[x1,y1]=pt(i); d+=` C${(x0+x1)/2},${y0} ${(x0+x1)/2},${y1} ${x1},${y1}`; }
+  const a=Math.max(0,pico-larg/2)*W, b=Math.min(1,pico+larg/2)*W, seg=Math.max(3,b-a);
+  const cid='c'+id.replace(/\W/g,'');
+  const len=Math.round(W*2.2);
+  return `<svg viewBox="0 -2 ${W} ${H+8}" preserveAspectRatio="none" aria-hidden="true" style="--len:${len}">
+    <defs><clipPath id="${cid}"><rect x="${a-6}" y="-2" width="${seg+12}" height="${H+2}"/></clipPath></defs>
+    <path class="area" d="${d} L${W},${H} L0,${H} Z"/>
+    <rect class="trecho" x="${a-6}" y="-2" width="${seg+12}" height="${H+2}" rx="2"/>
+    <path class="linha-c" d="${d}"/>
+    <path class="pico-l" d="${d}" clip-path="url(#${cid})"/>
+    <line class="base" x1="0" x2="${W}" y1="${H+.5}" y2="${H+.5}"/>
+    <rect class="seg" x="${a}" y="${H+2}" width="${seg}" height="3" rx="1.5"/></svg>`;
+}
+const tempo = (min, frac) => { const t=Math.round(min*60*frac), h=Math.floor(t/3600), m=Math.floor(t%3600/60), s=t%60; return (h?h+':':'')+String(m).padStart(h?2:1,'0')+':'+String(s).padStart(2,'0'); };
+const mmss = s => Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+const carimbo = st => ({
+  ok:'<span class="carimbo ok"><svg class="i"><use href="#i-ok"/></svg>Liberada</span>',
+  contrato:'<span class="carimbo ok"><svg class="i"><use href="#i-ok"/></svg>Contrato</span>',
+  campanha:'<span class="carimbo ok"><svg class="i"><use href="#i-ok"/></svg>Campanha até 30/11</span>',
+  retido:'<span class="carimbo retido"><svg class="i"><use href="#i-escudo"/></svg>Retido: spoiler</span>'}[st]);
+
+// ---------- Render
+document.getElementById('chips').innerHTML = `<button class="chip" aria-pressed="true">Tudo</button>` +
+  fila.map(g=>`<button class="chip" aria-pressed="false" data-chip="${g.a}">${A[g.a].nome}${estado(g.a)==='pico'?' <span class="pico-chip">pico</span>':''} ${varia(g.a)}</button>`).join('');
+document.getElementById('corpo').outerHTML = fila.map(g=>{
+  const e = estado(g.a);
+  const cab = `<tbody class="grupo"><tr><th colspan="5"><div class="gt" data-gt="${g.a}"><h2>${A[g.a].nome}</h2>${e==='pico'?'<span class="pico">No pico</span>':''}${varia(g.a)}<span class="ctx">${A[g.a].ctx}</span></div></th></tr></tbody>`;
+  const linhas = g.rows.map(r=>{ const ret = r[12]==='retido', max = r[5]==='Longo'?300:60;
+    return `<tr class="linha${ret?' retido':''}" tabindex="0">
+      <td class="c-mini"><div class="mini"><span class="thumb">${thumb(g.a,r[1],r[2])}<span class="dchip num">${mmss(r[4])}</span><span class="dur" title="Duração: ${mmss(r[4])}"><i style="width:${Math.min(100,r[4]/max*100)}%"></i></span></span>
+        <span class="txt"><p class="titulo">${r[3]}</p><span class="meta"><span class="cod">${r[0]}</span><span class="num">${r[5]} · ${mmss(r[4])}</span> · ${r[13]}</span><span class="porque">${r[6]}</span></span></div></td>
+      <td class="c-cur"><div class="curva desenha" style="--x:${r[9]*100}%">${curva(r[0],r[9],r[8],r[4])}<span class="tip num">Pico em ${tempo(r[8],r[9])} · ${(2+((r[9]*10)%1.5)).toFixed(1).replace('.',',')}× a média do vídeo</span><small class="num">${r[7]} · trecho em ${tempo(r[8],r[9])}</small></div></td>
+      <td class="c-nt dir">${ret?'<span class="meta">sem nota</span>':`<span class="nt num" title="Nota do corte, de 0 a 100">${r[10]}</span>`}</td>
+      <td class="c-fon fonte"><b>${r[11]}</b>${carimbo(r[12])}</td>
+      <td class="c-hora hora dir num">${r[14]}<small>${r[15]}</small><div class="acoes-linha"><button class="mini-bt">Segurar</button><button class="mini-bt">Detalhes</button></div></td></tr>`; }).join('');
+  return cab + `<tbody>${linhas}</tbody>`;
+}).join('');
+
+// ---------- Cartão "Subindo agora": barras de 48h e atualização no lugar
+const ordem = ['gta','kiko','ff','duda','fc','val'];
+function barras(k){ const r=semente(k+'48'), base=A[k].d; return Array.from({length:24},(_,i)=>{ const t=i/23; let v=.25+.3*r()+ (base/40)*t*t; return Math.max(.08,Math.min(1,v)); }); }
+document.getElementById('assuntos').innerHTML = ordem.map(k=>`<div class="assunto${estado(k)==='pico'?' no-pico':''}" data-assunto="${k}">
+  <b>${A[k].nome}${estado(k)==='pico'?'<span class="pico">pico</span>':''}</b>${varia(k)}
+  <div class="barras" aria-hidden="true">${barras(k).map(v=>`<i style="height:${v*100}%"></i>`).join('')}</div></div>`).join('');
+
+function atualiza(k, novo){
+  const velho = A[k].d; A[k].d = novo;
+  document.querySelectorAll(`[data-var="${k}"]`).forEach(el=>{
+    el.className = `g ${novo>=0?'s':'d'}`;
+    el.querySelector('use').setAttribute('href', `#i-${novo>=0?'sobe':'desce'}`);
+    el.querySelector('[data-dir]').textContent = novo>=0 ? 'subiu ' : 'caiu ';
+    const a=(Math.abs(velho)+'%'), b=(Math.abs(novo)+'%');
+    el.querySelector('.n').innerHTML=[...b].map((c,i)=>`<span class="${c!==a[i]?'vira':''}">${c}</span>`).join('');
+  });
+  const card = document.querySelector(`[data-assunto="${k}"]`); if(!card) return;
+  const pico = estado(k)==='pico'; card.classList.toggle('no-pico', pico);
+  const b = card.querySelector('b'); if(pico && !b.querySelector('.pico')) b.insertAdjacentHTML('beforeend','<span class="pico">pico</span>');
+  const gt = document.querySelector(`[data-gt="${k}"]`); if(gt && pico && !gt.querySelector('.pico')) gt.querySelector('h2').insertAdjacentHTML('afterend','<span class="pico">No pico</span>');
+  const ch = document.querySelector(`[data-chip="${k}"]`); if(ch && pico && !ch.querySelector('.pico-chip')) ch.firstChild.after(Object.assign(document.createElement('span'),{className:'pico-chip',textContent:'pico'}));
+  const is = card.querySelectorAll('.barras i'), ult = is[is.length-1];
+  [...is].slice(1).forEach((el,i)=>el.style.height = is[i+1] ? is[i+1].style.height : el.style.height);
+  ult.style.height = Math.min(100, 30 + novo*2) + '%';
+}
+const roteiro = [['ff',16],['val',-4],['ff',22],['fc',5],['ff',27],['ff',31],['duda',10]];
+let passo=0, pausado = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const bp = document.getElementById('pausa');
+function sinc(){ bp.setAttribute('aria-pressed',pausado); bp.querySelector('span').textContent = pausado?'Retomar':'Pausar'; bp.querySelector('use').setAttribute('href', pausado?'#i-play':'#i-pausa'); }
+bp.addEventListener('click',()=>{ pausado=!pausado; sinc(); }); sinc();
+setInterval(()=>{ if(!pausado && passo<roteiro.length) atualiza(...roteiro[passo++]); }, 3000);
+// Só para capturas de revisão: ?captura=final aplica o roteiro inteiro, sem animação
+if (new URLSearchParams(location.search).get('captura') === 'final') {
+  document.documentElement.classList.add('sem-animacao');
+  while (passo < roteiro.length) atualiza(...roteiro[passo++]);
+}
+// Só para capturas de revisão: ?captura=foco foca a segunda linha como se fosse pelo teclado
+if (new URLSearchParams(location.search).get('captura') === 'foco') { document.documentElement.classList.add('sem-animacao'); document.querySelectorAll('tr.linha')[1].focus({focusVisible:true}); }
+</script>
+</body>
+</html>

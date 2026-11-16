@@ -82,7 +82,8 @@ Começa assim que existir o **nome** (fim da E2) e corre em paralelo até a E15.
 - **Custo:** as auditorias são gratuitas. Domínio: ver o passo 2. Hospedar a página estática: grátis (Vercel/Cloudflare Pages). MEI, se for aberto: DAS mensal (consultar o valor vigente).
 - **Implicação no plano:** o épico de **publicação no YouTube** deve ser um dos primeiros da E13, para a auditoria começar cedo.
 
-### E3 · Marca e design system
+### E3 · Marca e design system ✅ (aprovado pelo usuário em 2026-11-16)
+- **Resultado:** mundo "Estúdio do Criador" (inspirado no YouTube Studio) com a assinatura "Curva do Mais Repetido"; tema escuro padrão + claro; laranja-brasa como marca, âmbar reservado a "pede você". Arquivos: `PRODUCT.md`, `DESIGN.md`, `.impeccable/design.json`, `design/brand/` (logo com o "I" cortado, ícone 32 px), `design/tokens/tokens.css`, `design/fonts/` (OFL), `design/mock/fila.html`. Histórico: rodada 1 (Boletim de Cotações) rejeitada pelo usuário; rodada 2 com orientação "inspirar-se no YouTube".
 - **Líder:** **impeccable**. Apoio: `bmad-agent-ux-designer` (Sally) para alinhar com a UX.
 - **Entra:** `pilares.md`, `naming.md`.
 - **Sai (formato impeccable):** `PRODUCT.md` e `DESIGN.md` na raiz, `.impeccable/design.json`, logotipo em SVG, paleta, tipografia e tokens (`tokens.css`). Nada herdado do ReSocial.

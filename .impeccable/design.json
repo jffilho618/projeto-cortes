@@ -1,0 +1,907 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-16T21:46:02+00:00",
+  "title": "Design System: Picorte",
+  "extensions": {
+    "colorMeta": {
+      "fundo": {
+        "role": "neutral",
+        "displayName": "Grafite Fundo",
+        "canonical": "#0f0f10",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeef0"
+        ]
+      },
+      "superficie": {
+        "role": "neutral",
+        "displayName": "Grafite Superfície",
+        "canonical": "#18181a",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828285",
+          "#a5a5a7",
+          "#c9c9cc",
+          "#eeeef1"
+        ]
+      },
+      "superficie-2": {
+        "role": "neutral",
+        "displayName": "Grafite 2",
+        "canonical": "#212123",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9cb",
+          "#eeeef1"
+        ]
+      },
+      "superficie-3": {
+        "role": "neutral",
+        "displayName": "Grafite 3",
+        "canonical": "#2b2b2e",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252528",
+          "#424245",
+          "#616164",
+          "#828285",
+          "#a4a4a8",
+          "#c9c9cc",
+          "#eeeef2"
+        ]
+      },
+      "texto": {
+        "role": "neutral",
+        "displayName": "Texto",
+        "canonical": "#f1f1f1",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "texto-2": {
+        "role": "neutral",
+        "displayName": "Texto 2",
+        "canonical": "#aaaaaa",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "fio": {
+        "role": "neutral",
+        "displayName": "Fio",
+        "canonical": "#2e2e31",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252528",
+          "#424245",
+          "#616164",
+          "#828285",
+          "#a4a4a8",
+          "#c9c9cc",
+          "#eeeef2"
+        ]
+      },
+      "barra": {
+        "role": "neutral",
+        "displayName": "Barra de Gráfico",
+        "canonical": "#707074",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#252528",
+          "#424245",
+          "#616165",
+          "#828286",
+          "#a4a4a9",
+          "#c9c9cd",
+          "#eeeef2"
+        ]
+      },
+      "marca": {
+        "role": "primary",
+        "displayName": "Laranja-Brasa",
+        "canonical": "#ff6a3d",
+        "tonalRamp": [
+          "#1c0300",
+          "#451102",
+          "#761f00",
+          "#a93204",
+          "#dc4917",
+          "#ff764e",
+          "#feb59f",
+          "#fee9e3"
+        ]
+      },
+      "marca-forte": {
+        "role": "primary",
+        "displayName": "Brasa Forte",
+        "canonical": "#ff8559",
+        "tonalRamp": [
+          "#1a0400",
+          "#441200",
+          "#722604",
+          "#a33b0c",
+          "#cf592c",
+          "#f77d52",
+          "#fcb69d",
+          "#ffe9e2"
+        ]
+      },
+      "marca-texto": {
+        "role": "primary",
+        "displayName": "Texto sobre Brasa",
+        "canonical": "#16120f",
+        "tonalRamp": [
+          "#0e0a08",
+          "#282421",
+          "#46413d",
+          "#65605c",
+          "#87817d",
+          "#a9a4a0",
+          "#cec8c3",
+          "#f3ede9"
+        ]
+      },
+      "marca-suave": {
+        "role": "primary",
+        "displayName": "Brasa Suave",
+        "canonical": "rgb(255 106 61 / .16)",
+        "tonalRamp": [
+          "#1c0300",
+          "#451102",
+          "#761f00",
+          "#a93204",
+          "#dc4917",
+          "#ff764e",
+          "#feb59f",
+          "#fee9e3"
+        ],
+        "note": "Cor translúcida; a rampa usa a cor base opaca."
+      },
+      "curva": {
+        "role": "neutral",
+        "displayName": "Área da Curva",
+        "canonical": "rgb(241 242 244 / .22)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#242526",
+          "#414243",
+          "#606163",
+          "#818284",
+          "#a4a5a7",
+          "#c8c9cb",
+          "#edeef0"
+        ],
+        "note": "Cor translúcida; a rampa usa a cor base opaca."
+      },
+      "pede": {
+        "role": "secondary",
+        "displayName": "Âmbar de Chamada",
+        "canonical": "#ffc53d",
+        "tonalRamp": [
+          "#110a00",
+          "#312201",
+          "#543e06",
+          "#7b5c0f",
+          "#a57b09",
+          "#cf9c12",
+          "#f9bf35",
+          "#feedca"
+        ]
+      },
+      "pede-texto": {
+        "role": "secondary",
+        "displayName": "Texto sobre Âmbar",
+        "canonical": "#16120f",
+        "tonalRamp": [
+          "#0e0a08",
+          "#282421",
+          "#46413d",
+          "#65605c",
+          "#87817d",
+          "#a9a4a0",
+          "#cec8c3",
+          "#f3ede9"
+        ]
+      },
+      "pede-suave": {
+        "role": "secondary",
+        "displayName": "Âmbar Suave",
+        "canonical": "rgb(255 197 61 / .12)",
+        "tonalRamp": [
+          "#110a00",
+          "#312201",
+          "#543e06",
+          "#7b5c0f",
+          "#a57b09",
+          "#cf9c12",
+          "#f9bf35",
+          "#feedca"
+        ],
+        "note": "Cor translúcida; a rampa usa a cor base opaca."
+      },
+      "sobe": {
+        "role": "tertiary",
+        "displayName": "Verde de Alta",
+        "canonical": "#3dd68c",
+        "tonalRamp": [
+          "#000f06",
+          "#022e19",
+          "#094f2f",
+          "#157348",
+          "#119b60",
+          "#1bc37a",
+          "#55e99d",
+          "#c7fedc"
+        ]
+      },
+      "desce": {
+        "role": "tertiary",
+        "displayName": "Vermelho de Queda",
+        "canonical": "#ff6b81",
+        "tonalRamp": [
+          "#1e0004",
+          "#4a0316",
+          "#7b0e2b",
+          "#b01b41",
+          "#d84761",
+          "#fb7385",
+          "#fbb3b8",
+          "#ffe8e9"
+        ]
+      },
+      "carimbo-ok": {
+        "role": "tertiary",
+        "displayName": "Carimbo Liberado",
+        "canonical": "#3dd68c",
+        "tonalRamp": [
+          "#000f06",
+          "#022e19",
+          "#094f2f",
+          "#157348",
+          "#119b60",
+          "#1bc37a",
+          "#55e99d",
+          "#c7fedc"
+        ]
+      },
+      "carimbo-retido": {
+        "role": "tertiary",
+        "displayName": "Carimbo Retido (azul)",
+        "canonical": "#7ab8ff",
+        "tonalRamp": [
+          "#000b1d",
+          "#01254a",
+          "#05427b",
+          "#2663a3",
+          "#4985c9",
+          "#6ba9ef",
+          "#a4cdfc",
+          "#e4f0fe"
+        ]
+      },
+      "carimbo-pausado": {
+        "role": "tertiary",
+        "displayName": "Carimbo Pausado",
+        "canonical": "#ff6b81",
+        "tonalRamp": [
+          "#1e0004",
+          "#4a0316",
+          "#7b0e2b",
+          "#b01b41",
+          "#d84761",
+          "#fb7385",
+          "#fbb3b8",
+          "#ffe8e9"
+        ]
+      },
+      "fundo-claro": {
+        "role": "neutral",
+        "displayName": "Grafite Fundo (tema claro)",
+        "canonical": "#f7f7f7",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "superficie-claro": {
+        "role": "neutral",
+        "displayName": "Grafite Superfície (tema claro)",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "superficie-2-claro": {
+        "role": "neutral",
+        "displayName": "Grafite 2 (tema claro)",
+        "canonical": "#f0f0f0",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "superficie-3-claro": {
+        "role": "neutral",
+        "displayName": "Grafite 3 (tema claro)",
+        "canonical": "#e5e5e5",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "texto-claro": {
+        "role": "neutral",
+        "displayName": "Texto (tema claro)",
+        "canonical": "#141414",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "texto-2-claro": {
+        "role": "neutral",
+        "displayName": "Texto 2 (tema claro)",
+        "canonical": "#555555",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "fio-claro": {
+        "role": "neutral",
+        "displayName": "Fio (tema claro)",
+        "canonical": "#e3e3e3",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "barra-claro": {
+        "role": "neutral",
+        "displayName": "Barra de Gráfico (tema claro)",
+        "canonical": "#8a8a8a",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "marca-claro": {
+        "role": "primary",
+        "displayName": "Laranja-Brasa (tema claro)",
+        "canonical": "#c43c10",
+        "tonalRamp": [
+          "#1c0200",
+          "#451002",
+          "#771d00",
+          "#aa3005",
+          "#d84f28",
+          "#fa7a57",
+          "#ffb4a0",
+          "#fee9e3"
+        ]
+      },
+      "marca-forte-claro": {
+        "role": "primary",
+        "displayName": "Brasa Forte (tema claro)",
+        "canonical": "#a8320c",
+        "tonalRamp": [
+          "#1c0300",
+          "#470e00",
+          "#761f04",
+          "#a8320d",
+          "#d05736",
+          "#f87b5a",
+          "#fdb5a1",
+          "#fee9e4"
+        ]
+      },
+      "marca-texto-claro": {
+        "role": "primary",
+        "displayName": "Texto sobre Brasa (tema claro)",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "marca-suave-claro": {
+        "role": "primary",
+        "displayName": "Brasa Suave (tema claro)",
+        "canonical": "rgb(196 60 16 / .1)",
+        "tonalRamp": [
+          "#1c0200",
+          "#451002",
+          "#771d00",
+          "#aa3005",
+          "#d84f28",
+          "#fa7a57",
+          "#ffb4a0",
+          "#fee9e3"
+        ],
+        "note": "Cor translúcida; a rampa usa a cor base opaca."
+      },
+      "curva-claro": {
+        "role": "neutral",
+        "displayName": "Área da Curva (tema claro)",
+        "canonical": "rgb(20 22 27 / .16)",
+        "tonalRamp": [
+          "#090b10",
+          "#23252a",
+          "#3f4248",
+          "#5f6167",
+          "#7f8289",
+          "#a2a5ac",
+          "#c6c9d0",
+          "#ebeef6"
+        ],
+        "note": "Cor translúcida; a rampa usa a cor base opaca."
+      },
+      "pede-claro": {
+        "role": "secondary",
+        "displayName": "Âmbar de Chamada (tema claro)",
+        "canonical": "#8a5600",
+        "tonalRamp": [
+          "#140800",
+          "#361f01",
+          "#5c3907",
+          "#855511",
+          "#ac7530",
+          "#d19855",
+          "#f7bd79",
+          "#feebd7"
+        ]
+      },
+      "pede-texto-claro": {
+        "role": "secondary",
+        "displayName": "Texto sobre Âmbar (tema claro)",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "pede-suave-claro": {
+        "role": "secondary",
+        "displayName": "Âmbar Suave (tema claro)",
+        "canonical": "#fff4d6",
+        "tonalRamp": [
+          "#100a00",
+          "#2d240b",
+          "#4a4128",
+          "#6a6147",
+          "#8c8267",
+          "#afa488",
+          "#d3c9ac",
+          "#f9eed0"
+        ]
+      },
+      "sobe-claro": {
+        "role": "tertiary",
+        "displayName": "Verde de Alta (tema claro)",
+        "canonical": "#0a7a44",
+        "tonalRamp": [
+          "#010f05",
+          "#022e16",
+          "#0a4f2b",
+          "#167442",
+          "#379860",
+          "#5ebc81",
+          "#83e1a5",
+          "#c7fed8"
+        ]
+      },
+      "desce-claro": {
+        "role": "tertiary",
+        "displayName": "Vermelho de Queda (tema claro)",
+        "canonical": "#c21f38",
+        "tonalRamp": [
+          "#1f0002",
+          "#4a040f",
+          "#7f011d",
+          "#b6082e",
+          "#df404f",
+          "#fb7579",
+          "#fcb4b2",
+          "#ffe8e8"
+        ]
+      },
+      "carimbo-ok-claro": {
+        "role": "tertiary",
+        "displayName": "Carimbo Liberado (tema claro)",
+        "canonical": "#0a7a44",
+        "tonalRamp": [
+          "#010f05",
+          "#022e16",
+          "#0a4f2b",
+          "#167442",
+          "#379860",
+          "#5ebc81",
+          "#83e1a5",
+          "#c7fed8"
+        ]
+      },
+      "carimbo-retido-claro": {
+        "role": "tertiary",
+        "displayName": "Carimbo Retido (azul) (tema claro)",
+        "canonical": "#1f5fbf",
+        "tonalRamp": [
+          "#000924",
+          "#012254",
+          "#063d8a",
+          "#1c5cbc",
+          "#4080e3",
+          "#6ea5fb",
+          "#abcbfc",
+          "#e6effe"
+        ]
+      },
+      "carimbo-pausado-claro": {
+        "role": "tertiary",
+        "displayName": "Carimbo Pausado (tema claro)",
+        "canonical": "#c21f38",
+        "tonalRamp": [
+          "#1f0002",
+          "#4a040f",
+          "#7f011d",
+          "#b6082e",
+          "#df404f",
+          "#fb7579",
+          "#fcb4b2",
+          "#ffe8e8"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Título da página, Antonio caixa-alta."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Nome do grupo de assunto e títulos de cartão."
+      },
+      "numero": {
+        "displayName": "Número",
+        "purpose": "Nota do corte, tabular."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Título do corte, navegação, abas, chips, botões."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto corrido e o \"por quê\" do corte (até 62ch)."
+      },
+      "dado": {
+        "displayName": "Dado",
+        "purpose": "Células da tabela, tabular."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Cabeçalho da tabela, metadados, legendas."
+      },
+      "selo": {
+        "displayName": "Selo",
+        "purpose": "Carimbos e selos de pico, caixa-alta."
+      }
+    },
+    "shadows": [
+      {
+        "name": "anel-pede",
+        "value": "inset 0 0 0 1.5px var(--pede)",
+        "purpose": "Contorno do bloco e da faixa \"Pede você\". Única elevação de cor."
+      },
+      {
+        "name": "sombra",
+        "value": "0 4px 16px rgb(0 0 0 / .35), 0 1px 2px rgb(0 0 0 / .3)",
+        "purpose": "Definida em tokens.css (claro: 0 2px 10px rgb(20 22 27 / .08), 0 1px 2px rgb(20 22 27 / .06)), mas sem uso na interface construída."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-saida",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Curva padrão de todas as transições e animações."
+      },
+      {
+        "name": "dur-curta",
+        "value": "160ms",
+        "purpose": "Hover, foco, troca de fundo e cor, dicas e ações da linha."
+      },
+      {
+        "name": "dur-curva",
+        "value": "1100ms",
+        "purpose": "Traçado da Curva do Mais Repetido ao abrir."
+      },
+      {
+        "name": "curva-aparece",
+        "value": "600ms, atraso 500ms",
+        "purpose": "Área, trecho e linha do pico surgem depois do traçado."
+      },
+      {
+        "name": "digito-vira",
+        "value": "450ms",
+        "purpose": "Dígitos da cotação que mudam viram no lugar."
+      },
+      {
+        "name": "barras",
+        "value": "500ms",
+        "purpose": "Altura e cor das barras de 48h ao atualizar."
+      },
+      {
+        "name": "movimento-reduzido",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Curvas prontas, dígitos sem virar, atualização ao vivo começa pausada."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "celular",
+        "value": "max-width: 900px"
+      },
+      {
+        "name": "coluna-unica",
+        "value": "max-width: 1240px"
+      },
+      {
+        "name": "trilho",
+        "value": "901px a 1599px"
+      },
+      {
+        "name": "lateral-completa",
+        "value": "min-width: 1600px"
+      }
+    ],
+    "tema": {
+      "padrao": "escuro",
+      "variante": "[data-tema=\"claro\"]",
+      "tokens": "design/tokens/tokens.css",
+      "stack": "Indefinida; decidida na E10 (arquitetura). Tokens em CSS custom properties puras."
+    },
+    "marca": {
+      "logo": "design/brand/picorte-logo.svg",
+      "logoNegativo": "design/brand/picorte-logo-negativo.svg",
+      "icone": "design/brand/picorte-icone.svg",
+      "fontes": "design/fonts/ (Antonio, Archivo; OFL)"
+    }
+  },
+  "components": [
+    {
+      "name": "Botão principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal: invertido em repouso, laranja-brasa no hover.",
+      "html": "<button class=\"ds-bt ds-bt-pri\">Registrar autorização</button>",
+      "css": ".ds-bt{font:600 var(--t-dado,0.875rem)/1.2 var(--fonte-ui,Archivo,system-ui,sans-serif);padding:9px 14px;border-radius:99px;border:0;cursor:pointer;transition:background var(--dur-curta,160ms) var(--ease-saida,cubic-bezier(.16,1,.3,1)),color var(--dur-curta,160ms) var(--ease-saida,cubic-bezier(.16,1,.3,1))}.ds-bt-pri{background:var(--texto,#f1f1f1);color:var(--fundo,#0f0f10)}.ds-bt-pri:hover{background:var(--marca,#ff6a3d);color:var(--marca-texto,#16120f)}.ds-bt:focus-visible{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}.ds-bt:disabled{opacity:.45;cursor:not-allowed}"
+    },
+    {
+      "name": "Botão secundário",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Segunda ação de um pedido ou cartão.",
+      "html": "<button class=\"ds-bt2\">Manter bloqueada</button>",
+      "css": ".ds-bt2{font:600 0.875rem/1.2 var(--fonte-ui,Archivo,system-ui,sans-serif);padding:9px 14px;border-radius:99px;border:0;cursor:pointer;background:var(--superficie-3,#2b2b2e);color:var(--texto,#f1f1f1);transition:background 160ms cubic-bezier(.16,1,.3,1)}.ds-bt2:hover{background:var(--fio,#2e2e31)}.ds-bt2:focus-visible{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}"
+    },
+    {
+      "name": "Busca",
+      "kind": "input",
+      "refersTo": "busca",
+      "description": "Campo de busca em pílula na barra superior.",
+      "html": "<label class=\"ds-busca\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"m16 16 4.5 4.5\"/></svg><input placeholder=\"Buscar cortes, assuntos ou fontes\"></label>",
+      "css": ".ds-busca{display:flex;align-items:center;gap:8px;max-width:520px;padding:9px 16px;border:1px solid var(--fio,#2e2e31);border-radius:99px;background:var(--superficie,#18181a);color:var(--texto-2,#aaaaaa)}.ds-busca input{flex:1;border:0;background:transparent;color:var(--texto,#f1f1f1);font:400 0.875rem var(--fonte-ui,Archivo,system-ui,sans-serif);outline:0}.ds-busca:focus-within{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}"
+    },
+    {
+      "name": "Chips de assunto",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filtro por assunto com cotação (seta e número) e selo de pico.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">Tudo</button><button class=\"ds-chip\" aria-pressed=\"false\">GTA 6 <span class=\"ds-pico\">pico</span> <span class=\"ds-s\">&#8593;38%</span></button><button class=\"ds-chip\" aria-pressed=\"false\">Valorant <span class=\"ds-d\">&#8595;3%</span></button></div>",
+      "css": ".ds-chips{display:flex;gap:8px;flex-wrap:wrap}.ds-chip{border:0;background:var(--superficie-2,#212123);color:var(--texto,#f1f1f1);padding:7px 12px;border-radius:6px;font:600 0.875rem var(--fonte-ui,Archivo,system-ui,sans-serif);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background 160ms cubic-bezier(.16,1,.3,1)}.ds-chip:hover{background:var(--superficie-3,#2b2b2e)}.ds-chip[aria-pressed=\"true\"]{background:var(--texto,#f1f1f1);color:var(--fundo,#0f0f10)}.ds-chip:focus-visible{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}.ds-pico{background:var(--marca,#ff6a3d);color:var(--marca-texto,#16120f);font:700 11px/1 var(--fonte-ui,Archivo,sans-serif);text-transform:uppercase;letter-spacing:.04em;padding:3px 5px;border-radius:3px}.ds-s{color:var(--sobe,#3dd68c);font-weight:700;font-size:.75rem;font-variant-numeric:tabular-nums}.ds-d{color:var(--desce,#ff6b81);font-weight:700;font-size:.75rem;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Navegação lateral",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Menu do estúdio; ativo com ícone em brasa, alertas com contador âmbar.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"5\" height=\"9\" rx=\"1.5\"/><path d=\"M11 6h10M11 10h7M3 17h18M3 20.5h12\"/></svg>Fila<span class=\"ds-cont\">14</span></a><a href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 18c3-1 4-9 7-9s3 6 5 6 3-8 6-11\"/><path d=\"M3 21h18\"/></svg>Radar</a><a href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z\"/><path d=\"M10 20.5a2 2 0 0 0 4 0\"/></svg>Alertas<span class=\"ds-cont ds-cont-pede\">2</span></a></nav>",
+      "css": ".ds-nav{display:grid;gap:2px;width:208px;padding:8px;background:var(--fundo,#0f0f10)}.ds-nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;color:var(--texto-2,#aaaaaa);text-decoration:none;font:600 0.875rem var(--fonte-ui,Archivo,system-ui,sans-serif);transition:background 160ms cubic-bezier(.16,1,.3,1),color 160ms cubic-bezier(.16,1,.3,1)}.ds-nav a:hover{background:var(--superficie,#18181a);color:var(--texto,#f1f1f1)}.ds-nav a[aria-current]{background:var(--superficie-2,#212123);color:var(--texto,#f1f1f1)}.ds-nav a[aria-current] svg{color:var(--marca,#ff6a3d)}.ds-nav a:focus-visible{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}.ds-cont{margin-left:auto;font-size:.75rem;color:var(--texto-2,#aaaaaa);font-variant-numeric:tabular-nums}.ds-cont-pede{background:var(--pede,#ffc53d);color:var(--pede-texto,#16120f);padding:2px 7px;border-radius:99px;font-weight:700}"
+    },
+    {
+      "name": "Carimbos de estado",
+      "kind": "custom",
+      "refersTo": "carimbo-ok",
+      "description": "Estado estampado no corte: ícone + palavra, inclinado; retido é azul.",
+      "html": "<div class=\"ds-carimbos\"><span class=\"ds-carimbo ds-ok\"><svg viewBox=\"0 0 16 16\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3.5 8.5 3 3 6-7\"/></svg>Liberada</span><span class=\"ds-carimbo ds-retido\"><svg viewBox=\"0 0 16 16\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 1.75 2.75 3.5v4c0 3.2 2.2 5.6 5.25 6.75 3.05-1.15 5.25-3.55 5.25-6.75v-4Z\"/><path d=\"M8 5.25v3M8 10.6v.15\"/></svg>Retido: spoiler</span><span class=\"ds-carimbo ds-pausado\"><svg viewBox=\"0 0 16 16\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"><path d=\"M6 4v8M10 4v8\"/></svg>Pausado</span></div>",
+      "css": ".ds-carimbos{display:flex;gap:12px;flex-wrap:wrap}.ds-carimbo{display:inline-flex;align-items:center;gap:4px;font:700 11px/1 var(--fonte-ui,Archivo,system-ui,sans-serif);letter-spacing:.06em;text-transform:uppercase;border:1.5px solid currentColor;padding:3px 6px;border-radius:4px;transform:rotate(-2deg);white-space:nowrap}.ds-ok{color:var(--carimbo-ok,#3dd68c)}.ds-retido{color:var(--carimbo-retido,#7ab8ff)}.ds-pausado{color:var(--carimbo-pausado,#ff6b81)}"
+    },
+    {
+      "name": "Curva do Mais Repetido",
+      "kind": "custom",
+      "refersTo": "marca",
+      "description": "Assinatura: curva de interesse do vídeo-fonte com o trecho do corte marcado no pico; dica no hover.",
+      "html": "<div class=\"ds-curva\" tabindex=\"0\"><svg viewBox=\"0 -2 168 42\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><defs><clipPath id=\"ds-cc\"><rect x=\"84\" y=\"-2\" width=\"20\" height=\"36\"/></clipPath></defs><path class=\"ds-area\" d=\"M0,26 C10,26 10,22 20,24 C30,26 30,20 40,23 C50,26 50,21 60,22 C70,23 76,20 84,14 C90,2 92,2 96,3 C100,4 102,16 108,22 C118,26 128,21 138,24 C148,26 158,22 168,24 L168,34 L0,34 Z\"/><rect class=\"ds-trecho\" x=\"84\" y=\"-2\" width=\"20\" height=\"36\" rx=\"2\"/><path class=\"ds-linha\" d=\"M0,26 C10,26 10,22 20,24 C30,26 30,20 40,23 C50,26 50,21 60,22 C70,23 76,20 84,14 C90,2 92,2 96,3 C100,4 102,16 108,22 C118,26 128,21 138,24 C148,26 158,22 168,24\"/><path class=\"ds-pico-l\" clip-path=\"url(#ds-cc)\" d=\"M0,26 C10,26 10,22 20,24 C30,26 30,20 40,23 C50,26 50,21 60,22 C70,23 76,20 84,14 C90,2 92,2 96,3 C100,4 102,16 108,22 C118,26 128,21 138,24 C148,26 158,22 168,24\"/><line class=\"ds-base\" x1=\"0\" x2=\"168\" y1=\"34.5\" y2=\"34.5\"/><rect class=\"ds-seg\" x=\"90\" y=\"36\" width=\"8\" height=\"3\" rx=\"1.5\"/></svg><span class=\"ds-tip\">Pico em 1:41:46 · 2,4× a média do vídeo</span><small>Live de 3h12 · trecho em 1:41:46</small></div>",
+      "css": ".ds-curva{position:relative;width:156px;margin-top:40px;font-family:var(--fonte-ui,Archivo,system-ui,sans-serif);outline:0}.ds-curva svg{display:block;width:156px;height:40px;overflow:visible}.ds-area{fill:var(--curva,rgb(241 242 244 / .22))}.ds-linha{fill:none;stroke:var(--texto-2,#aaaaaa);stroke-width:1.25;opacity:.7}.ds-trecho{fill:var(--marca-suave,rgb(255 106 61 / .16))}.ds-pico-l{fill:none;stroke:var(--marca,#ff6a3d);stroke-width:2.25}.ds-base{stroke:var(--fio,#2e2e31);stroke-width:1}.ds-seg{fill:var(--marca,#ff6a3d)}.ds-curva small{display:block;font-size:11px;color:var(--texto-2,#aaaaaa);margin-top:3px;white-space:nowrap;font-variant-numeric:tabular-nums}.ds-tip{position:absolute;bottom:calc(100% + 6px);left:58%;transform:translateX(-50%);background:var(--texto,#f1f1f1);color:var(--fundo,#0f0f10);font-size:.75rem;font-weight:600;padding:6px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 160ms cubic-bezier(.16,1,.3,1),transform 160ms cubic-bezier(.16,1,.3,1)}.ds-curva:hover .ds-tip,.ds-curva:focus-visible .ds-tip{opacity:1;transform:translateX(-50%) translateY(-2px)}"
+    },
+    {
+      "name": "Bloco Pede você",
+      "kind": "card",
+      "refersTo": "cartao",
+      "description": "Único lugar do âmbar: anel interno, contador e ícone de cada pedido.",
+      "html": "<section class=\"ds-pede\"><h2>Pede você <span class=\"ds-q\">2</span></h2><div class=\"ds-pedido\"><h3><svg viewBox=\"0 0 16 16\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 1.75 2.75 3.5v4c0 3.2 2.2 5.6 5.25 6.75 3.05-1.15 5.25-3.55 5.25-6.75v-4Z\"/><path d=\"M8 5.25v3M8 10.6v.15\"/></svg>A fonte em alta está como desconhecida.</h3><p>Nada foi baixado nem cortado.</p></div></section>",
+      "css": ".ds-pede{background:var(--superficie,#18181a);color:var(--texto,#f1f1f1);border-radius:10px;padding:16px;box-shadow:inset 0 0 0 1.5px var(--pede,#ffc53d);max-width:336px;font-family:var(--fonte-ui,Archivo,system-ui,sans-serif)}.ds-pede h2{font:700 1.25rem/1 var(--fonte-titulo,Antonio,\"Arial Narrow\",sans-serif);text-transform:uppercase;letter-spacing:.02em;margin:0 0 12px;display:flex;align-items:center;gap:8px}.ds-q{background:var(--pede,#ffc53d);color:var(--pede-texto,#16120f);font:700 13px/1 var(--fonte-ui,Archivo,sans-serif);padding:3px 8px;border-radius:99px}.ds-pedido h3{margin:0 0 4px;font:700 .875rem/1.35 var(--fonte-ui,Archivo,sans-serif);display:flex;gap:8px}.ds-pedido h3 svg{color:var(--pede,#ffc53d);flex:none;margin-top:1px}.ds-pedido p{margin:0 0 0 26px;font-size:.75rem;color:var(--texto-2,#aaaaaa)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Estúdio do Criador",
+    "overview": "O Picorte é operado como um estúdio de criador: a fila é a aba de conteúdo de um estúdio, só que de cortes que ainda vão sair. Superfícies grafite em camadas, uma tabela densa e legível, miniaturas 9:16 como a única imagem, e em cada linha a peça-assinatura do sistema: a **Curva do Mais Repetido**, a curva de interesse do vídeo-fonte com o trecho do corte marcado no pico. A tela explica por que cada corte foi escolhido e de onde ele saiu, em vez de empilhar cartões de métricas.\n\nA densidade é de ferramenta de trabalho para sessão longa: tema escuro por padrão, com variante clara completa (`data-tema=\"claro\"`). A cor é escassa e sempre tem função: laranja-brasa para o pico e o corte, âmbar só para o que pede o operador, verde e vermelho só para cotação com seta e número, azul para o que está retido. Títulos condensados em caixa-alta dão o tom de estúdio; a interface fica em uma grotesca de leitura rápida com números tabulares.\n\nA stack ainda não foi decidida (sai na E10, arquitetura). Os tokens são propriedades personalizadas de CSS puras, em `design/tokens/tokens.css`, sem framework; as fontes ficam em `design/fonts/` e a marca em `design/brand/`.\n\nO mundo recusa o painel genérico de SaaS com cartões e métricas, o visual gamer clichê, o preto e branco de jornal e a cara de loja online.",
+    "keyCharacteristics": [
+      "Grafite em quatro camadas tonais, sem sombras na interface.",
+      "Laranja-brasa como única cor de marca, ligada ao pico.",
+      "Curva de interesse com o trecho do corte em cada linha da fila.",
+      "Estados carimbados no próprio corte; nada some, tudo fica visível e explicado.",
+      "Antonio condensada em caixa-alta para títulos, Archivo para a interface, números tabulares.",
+      "Layouts próprios para desktop largo, desktop compacto e celular."
+    ],
+    "rules": [
+      {
+        "name": "A Regra da Brasa",
+        "body": "O laranja-brasa marca o pico: trecho do corte, curvas, selos de pico, assunto no pico e o hover da ação principal. Não vira cor de fundo de seção, de botão em repouso nem de decoração.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra do Âmbar Reservado",
+        "body": "O âmbar aparece só em alertas \"pede você\". Nenhum outro estado, aviso ou destaque usa âmbar; \"em espera\" não é âmbar.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra do Retido Azul",
+        "body": "Retido é azul (`carimbo-retido`), no carimbo e no link do grupo (\"1 corte retido pelo freio de spoiler\"). Nunca reutiliza o âmbar.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra da Cotação",
+        "body": "Taxa sempre leva seta e número (`↑ 38%`, `↓ 3%`), com o verbo para leitor de tela (\"subiu\"/\"caiu\"). Cor sozinha nunca diz se subiu ou caiu.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra das Cores de Terceiros",
+        "body": "Cores e logotipos de YouTube, TikTok, Instagram e Facebook aparecem só para identificar a rede, no formato oficial de cada uma. Nunca como paleta da interface. Na fila, as redes são citadas em texto.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra do Número Tabular",
+        "body": "Todo número que muda ou se compara (contadores, notas, horários, cotações, durações) usa `tabular-nums lining-nums`.",
+        "section": "typography"
+      },
+      {
+        "name": "A Regra da Caixa-Alta Condensada",
+        "body": "Caixa-alta é de Antonio (títulos) e dos selos. Texto de interface em Archivo fica em caixa normal.",
+        "section": "typography"
+      },
+      {
+        "name": "A Regra da Elevação Reservada",
+        "body": "Nada se destaca por sombra. O único contorno de cor marca o que pede o operador.",
+        "section": "elevation"
+      },
+      {
+        "name": "A Regra do I Cortado",
+        "body": "O \"I\" do logotipo carrega o mesmo corte diagonal da marca: a parte de cima desliza sobre a diagonal. Não se redesenha o logotipo em texto vivo nem se remove o corte.",
+        "section": "shapes"
+      },
+      {
+        "name": "A Regra do Carimbo",
+        "body": "Estado se carimba no corte, com ícone e palavra, e nada some. Retido, pausado ou bloqueado continua listado, contado na sua aba e explicado em texto (\"Nada foi baixado nem cortado\", \"pausados em todas as redes às 19h02\").",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** usar o laranja-brasa (`marca`) só para pico, trecho do corte, curvas, selos de pico e o hover da ação principal.",
+      "**Do** reservar o âmbar (`pede`) só para alertas \"pede você\".",
+      "**Do** marcar retido em azul (`carimbo-retido`).",
+      "**Do** mostrar toda taxa com seta e número, e o verbo \"subiu\"/\"caiu\" para leitor de tela.",
+      "**Do** carimbar estados no corte com ícone e palavra, e manter retidos e pausados visíveis e contados.",
+      "**Do** usar números tabulares em contagens, notas, horários e cotações.",
+      "**Do** dar a cada largura o seu layout: trilho de 76px no desktop compacto e navegação inferior com tabela em blocos no celular.",
+      "**Do** respeitar `prefers-reduced-motion`: curvas prontas, dígitos sem virar, atualização ao vivo pausada.",
+      "**Do** usar o logotipo com o \"I\" cortado na diagonal, em tinta no tema claro e negativo no escuro, e o ícone de app no trilho compacto."
+    ],
+    "donts": [
+      "**Don't** usar âmbar para \"em espera\", aviso genérico ou destaque.",
+      "**Don't** indicar subida, queda ou estado só por cor.",
+      "**Don't** esconder um corte retido, pausado ou bloqueado.",
+      "**Don't** usar cores ou logotipos de redes de terceiros fora da identificação da rede.",
+      "**Don't** mostrar R$, receita estimada ou qualquer promessa de ganho.",
+      "**Don't** criar profundidade com sombra; use as camadas tonais.",
+      "**Don't** transformar a fila em painel de cartões e métricas."
+    ]
+  }
+}

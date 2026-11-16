@@ -1,0 +1,81 @@
+/* Picorte — tokens do design system "Estúdio do Criador" + assinatura "Curva do Mais Repetido".
+   Tema escuro é o padrão (sessão longa, vídeo no centro); o claro é variante: data-tema="claro". */
+
+@font-face { font-family: "Antonio"; src: url("../fonts/Antonio[wght].ttf") format("truetype"); font-weight: 100 700; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url("../fonts/Archivo[wdth,wght].ttf") format("truetype"); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
+
+:root {
+  /* Superfícies (escuro) */
+  --fundo: #0f0f10;
+  --superficie: #18181a;
+  --superficie-2: #212123;
+  --superficie-3: #2b2b2e;
+  --texto: #f1f1f1;
+  --texto-2: #aaaaaa;          /* 7,6:1 sobre --superficie */
+  --fio: #2e2e31;
+  --barra: #707074;            /* barras de gráfico: 3:1 sobre --superficie */
+
+  /* Marca: laranja-brasa. Pico, trecho do corte, curvas, ação principal */
+  --marca: #ff6a3d;
+  --marca-forte: #ff8559;
+  --marca-texto: #16120f;      /* texto sobre a marca */
+  --marca-suave: rgb(255 106 61 / .16);
+  --curva: rgb(241 242 244 / .22);
+
+  /* Reservada: âmbar só para "pede você agora" */
+  --pede: #ffc53d;
+  --pede-texto: #16120f;
+  --pede-suave: rgb(255 197 61 / .12);
+
+  /* Cotação: sempre com seta e número */
+  --sobe: #3dd68c;
+  --desce: #ff6b81;
+
+  /* Estados carimbados */
+  --carimbo-ok: #3dd68c;
+  --carimbo-retido: #7ab8ff;   /* azul "em espera": não reutiliza o âmbar */
+  --carimbo-pausado: #ff6b81;
+
+  --sombra: 0 4px 16px rgb(0 0 0 / .35), 0 1px 2px rgb(0 0 0 / .3);
+
+  /* Tipografia */
+  --fonte-titulo: "Antonio", "Arial Narrow", sans-serif;
+  --fonte-ui: "Archivo", system-ui, sans-serif;
+  --t-pagina: 2.25rem;
+  --t-secao: 1.25rem;
+  --t-corpo: 0.9375rem;
+  --t-dado: 0.875rem;
+  --t-rotulo: 0.75rem;
+
+  /* Espaço (base 4), forma, movimento */
+  --e1: 4px; --e2: 8px; --e3: 12px; --e4: 16px; --e5: 24px; --e6: 32px; --e7: 48px;
+  --raio: 10px; --raio-p: 6px; --raio-miniatura: 6px;
+  --ease-saida: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-curta: 160ms;
+  --dur-curva: 1100ms;
+}
+
+[data-tema="claro"] {
+  --fundo: #f7f7f7;
+  --superficie: #ffffff;
+  --superficie-2: #f0f0f0;
+  --superficie-3: #e5e5e5;
+  --texto: #141414;
+  --texto-2: #555555;
+  --fio: #e3e3e3;
+  --barra: #8a8a8a;
+  --marca: #c43c10;            /* escurecida: branco sobre ela 4,9:1 */
+  --marca-forte: #a8320c;
+  --marca-texto: #ffffff;
+  --marca-suave: rgb(196 60 16 / .1);
+  --curva: rgb(20 22 27 / .16);
+  --pede: #8a5600;
+  --pede-texto: #ffffff;
+  --pede-suave: #fff4d6;
+  --sobe: #0a7a44;
+  --desce: #c21f38;
+  --carimbo-ok: #0a7a44;
+  --carimbo-retido: #1f5fbf;
+  --carimbo-pausado: #c21f38;
+  --sombra: 0 2px 10px rgb(20 22 27 / .08), 0 1px 2px rgb(20 22 27 / .06);
+}
