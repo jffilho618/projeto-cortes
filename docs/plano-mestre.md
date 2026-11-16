@@ -56,7 +56,7 @@ FASE G — FUTURO (fora do MVP)
 - **Critério de saída:** toda decisão futura pode ser julgada contra os pilares; você aprova o documento.
 - **Custo:** zero.
 
-### E2 · Naming
+### E2 · Naming ✅ (Picorte, 2026-11-16; INPI ok; checagem dos @ adiada pelo usuário)
 - **Líder:** skill própria **`cortes-naming`** (critérios, geração, filtro, checagens). Apoio: `bmad-cis-agent-storyteller` (Sophia) e `bmad-brainstorming` para gerar nomes; `bmad-deep-recon` para pesquisar conflitos.
 - **Entra:** `pilares.md`.
 - **Sai:** `_bmad-output/planning-artifacts/naming.md`, com:
@@ -65,7 +65,7 @@ FASE G — FUTURO (fora do MVP)
   - checagens do finalista: domínio `.com.br`/`.com`, @ nas cinco redes, busca de anterioridade no INPI (classes 9, 35, 42), busca na web.
 - **Skill:** `cortes-naming` (modos Produto e Canal). O modo Canal se repete a cada nicho novo; nesta etapa saiu também o nome do canal de games: **Bomba Clips** (contas reservadas; **nada é publicado até a ferramenta existir**).
 - **Sai também:** `_bmad-output/planning-artifacts/naming-canais.md`.
-- **Critério de saída:** nome do produto e do canal de games escolhidos; `.com.br` e `.com` do produto **verificados livres** (sem registrar); @ e INPI conferidos manualmente.
+- **Critério de saída:** nome do produto e do canal de games escolhidos; domínios do produto **verificados livres** (sem registrar; modificador `use…`/`…app` aceito pelo usuário); @ e INPI conferidos manualmente.
 - **Custo:** zero. **Nada é registrado nesta etapa** (decisão do usuário: só gastar quando o projeto for realidade). O registro do domínio passa para a T1. A **busca** no INPI é grátis; o **pedido** de registro de marca fica para a E17.
 
 ### T1 · Trilha paralela — contas de desenvolvedor e auditorias ⏱️
@@ -95,7 +95,7 @@ Começa assim que existir o **nome** (fim da E2) e corre em paralelo até a E15.
 
 ### E4 · Product brief
 - **Líder:** `bmad-product-brief` (Mary, `bmad-agent-analyst`). Apoio: `bmad-deep-recon` para pesquisa de mercado (ferramentas de autoclip como referência de funcionalidade, campanhas de clipping pagas por mil views, economia de canais de cortes, regras de monetização do YPP para conteúdo reutilizado).
-- **Entra:** pilares, `visao.md`, naming, handoff.
+- **Entra:** pilares, `visao.md`, naming, `concorrentes.md` (semente: Cortaí), handoff.
 - **Sai:** `_bmad-output/planning-artifacts/product-brief.md` e `_bmad-output/planning-artifacts/pesquisa-mercado.md`.
 - **Critério de saída:** problema, público, proposta de valor, fontes de receita (YPP, campanhas de clipping, contratos com criadores) e metas mensuráveis do MVP aprovadas.
 - **Custo:** zero (busca web da sessão).

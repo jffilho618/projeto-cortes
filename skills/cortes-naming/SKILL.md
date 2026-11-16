@@ -46,3 +46,4 @@ Saída: uma seção por canal em `{planning_artifacts}/naming-canais.md` (nicho,
 ## Gotchas
 
 - Disponibilidade muda. Na T1, antes de registrar, rode o script de novo.
+- **Gere pela qualidade, nunca pelo domínio.** Juntar sílabas até achar domínio livre produz nomes ruins (o usuário rejeitou uma rodada inteira por isso). Parta de palavras reais com significado ligado aos pilares e cheque o domínio depois. Palavras curtas e boas quase nunca têm `.com` ou `.com.br` puros livres: proponha cedo um domínio com modificador (`use…`, `…app`), que depende da aprovação do usuário.

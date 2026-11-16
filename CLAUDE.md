@@ -1,6 +1,6 @@
 # CLAUDE.md — projeto-cortes
 
-> Codinome provisório. O nome final sai da etapa de naming (ver `docs/plano-mestre.md`).
+> Nome do produto: **Picorte** (pico + corte), escolhido na E2 em 2026-11-16, com INPI pendente (`_bmad-output/planning-artifacts/naming.md`). O repositório continua com o nome `projeto-cortes`.
 
 ## Visão do produto
 
