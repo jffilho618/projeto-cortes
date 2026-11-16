@@ -1,0 +1,15 @@
+# Team / enterprise overrides for _bmad/config.toml.
+# Committed to the repo — applies to every developer on the project.
+# Tables deep-merge over base config; keyed entries merge by key.
+# Este arquivo NÃO é sobrescrito pelo instalador.
+
+[core]
+communication_language = "Português do Brasil"
+document_output_language = "Português do Brasil"
+
+# Artefatos de teste do TEA fora de skills/ (skills/ é só para skills criadas pelo BMad Builder)
+[modules.tea]
+test_artifacts = "{project-root}/_bmad-output/test-artifacts"
+test_design_output = "_bmad-output/test-artifacts/test-design"
+test_review_output = "_bmad-output/test-artifacts/test-reviews"
+trace_output = "_bmad-output/test-artifacts/traceability"

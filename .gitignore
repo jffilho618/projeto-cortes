@@ -1,0 +1,12 @@
+# Configurações pessoais do BMAD (não versionar)
+_bmad/config.user.toml
+_bmad/custom/config.user.toml
+_bmad/custom/*.user.toml
+
+# Sistema / editor
+.DS_Store
+*.log
+node_modules/
+.env
+.env.*
+!.env.example
