@@ -6,6 +6,8 @@
 
 Ferramenta que transforma vídeos longos (podcasts, lives, entrevistas) em cortes prontos para redes sociais e aprende o que dá resultado. Ela transcreve, encontra ganchos e trechos bons, corta, reenquadra para 9:16 com rastreamento de rosto e legenda. Também importa e dá nota a cortes feitos por terceiros. Publica ao mesmo tempo em YouTube Shorts, YouTube (cortes longos de 3–5 min), TikTok, Instagram Reels e Facebook. Depois coleta métricas e usa um módulo de inteligência (bandit sobre tema × gancho × duração × horário × rede) para priorizar o que performa. O primeiro operador é o próprio dono, com vários canais. O sistema já nasce **arquitetado para virar SaaS**, mas cobrança, planos e onboarding de clientes ficam fora do MVP.
 
+A visão do dono, nas palavras dele, com a leitura técnica, está em `_bmad-output/planning-artifacts/visao.md`. Ela guia o PRD e a arquitetura.
+
 ## Idioma
 
 - Converse sempre em **português do Brasil**: direto, honesto, inclusive quando a resposta não for a esperada.
@@ -42,6 +44,8 @@ Há vários frameworks instalados. Para que não disputem o controle, cada fase 
 | Implementação: planos, TDD, subagentes, code review, verificação | **superpowers** | Executa as histórias que o BMAD gerou. |
 | Módulo de IA (chamadas a LLM, prompts, custos) | **claude-api** | Consultar sempre antes de escolher modelo ou estimar preço. |
 | Estratégia de testes, NFR, rastreabilidade | **BMAD TEA** (`bmad-testarch-*`) | Desenha; o superpowers executa o TDD. |
+
+**Pilares como portão:** depois de aprovados (E1), os pilares em `_bmad-output/planning-artifacts/pilares.md` são o critério de decisão do produto. Rode a skill `cortes-pilares` no modo Julgar ao validar o PRD, a arquitetura, cada épico e toda proposta do `bmad-correct-course`. Um veredito **contra** bloqueia até você decidir.
 
 **Regra anti-conflito:** em descoberta e planejamento, **não** acionar `superpowers:brainstorming` nem `superpowers:writing-plans`. O trabalho criativo de produto passa pelas skills do BMAD (`bmad-brainstorming`, `bmad-forge-idea`, `bmad-product-brief` etc.). O superpowers só assume a partir da fase de implementação, partindo das histórias do BMAD.
 

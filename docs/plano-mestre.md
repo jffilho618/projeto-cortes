@@ -39,13 +39,13 @@ FASE G — FUTURO (fora do MVP)
 
 ## FASE A — Fundação e identidade
 
-### E0 · Fundação ✅ (em curso nesta sessão)
+### E0 · Fundação ✅ (commit `0a076f1`)
 - **Líder:** sessão principal (Claude Code).
 - **Entregáveis:** BMAD v6.12.4 instalado; `_bmad/custom/config.toml` (pt-BR e artefatos do TEA em `_bmad-output/test-artifacts`); `CLAUDE.md`; este plano; `.gitignore`.
 - **Saída:** você aprova `CLAUDE.md` e este plano → **primeiro commit** (só quando você pedir).
 - **Custo:** zero.
 
-### E1 · Pilares e anti-pilares
+### E1 · Pilares e anti-pilares ✅ (aprovado em 2026-11-16)
 - **Líder:** skill própria **`cortes-pilares`**, criada com `bmad-workflow-builder`. Apoio: `bmad-forge-idea` (testar ideias sob pressão), `bmad-advanced-elicitation` (pre-mortem, red team) e `bmad-party-mode` (vários pontos de vista).
 - **Entra:** handoff, requisitos firmes do `CLAUDE.md`, o que já se sabe dos cortes.
 - **Sai:** `_bmad-output/planning-artifacts/pilares.md`, com:
@@ -63,22 +63,23 @@ FASE G — FUTURO (fora do MVP)
   - critérios (pronúncia em pt-BR, funciona em inglês, não descreve só "cortes" para não limitar o SaaS, curto);
   - lista longa → lista curta → finalista;
   - checagens do finalista: domínio `.com.br`/`.com`, @ nas cinco redes, busca de anterioridade no INPI (classes 9, 35, 42), busca na web.
-- **Critério de saída:** nome escolhido, domínio registrado, @ reservados nas redes.
-- **Custo:**
-  - domínio `.com.br`: ~R$ 40/ano (registro.br); `.com`: ~US$ 10–15/ano;
-  - INPI: **busca** de anterioridade é grátis. O **pedido** de registro tem taxas (há desconto para pessoa física/MEI); pode ser adiado até abrir como SaaS. Consultar a tabela vigente antes de pagar.
+- **Skill:** `cortes-naming` (modos Produto e Canal). O modo Canal se repete a cada nicho novo; nesta etapa saiu também o nome do canal de games: **Bomba Clips** (contas reservadas; **nada é publicado até a ferramenta existir**).
+- **Sai também:** `_bmad-output/planning-artifacts/naming-canais.md`.
+- **Critério de saída:** nome do produto e do canal de games escolhidos; `.com.br` e `.com` do produto **verificados livres** (sem registrar); @ e INPI conferidos manualmente.
+- **Custo:** zero. **Nada é registrado nesta etapa** (decisão do usuário: só gastar quando o projeto for realidade). O registro do domínio passa para a T1. A **busca** no INPI é grátis; o **pedido** de registro de marca fica para a E17.
 
 ### T1 · Trilha paralela — contas de desenvolvedor e auditorias ⏱️
-Começa assim que existir **nome + domínio** (fim da E2) e corre em paralelo até a E15. É a trilha mais lenta do projeto e não depende de código no início.
+Começa assim que existir o **nome** (fim da E2) e corre em paralelo até a E15. É a trilha mais lenta do projeto e não depende de código no início.
 
 - **Líder:** skill própria **`cortes-integracoes`** (criada no início da T1, reutilizada na E7).
 - **Passos:**
   1. **Agora (sem código):** projeto no Google Cloud com tela de consentimento OAuth; app de desenvolvedor no TikTok; app na Meta e conta Business. Iniciar a **verificação de empresa da Meta** (pode exigir CNPJ; avaliar se abrir um MEI vale a pena).
-  2. **Página pública mínima no domínio:** política de privacidade e termos de uso simples, para uso próprio. **Atenção:** isso é diferente dos termos de SaaS (E17). As três plataformas exigem essas URLs mesmo para app de uso próprio.
-  3. **Assim que o publicador real de cada rede funcionar (épico de integrações, E13):** gravar o vídeo de demonstração e submeter as auditorias: YouTube (verificação do escopo `youtube.upload` + auditoria de API para aumento de cota e publicação pública), TikTok (auditoria do Content Posting API) e Meta (App Review de `instagram_content_publish` e permissões de Página).
+  2. **Registrar o domínio** quando for pedir as auditorias, e não antes. Antes de registrar, rodar de novo o `checar_dominios.py` da `cortes-naming`, porque a disponibilidade muda. Custo: `.com.br` ~R$ 40/ano (registro.br); `.com` ~US$ 10–15/ano. **Verificar antes** se alguma plataforma aceita um subdomínio gratuito (ex.: `*.vercel.app`, `*.pages.dev`, `*.github.io`) como homepage e para as URLs de privacidade e termos. É provável que o YouTube (verificação de domínio no Google) e a Meta exijam domínio próprio, mas isso precisa ser confirmado na documentação de cada uma.
+  3. **Página pública mínima no domínio:** política de privacidade e termos de uso simples, para uso próprio. **Atenção:** isso é diferente dos termos de SaaS (E17). As três plataformas exigem essas URLs mesmo para app de uso próprio.
+  4. **Assim que o publicador real de cada rede funcionar (épico de integrações, E13):** gravar o vídeo de demonstração e submeter as auditorias: YouTube (verificação do escopo `youtube.upload` + auditoria de API para aumento de cota e publicação pública), TikTok (auditoria do Content Posting API) e Meta (App Review de `instagram_content_publish` e permissões de Página). No YouTube, **incluir o pedido de métricas derivadas/armazenamento de estatísticas (III.L)** se a E7 confirmar que ele é necessário.
 - **Sai:** `_bmad-output/planning-artifacts/auditorias.md`: checklist por rede, status, datas de submissão e respostas, e o que cada plataforma pediu.
 - **Critério de saída (para a E15):** pelo menos YouTube aprovado para publicação pública; TikTok e Meta aprovados ou com plano B documentado (publicar manualmente o arquivo gerado).
-- **Custo:** as auditorias são gratuitas. Domínio já pago. Hospedar a página estática: grátis (Vercel/Cloudflare Pages). MEI, se for aberto: DAS mensal (consultar o valor vigente).
+- **Custo:** as auditorias são gratuitas. Domínio: ver o passo 2. Hospedar a página estática: grátis (Vercel/Cloudflare Pages). MEI, se for aberto: DAS mensal (consultar o valor vigente).
 - **Implicação no plano:** o épico de **publicação no YouTube** deve ser um dos primeiros da E13, para a auditoria começar cedo.
 
 ### E3 · Marca e design system
@@ -94,16 +95,16 @@ Começa assim que existir **nome + domínio** (fim da E2) e corre em paralelo at
 
 ### E4 · Product brief
 - **Líder:** `bmad-product-brief` (Mary, `bmad-agent-analyst`). Apoio: `bmad-deep-recon` para pesquisa de mercado (ferramentas de autoclip como referência de funcionalidade, campanhas de clipping pagas por mil views, economia de canais de cortes, regras de monetização do YPP para conteúdo reutilizado).
-- **Entra:** pilares, naming, handoff.
+- **Entra:** pilares, `visao.md`, naming, handoff.
 - **Sai:** `_bmad-output/planning-artifacts/product-brief.md` e `_bmad-output/planning-artifacts/pesquisa-mercado.md`.
 - **Critério de saída:** problema, público, proposta de valor, fontes de receita (YPP, campanhas de clipping, contratos com criadores) e metas mensuráveis do MVP aprovadas.
 - **Custo:** zero (busca web da sessão).
 
 ### E5 · PRD
 - **Líder:** `bmad-prd` (John, `bmad-agent-pm`). Validação: modo "validar" do `bmad-prd` + `bmad-review`.
-- **Entra:** product brief.
+- **Entra:** product brief, `visao.md`.
 - **Sai:** `_bmad-output/planning-artifacts/prd.md`: requisitos funcionais (gerar cortes, importar e avaliar, fila, revisão, publicar, métricas, inteligência, risco), requisitos não funcionais (custo, worker offline, multi-tenant, segurança), escopo do MVP × futuro (o SaaS fica explicitamente fora).
-- **Critério de saída:** PRD validado, cada requisito rastreável a um pilar, MVP fechado.
+- **Critério de saída:** PRD validado, cada requisito rastreável a um pilar, MVP fechado; `cortes-pilares` (modo Julgar) com veredito **segue**.
 - **Custo:** zero.
 
 ### E6 · UX
@@ -121,6 +122,16 @@ Começa assim que existir **nome + domínio** (fim da E2) e corre em paralelo at
 - **Líder:** skill própria **`cortes-integracoes`** (criada na T1).
 - **Entra:** PRD, `auditorias.md`, documentação oficial atual de cada API (pesquisada na hora, não de memória).
 - **Sai:** `_bmad-output/planning-artifacts/spec-integracoes.md`. Para cada rede (YouTube, YouTube Shorts, TikTok, Instagram Reels, Facebook): fluxo OAuth por workspace, escopos, cotas e custo por chamada, limites diários, formatos aceitos (duração, resolução, tamanho), o que acontece sem auditoria, métricas que a API devolve (base do coletor), como detectar claims e strikes (base do módulo de risco), renovação de token, erros e retry.
+  - **Coleta de dados públicos de canais de cortes/Shorts de games (para o dataset inicial da E9).** Só API oficial, sem raspagem (A4). Leitura das [Políticas para Desenvolvedores da API do YouTube](https://developers.google.com/youtube/terms/developer-policies) em 2026-11-16, a confirmar na íntegra nesta etapa:
+    - **Cota:** `channels.list`, `playlistItems.list` e `videos.list` custam 1 unidade cada (até 50 itens por chamada), dentro das 10.000 unidades/dia. `search.list` tem cota própria (100 chamadas/dia). Ou seja, dezenas de milhares de vídeos por dia, **custo zero**. [Fonte](https://developers.google.com/youtube/v3/determine_quota_cost).
+    - ⚠️ **Armazenamento (III.E.4.d):** dados de canais de terceiros são "Non-Authorized Data". Podem ficar guardados **no máximo 30 dias**; depois, é preciso excluir ou atualizar. Estatísticas desse tipo também não podem passar de 30 dias.
+    - ⚠️ **Métricas derivadas (III.E.4.h):** é proibido "criar dados ou métricas novos ou derivados" a partir dos dados da API. O "desempenho relativo à mediana do canal" é uma métrica derivada.
+    - ⚠️ **Agregação (III.E.2.a):** só é permitido agregar dados de canais **do mesmo titular**. Comparar canais de terceiros entre si está fora.
+    - **III.L:** métricas derivadas e armazenamento de estatísticas são permitidos só a **desenvolvedores auditados** que pediram e receberam permissão explícita (regra em vigor desde 01/06/2026). Ler a página de políticas de métricas derivadas nesta etapa.
+    - **Consequência:** do jeito que foi proposta (guardar, normalizar pela mediana, comparar canais), a coleta **viola a política** enquanto o app não for auditado e autorizado. Decisão tomada: ver "Dataset inicial da E9" em "Decisões tomadas fora de etapa".
+    - **Isso vale também para os nossos canais:** a normalização pela mediana do canal, base do bandit (P3), é uma métrica derivada. Confirmar se a III.E.4.h se aplica a dados autorizados dos próprios canais. Se se aplicar, **o pedido de permissão da III.L entra na auditoria da T1**.
+  - **Kwai:** o Bomba Clips tem conta reservada, mas o Kwai não está na lista de redes do produto. Verificar se existe API oficial de publicação para terceiros e se vale incluir; sem API, segue manual (A4).
+  - **Fontes do radar de tendências:** o que cada fonte oferece oficialmente (API da Twitch para categorias e jogos em alta; YouTube Data API para vídeos em alta por categoria; Google Trends, cuja API oficial é restrita: confirmar o acesso), cotas, custo e termos de uso. Raspagem fora dos termos está barrada (A4).
 - **Critério de saída:** tabela "o que cada rede permite" completa e honesta; cálculo de quantos uploads por dia cabem por canal e por projeto GCP; decisão sobre quantos projetos GCP usar.
 - **Custo:** zero.
 
@@ -128,9 +139,11 @@ Começa assim que existir **nome + domínio** (fim da E2) e corre em paralelo at
 - **Líder:** skill própria **`cortes-risco`**. Apoio: `bmad-advanced-elicitation` (red team, pre-mortem) e `bmad-deep-recon` (políticas atuais de Content ID, reutilização de conteúdo e strikes de cada rede).
 - **Entra:** PRD, spec de integrações, requisitos firmes do `CLAUDE.md`.
 - **Sai:** `_bmad-output/planning-artifacts/spec-risco.md`:
-  - ciclo de vida da fonte (status de permissão, lista negra) e ciclo de vida do claim;
+  - ciclo de vida da fonte (status de permissão, lista negra) e ciclo de vida do claim. Regras já decididas (P1): fonte `desconhecida` não publica até o status mudar; gameplay gravado pelo operador nasce autorizado; material de campanha de clipping nasce autorizado e expira com a campanha;
   - regra de pausa automática (gatilhos, alcance "todas as redes", reversão manual);
   - crédito automático (formato por rede);
+  - **registro de políticas por publisher/jogo:** o que o publisher tolera e o que derruba (ex.: Rockstar/GTA 6: final do jogo, compilações de cutscenes e diálogos, revelações da trama, vazamentos), janela de spoiler após o lançamento, presença de música licenciada no jogo (ex.: rádios do GTA) e a fonte e data de cada regra. Com portões automáticos: marcar spoiler, detectar e remover/substituir música licenciada (nunca disfarçar, A2), bloquear o que a política proíbe;
+  - **regras de monetização por rede:** ex.: a regra do YouTube sobre violência gráfica nos primeiros segundos (informada pelo usuário como de set/2026; **confirmar em fonte oficial** antes de virar regra). Com checagem automática em jogos violentos e o gancho deslocado quando necessário (P1 vence o gancho);
   - critérios mínimos de "transformação real" que todo corte precisa cumprir antes de ir para a fila;
   - separação de canais por nicho;
   - **decisão sobre o yt-dlp:** aceitar o risco, usar só arquivos fornecidos/autorizados ou um modo misto, com consequências escritas;
@@ -147,7 +160,10 @@ Começa assim que existir **nome + domínio** (fim da E2) e corre em paralelo at
   - **comparação LLM API × LLM local 7–8B × híbrido** (o local faz a triagem, a API decide), com qualidade medida num conjunto de teste próprio. A 4060 Ti não roda o LLM local e o whisper ao mesmo tempo, então o pipeline serializa os dois;
   - **dataset e rotulagem:** rótulo "bom × ruim" derivado de métricas reais (retenção, views normalizadas pela mediana do canal), snapshots de 1h/24h/7d;
   - **bandit:** Thompson sampling sobre tema × tipo de gancho × duração × horário × rede, ~20% de exploração, recompensa normalizada; quando o volume justifica treinar modelos próprios (classificador, LoRA);
+  - **radar de tendências:** como os sinais externos (lançamentos, categorias em alta na Twitch, vídeos e assuntos em alta no YouTube, buscas) entram na prioridade da fila e no bandit; calendário de lançamentos por nicho; janela de pico;
   - métricas de avaliação offline e online, e como rodar experimentos.
+- **Entradas:** `visao.md` (a visão do dono e a leitura técnica: modelo que separa as variáveis, esquecimento, orçamento de teste, métrica de recompensa). Dataset inicial conforme a decisão "Dataset inicial da E9": datasets públicos de destaques com licença comercial + aprendizado com os nossos canais; coleta pública só depois da permissão III.L. *Opcional:* 5 cortes bons e 5 ruins de GTA 6, com o motivo, rotulados à mão pelo usuário.
+- **Referência de formato:** [Viralizou Clips](https://www.youtube.com/@ViralizouClips/videos), com cortes longos e thumbnails fortes mais Shorts, de vários jogos. Inspirar, não copiar. Para as thumbnails existe a skill `youtube-thumbnail-design`.
 - **Critério de saída:** escolha do LLM (ou híbrido) justificada com números de qualidade e custo; **teto mensal** de gasto com LLM definido por você.
 - **Custo (estimativa a fechar nesta etapa):**
   - 1 h de vídeo falado ≈ 9–10 mil palavras ≈ **20–40 mil tokens de entrada** (transcrição com timestamps) + alguns milhares de tokens de saída por passada;
@@ -160,7 +176,7 @@ Começa assim que existir **nome + domínio** (fim da E2) e corre em paralelo at
 
 ### E10 · Arquitetura
 - **Líder:** `bmad-architecture` (Winston, `bmad-agent-architect`). Apoio: **claude-api** (módulo de IA); `bmad-review` para revisão adversarial do documento.
-- **Entra:** PRD, UX, specs E7–E9, código do ReSocial em FRELA (só leitura).
+- **Entra:** PRD, UX, specs E7–E9, `visao.md`, código do ReSocial em FRELA (só leitura).
 - **Sai:** `_bmad-output/planning-artifacts/architecture.md`, com as decisões:
   - **fork do ReSocial:** o que entra (provavelmente Fastify, Postgres, auth, accounts, media, agendador, coletor, registro de publicadores, crypto, Vitest, Docker, Makefile, workspaces) e o que sai, cada item justificado; sem `.env` nem segredos;
   - **topologia:** API, banco, storage e agendador na nuvem; **workers puxam jobs da fila** (o PC de mesa é o primeiro). Worker desligado = fila esperando, sem perda. Um worker com GPU alugada se encaixa sem mudar nada. Definir a fila (por exemplo, a tabela de jobs do agendador do ReSocial ou outra solução) e o protocolo de lease/heartbeat/retry;
@@ -170,7 +186,7 @@ Começa assim que existir **nome + domínio** (fim da E2) e corre em paralelo at
   - modelo de dados: workspaces → fontes → vídeos → cortes → publicações → métricas → claims;
   - frontend novo (stack e o padrão demonstração/servidor herdado);
   - convenções de código e de idioma do código.
-- **Critério de saída:** a arquitetura passa no check de prontidão (`bmad-sprint-planning`, modo "check implementation readiness"); **planilha de custo mensal** do MVP aprovada.
+- **Critério de saída:** `cortes-pilares` (modo Julgar) com veredito **segue**; a arquitetura passa no check de prontidão (`bmad-sprint-planning`, modo "check implementation readiness"); **planilha de custo mensal** do MVP aprovada.
 - **Custo (estimativa a fechar nesta etapa):**
   - hospedagem de API + agendador: plano básico de PaaS, ~US$ 5–25/mês;
   - Postgres gerenciado: free tier no início; plano pago ~US$ 25/mês se precisar;
@@ -189,9 +205,9 @@ Começa assim que existir **nome + domínio** (fim da E2) e corre em paralelo at
 - **Líder:** `bmad-create-epics-and-stories` → `bmad-sprint-planning`.
 - **Entra:** PRD, UX, arquitetura, specs, test design.
 - **Sai:** `_bmad-output/planning-artifacts/epics.md` e `_bmad-output/implementation-artifacts/sprint-status.yaml`.
-- **Ordem sugerida dos épicos:** (1) fork e base multi-tenant; (2) **publicação no YouTube + página legal** (para destravar a T1); (3) fila e worker GPU; (4) pipeline de corte; (5) módulo de risco; (6) demais redes; (7) métricas; (8) inteligência/bandit; (9) frontend completo.
+- **Ordem sugerida dos épicos:** (1) fork e base multi-tenant; (2) **publicação no YouTube + página legal** (para destravar a T1); (3) fila e worker GPU; (4) pipeline de corte; (5) módulo de risco, com o registro de políticas por publisher/jogo; (6) demais redes; (7) métricas; (8) radar de tendências; (9) inteligência/bandit; (10) frontend completo.
 - **Decisão a tomar aqui:** usar ou não o orquestrador **bmad-loop** (`bmad-loop-setup` está adiado). A recomendação é **não** usá-lo no início, porque disputaria o controle com o superpowers. Reavaliar depois do primeiro épico.
-- **Critério de saída:** prontidão aprovada pelo `bmad-sprint-planning`, sem lacunas entre PRD, UX e arquitetura.
+- **Critério de saída:** prontidão aprovada pelo `bmad-sprint-planning`, sem lacunas entre PRD, UX e arquitetura; cada épico julgado pelo `cortes-pilares` (nenhum **contra**).
 - **Custo:** zero.
 
 ---
@@ -207,7 +223,7 @@ Começa assim que existir **nome + domínio** (fim da E2) e corre em paralelo at
   5. `superpowers:requesting-code-review` / `code-review` e `bmad-code-review` nos épicos críticos (risco, tenant, OAuth);
   6. `superpowers:verification-before-completion`;
   7. `superpowers:finishing-a-development-branch` (merge/PR **só com sua autorização**).
-- **Apoio:** **claude-api** no módulo de IA; **impeccable** no frontend; `bmad-correct-course` se algo mudar o escopo; `bmad-retrospective` ao fim de cada épico.
+- **Apoio:** **claude-api** no módulo de IA; **impeccable** no frontend; `bmad-correct-course` se algo mudar o escopo (sempre seguido do Julgar do `cortes-pilares` sobre a proposta de mudança); `bmad-retrospective` ao fim de cada épico.
 - **Sai:** código, testes e `sprint-status.yaml` atualizado; uma retrospectiva por épico em `_bmad-output/implementation-artifacts/`.
 - **Critério de saída (por épico):** testes verdes, revisão sem achados críticos, critérios de aceite da história demonstrados.
 - **Custo:** a energia do PC (já estimada); tokens de LLM em testes reais do pipeline dentro do teto da E9.
@@ -258,6 +274,13 @@ Entra quando a operação própria provar que funciona. Passa de novo por BMAD (
 | `cortes-integracoes` | T1 | `bmad-agent-builder` (especialista em APIs das redes) | T1, E7, épicos de publicação |
 | `cortes-risco` | E8 | `bmad-workflow-builder` | E8, E15, operação |
 | `cortes-ml` | E9 | `bmad-agent-builder` | E9, E16 |
+
+## Decisões tomadas fora de etapa
+
+| Decisão | Data | Detalhe |
+|---|---|---|
+| Dataset inicial da E9 | 2026-11-16 | **Agora:** (c) datasets públicos de destaques em vídeo com licença comercial verificada + (d) LLM e bandit aprendendo com os nossos canais. **Depois:** (a) pedir a permissão III.L junto com a auditoria do YouTube e só então coletar dados públicos. **A confirmar na íntegra (E7):** se a proibição de métricas derivadas (III.E.4.h) vale para dados dos nossos próprios canais. |
+| Nada é publicado manualmente antes da ferramenta | 2026-11-16 | Canal Bomba Clips e contas reservados, sem publicação. A trilha T2 foi removida. |
 
 ## Decisões em aberto (e onde se resolvem)
 
