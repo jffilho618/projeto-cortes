@@ -17,7 +17,7 @@
    - **"Mudou, agora é o Coringa" exige esquecer.** O gosto do público muda. O modelo precisa dar menos peso ao passado (janela deslizante ou desconto no Thompson sampling). O Thompson sampling simples da proposta original converge e demora a reagir à mudança.
 3. **Testar, medir, apostar, abandonar.** Correto: é o ciclo de exploração e exploração do bandit. Limites reais para a E9:
    - O orçamento de teste disputa espaço com a cota de uploads (~6/dia por projeto GCP sem aumento de cota) e com o A2 (volume sem critério). Testar um assunto novo usa poucos cortes, não uma enxurrada.
-   - A métrica perseguida é "visualizações", mas a E9 deve decidir se é a contagem bruta ou views ponderadas por retenção e receita por rede. Isso evita premiar clickbait que derruba a retenção, e o P2 continua valendo de qualquer forma.
+   - **Recompensa (decisão do dono, 2026-11-16):** o objetivo continua sendo **visualizações**, mas a fórmula **não pode premiar clickbait**. A fórmula exata fica para a E9; por exemplo, views ponderadas por retenção, ou com penalidade quando a retenção nos primeiros segundos despenca.
 4. **Freio (P1).** Correto, com um ajuste. Se algo está em alta mas a fonte não está liberada, o sistema **avisa e não publica**. Ele também **não baixa nem processa** essa fonte até o status mudar, porque baixar já pode ser o risco (decisão do yt-dlp, E8). O aviso deve dizer o que está em alta, a fonte e o que falta para liberá-la (por exemplo, pedir autorização ao streamer ou entrar numa campanha).
 
 ## Aderência aos pilares (modo Julgar, 2026-11-16)
@@ -32,4 +32,4 @@
 | A2 Fábrica de spam | neutro | Fica neutro se o orçamento de teste respeitar o limite de volume (item 3). |
 | A4 Contornar APIs | neutro | Fica neutro se o olho para fora usar só fontes oficiais. |
 
-**Veredito: segue.** A visão cabe nos pilares. Um ponto para uma futura revisão do P3: ele não diz explicitamente que "o que funcionou ontem pode não funcionar hoje" (esquecimento). Hoje isso está implícito em "decide o que e quando". Se aparecer tensão no PRD, vale rodar o modo Revisar.
+**Veredito: segue.** A visão cabe nos pilares. A ressalva sobre o esquecimento foi resolvida com a revisão do P3 (2026-11-16), que agora diz explicitamente que o passado perde peso.

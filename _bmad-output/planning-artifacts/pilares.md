@@ -24,13 +24,13 @@ Todo corte acrescenta algo que não estava na fonte (gancho e título próprios,
 - **Reforça:** o mesmo vídeo vertical vai para Shorts, Reels e TikTok, cada um com título e legenda próprios e o texto queimado dentro da área segura de cada rede; o corte longo de 4 min do mesmo trecho ganha título e gancho próprios.
 - **Viola:** baixar o corte já publicado no TikTok (com a marca d'água) e subir esse arquivo no Reels; ou um modo "publicação rápida" que sobe o trecho cru, sem legenda nem título próprio.
 
-### P3 · Os dados decidem o que cortar e quando
-Tudo o que é publicado é medido, e a medição (somada aos sinais externos de tendência: lançamentos, categorias em alta, assuntos do momento) decide o que será cortado, em que rede e em que horário. Uma funcionalidade que não alimenta nem usa esse ciclo é secundária.
+### P3 · Os dados de agora decidem o que cortar e quando
+Tudo o que é publicado é medido, e a medição (somada aos sinais externos de tendência: lançamentos, campeonatos, categorias em alta, assuntos do momento) decide o que será cortado, em que rede e em que horário. **O que funcionou ontem pode não funcionar hoje:** o sistema dá menos peso aos resultados antigos e reage rápido quando o interesse muda. Ele aposta no que está subindo e abandona o que esfriou, mesmo que já tenha sido um sucesso. Uma funcionalidade que não alimenta nem usa esse ciclo é secundária.
 
-- **Por quê:** o valor do produto em relação a cortar à mão está em aprender o que performa e chegar no pico de interesse (ex.: a semana de lançamento de um jogo) antes de quem corta sem dados.
-- **Pergunta de teste:** *esta proposta gera dados que o ciclo usa, ou usa os dados do ciclo para decidir?* Se nenhuma das duas, é secundária. Se ela impede a medição (ex.: publicação sem ID rastreável), viola.
-- **Reforça:** o radar de tendências priorizar na fila os cortes de um jogo que acabou de entrar no topo da Twitch.
-- **Viola:** permitir publicar por fora do sistema e "registrar depois", deixando cortes sem métricas ligadas a eles.
+- **Por quê:** o valor do produto em relação a cortar à mão está em perceber o que performa e chegar no pico de interesse (a semana de lançamento de um jogo, um campeonato, o streamer do momento) antes de quem corta sem dados. Em games, o interesse muda em dias; um sistema que confia no histórico chega atrasado.
+- **Pergunta de teste:** *esta proposta gera dados que o ciclo usa, ou usa os dados do ciclo para decidir, dando mais peso ao recente?* Se não faz nenhuma das duas coisas, é secundária. Se ela impede a medição (ex.: publicação sem ID rastreável) ou trata um resultado antigo como se valesse tanto quanto um recente, viola.
+- **Reforça:** o radar de tendências priorizar na fila os cortes de um jogo que acabou de entrar no topo da Twitch; o modelo reduzir a aposta num streamer cujos cortes caíram nas últimas semanas, apesar do bom histórico.
+- **Viola:** permitir publicar por fora do sistema e "registrar depois", deixando cortes sem métricas ligadas a eles; ou um ranking "melhores assuntos de todos os tempos" que continua priorizando um jogo que esfriou.
 
 ### P4 · A inteligência de seleção é nossa
 Detectar, pontuar e decidir quais trechos viram corte é o núcleo do produto, e esse núcleo (critérios, dados rotulados, modelos, pesos do bandit) pertence ao projeto. Peças comuns podem vir de fora (transcrição, um LLM por API, bibliotecas de visão), desde que sejam trocáveis e não levem a decisão embora.
@@ -112,3 +112,4 @@ Linguagem de produto; as métricas e os pesos ficam para a `cortes-ml` (E9). Os 
 | 2026-11-16 | Correção na Ordem de prioridade: fonte desconhecida em alta "não sai até o status ser alterado" (antes dizia "sem revisão", que descrevia a opção recusada). | Contradição com a decisão acima. |
 | 2026-11-16 | P2 suavizado: exige título, legenda, duração e áreas seguras por rede e proíbe marca d'água de outra rede, mas permite o mesmo vídeo vertical em Shorts, Reels e TikTok; pergunta de teste e exemplos ajustados. | Exigir diferenças artificiais no vídeo beirava o disfarce de conteúdo barrado pelo A2. |
 | 2026-11-16 | **Aprovado** pelo usuário. | — |
+| 2026-11-16 | **Revisão do P3** (modo Revisar): título passa a "Os dados de agora decidem…"; enunciado, pergunta de teste e exemplos explicitam que o passado perde peso e que o sistema reage rápido quando o interesse muda. Documento afetado: `visao.md` (veredito continua "segue"; a ressalva sobre esquecimento fica resolvida). | Pedido do usuário: "o que funcionou ontem pode não funcionar hoje" é o centro da visão do produto. |
