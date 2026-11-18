@@ -112,11 +112,11 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 
 ---
 
-## 3. FASE B — Especificação Unificada e Arquitetura de Fusão (BMAD Enxuto)
+## 3. FASE B — Especificação Unificada e Arquitetura de Fusão (Concluída ✅)
 
 > **Por que mudamos a Fase B:** como descartamos o SaaS e já temos o código dos clones em `referencias/` e o mapa completo aprovado em `visao.md` e `concorrentes.md`, não faz sentido escrever um `Product Brief` de mercado nem um `PRD` burocrático do zero. Usamos o fluxo moderno do BMAD v6.12.4: **`bmad-spec` → `bmad-architecture` → `bmad-create-epics-and-stories`**.
 
-### E4 · Especificação Unificada (`SPEC.md` + Companions) ⏳ PRÓXIMA
+### E4 · Especificação Unificada (`SPEC.md` + Companions) ✅ (2026-11-18, commit `216e5ed`)
 - **Líder:** skill **`bmad-spec`** (`.claude/skills/bmad-spec/SKILL.md`).
 - **Apoio:** `cortes-pilares` (modo Julgar ao finalizar).
 - **O que entra (fontes obrigatórias para ler na ativação):**
@@ -125,44 +125,28 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
   - `_bmad-output/planning-artifacts/concorrentes.md`
   - `_bmad-output/brainstorming/brainstorm-mapa-funcionalidades-picorte-2026-11-18/.memlog.md`
   - `PRODUCT.md` e `DESIGN.md`
-- **O que será feito e como:**
-  1. Rodar os scripts de ativação do BMAD (`resolve_customization.py`, `resolve_config.py`) e inicializar o memlog da spec em `_bmad-output/specs/spec-picorte/`.
-  2. Destilar toda a visão e o mapa aprovado num **`SPEC.md`** enxuto (Why, Capabilities `CAP-01` a `CAP-18` com `intent` e `success`, Constraints, Non-goals, Success signal) mais **4 arquivos companheiros (`companions:`)**:
-     - `companion-pipeline-multimodal.md`: especificações do Sismógrafo do Chat, Áudio 1 Hz, Visão Computacional 2 fps (Facecam, HUD/Killfeed, Micro-expressões, Sniper Crop, Layout Dinâmico), Engenharia de Retenção (Cold Open 1,5s, Contexto 2s, Seamless Loop, Cross-Streamer, Funil Short→Longo 3–5 min + Thumbnail);
+- **O que foi feito:**
+  1. Rodados os scripts de ativação do BMAD (`resolve_customization.py`, `resolve_config.py`) e inicializado o memlog da spec em `_bmad-output/specs/spec-picorte/`.
+  2. Destilada toda a visão e o mapa aprovado num **`SPEC.md`** enxuto (Why, Capabilities `CAP-1` a `CAP-18` com `intent` e `success`, Constraints, Non-goals, Success signal) mais **4 arquivos companheiros (`companions:`)**:
+     - `companion-pipeline-multimodal.md`: especificações do Sismógrafo do Chat, Áudio 1 Hz, Visão Computacional 2 fps (Facecam, HUD/Killfeed, Micro-expressões, Sniper Crop, Layout Dinâmico), **Seletor de IA de 4 Modos na UI (`Ollama` / `Claude` / `Gemini` / `Dupla: Filtro + Acompanhamento`)** e Engenharia de Retenção (Cold Open 1,5s, Contexto 2s, Seamless Loop, Cross-Streamer, Funil Short→Longo 3–5 min + Thumbnail);
      - `companion-escudo-risco.md`: máquina de estados de permissão da fonte, matriz de políticas por publisher/jogo (ex.: Rockstar/GTA 6), cirurgia de música com `Demucs` seletivo, Selo Verde 15s (visão + bleep), Detector de React Perigoso, Score YPP, `pHash` e disjuntor de claims;
      - `companion-integracoes-redes.md`: cotas, formatos, áreas seguras de legenda, OAuth, *Related Video* (Shorts → Longo), 1º comentário fixado e regras de armazenamento da API do YouTube (III.E.4.d / III.L) para YouTube Shorts, YouTube Longo, TikTok, Instagram Reels e Facebook;
      - `companion-cerebro-bandit.md`: modelo contextual/hierárquico que separa variáveis (`jogo × streamer × tipo de momento × formato × duração × horário × rede`), fator de esquecimento temporal, fórmula de recompensa ponderada por retenção (sem clickbait), multiplicador de campanhas pagas (CPM), reciclagem A/B de gancho e autocaptura de dataset rotulado (*Active Learning*).
-  3. Rodar os dois passes de `Self-Validate` do `bmad-spec` (Coherence + Preservation) e o modo Julgar do `cortes-pilares`.
-- **Sai:** `_bmad-output/specs/spec-picorte/SPEC.md` + os 4 companions + `.memlog.md`.
-- **Critério de saída:** `Self-Validate` aprovado sem perdas de requisitos; `cortes-pilares` com veredito **segue**; aprovação do usuário.
-- **Custo:** zero.
+  3. Rodados os dois passes de `Self-Validate` do `bmad-spec` (Coherence + Preservation) e o modo Julgar do `cortes-pilares` (veredito **segue**).
+- **Entregáveis gerados:** `_bmad-output/specs/spec-picorte/SPEC.md` + os 4 companions + `.memlog.md`.
 
-### E5 · Arquitetura de Fusão e Estratégia de Testes
-- **Líder:** **`bmad-architecture`** (Winston) + **`bmad-testarch-test-design`** (Murat / TEA) + **`claude-api`** (para estimativa exata de tokens/custo quando usar API vs Ollama local).
-- **O que entra:** `_bmad-output/specs/spec-picorte/SPEC.md` (e seus companions), código-fonte em `referencias/` (`mehbul_chopify`, `fralapo_clippyme`, `FujiwaraChoki_supoclip`, `AgriciDaniel_claude-shorts`, `louisedesadeleer_clipify`, `artbyjazi_autoclip`).
-- **O que será feito e como:**
-  1. Definir a **Estrutura Definitiva de Pastas do Código** no repositório (ex.: `picorte/` ou `engine/` + `db/` + `web/` + `mcp/`), mapeando arquivo por arquivo o que será copiado do `mehbul/chopify` e onde cada módulo transplantado (`reaction_layout.py`, `live_monitor.py`, `social/`, etc.) será encaixado.
-  2. Definir o **Schema PostgreSQL Local** (sem multi-tenant/SaaS, direto e limpo):
-     - `sources` (canal/streamer, plataforma, `permission_status`, regras específicas);
-     - `publisher_policies` (publisher, jogo, regras de spoiler, janela, música, corte de abertura);
-     - `campaigns` (fonte/jogo, valor de CPM pago, hashtags/regras obrigatórias, data de início/fim, multiplicador de prioridade);
-     - `videos` (VOD ou sessão de live, URL, metadados, caminho do cache de áudio/chat/visão);
-     - `clips` (tempos, tipo curto/longo, notas parciais de chat/áudio/visão/texto, score de transformação YPP, `phash`, status de risco, caminho do `.mp4` e da thumbnail, `parent_long_clip_id` para o funil Short→Longo);
-     - `publications` (rede, conta OAuth, ID externo, título, legenda, 1º comentário, status, link para `Related Video`);
-     - `metrics_snapshots` (janela `1h`, `24h`, `7d`, views, likes, comentários, retenção média, retenção nos 3s / *swipe-away*);
-     - `claims_events` (rede, publicação, tipo de claim/strike, ação de pausa disparada);
-     - `bandit_state` (parâmetros das distribuições por variável com decaimento temporal);
-     - `dataset_samples` (registro dos exemplos positivos `>3x mediana` e negativos para treino local).
-  3. Definir o **Protocolo do Gerenciador de Fila e VRAM (8 GB na RTX 4060 Ti / 4 GB na GTX 1650)** e o **Modo Madrugada**.
-  4. Definir o **Plano de Testes dos Riscos P0/P1** (`bmad-testarch-test-design`): testes automatizados obrigatórios para o bloqueio de fonte `desconhecida`, disjuntor de claim, Selo Verde 15s e deduplicação `pHash`.
-- **Sai:** `_bmad-output/planning-artifacts/architecture.md` e `_bmad-output/test-artifacts/test-design-picorte.md`.
-- **Critério de saída:** `cortes-pilares` com veredito **segue**; estimativa de custo mensal documentada (R$ 0 no modo 100% local com Ollama + custo opcional por hora de vídeo caso use API Claude/Gemini); aprovação do usuário.
+### E5 · Arquitetura de Fusão e Estratégia de Testes ✅ (2026-11-18, commit `216e5ed`)
+- **Líder:** **`bmad-architecture`** (Winston) + **`bmad-testarch-test-design`** (Murat / TEA) + **`claude-api`**.
+- **O que foi feito:**
+  1. Definida a **Estrutura Definitiva de Pastas do Código (`picorte/`)** e as 10 decisões arquiteturais invioláveis (`AD-1` a `AD-10`), validadas com `0 findings` pelo linter `lint_spine.py`.
+  2. Definido o **Schema PostgreSQL Local** (10 tabelas canônicas sem multi-tenant: `sources`, `publisher_policies`, `campaigns`, `videos`, `clips`, `publications`, `metrics_snapshots`, `claims_events`, `bandit_state`, `dataset_samples`).
+  3. Definidos o **Orquestrador Serial de VRAM (`vram_runner.py` — `AD-3`)**, o **Roteador de IA de 4 Modos (`llm_router.py` — `AD-4`)** e o **Fluxo de Publicação Assistida Inicial (`export_pack.py` — `AD-8`)**.
+  4. Definida a **Matriz de Testes dos Riscos P0/P1 (`R-01` a `R-10`)**.
+- **Entregáveis gerados:** `_bmad-output/planning-artifacts/architecture.md`, `_bmad-output/planning-artifacts/architecture/architecture-projeto-cortes-2026-11-18/ARCHITECTURE-SPINE.md` e `_bmad-output/test-artifacts/test-design-picorte.md`.
 
-### E6 · Quebra nos 7 Épicos, Histórias e Prontidão
+### E6 · Quebra nos 7 Épicos, Histórias e Prontidão ✅ (2026-11-18, commit `216e5ed`)
 - **Líder:** **`bmad-create-epics-and-stories`** → **`bmad-sprint-planning`**.
-- **O que entra:** `SPEC.md` + companions, `architecture.md`, `test-design-picorte.md`.
-- **Sai:** `_bmad-output/planning-artifacts/epics.md` e `_bmad-output/implementation-artifacts/sprint-status.yaml` com os 7 Épicos detalhados em histórias prontas para o `superpowers`.
-- **Critério de saída:** `bmad-sprint-planning` (check implementation readiness) aprovado; `cortes-pilares` julga os 7 épicos sem nenhum veredito **contra**.
+- **Entregáveis gerados:** `_bmad-output/planning-artifacts/epics.md` (7 Épicos e 22 Histórias detalhadas) e `_bmad-output/implementation-artifacts/sprint-status.yaml`.
 
 ---
 
@@ -170,10 +154,11 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 
 > **Como cada Épico é executado:** liderado pelo **`superpowers`** (`writing-plans` → `test-driven-development` → `subagent-driven-development` → `systematic-debugging` → `verification-before-completion`), com **`bmad-code-review`** nos épicos críticos (Épicos 4 e 6) e **`impeccable`** no frontend (Épico 6).
 > **Regra de ouro:** ao terminar cada Épico, o sistema inteiro precisa estar **rodando e testado na máquina**, entregando valor real antes de abrir o próximo.
+> **Onde desenvolver e rodar (Notebook GTX 1650 4 GB vs PC de Mesa RTX 4070 Ti / 4060 Ti):** todos os Épicos 1 a 7 podem ser desenvolvidos e testados com vídeos curtos (2–15 min) no **Notebook (GTX 1650 4 GB)** graças ao perfil automático de GPU (`cuda.py`) e ao uso de Claude/Gemini no Seletor de IA. A mudança para o **PC de Mesa (RTX 4070 Ti / 4060 Ti)** só é necessária na hora de rodar **produção pesada em volume** (VODs brutos de 4–6h, monitor de múltiplas lives ao vivo simultâneas, Ollama 7B/8B/14B local e treinamento do modelo próprio no Épico 7).
 
 ---
 
-### ÉPICO 1 (MVP Zero) · O Clone Base (`chopify`) Rodando na Máquina e Gerando Cortes
+### ÉPICO 1 (MVP Zero) · O Clone Base (`chopify`) Rodando na Máquina e Gerando Cortes ⏳ EM EXECUÇÃO
 - **Objetivo:** ter o motor base do `mehbul/chopify` instalado dentro do nosso projeto, rodando com GPU (`faster-whisper` + `FFmpeg` + `OpenCV YuNet`) e gerando os primeiros cortes `.mp4` legendados (9:16 e 16:9) a partir de um vídeo real de gameplay.
 - **De onde vem o código:**
   - Copiar a base de `referencias/mehbul_chopify/` (`chopify.py`, `ingest.py`, `sections.py`, `download_and_transcribe.py`, `evidence.py`, `visual.py`, `score_clips.py`, `render_clips.py`, `captions.py`, `branding.py`, `tighten.py`, `projects.py`, `dashboard.py` e `tests/`) para a estrutura definida na E5.
