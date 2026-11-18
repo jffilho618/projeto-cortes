@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brainstorming BMAD — Mapa de Alavancas do Picorte</title>
+<style>
+  :root {
+    --bg: #0c0d10;
+    --surface: #15171c;
+    --surface-2: #1d2028;
+    --border: #2a2e39;
+    --text: #f3f4f6;
+    --muted: #9ca3af;
+    --brand: #ff4d1c;
+    --amber: #f59e0b;
+    --emerald: #10b981;
+    --cyan: #06b6d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.55;
+    padding: 32px 20px 64px;
+  }
+  .container { max-width: 1120px; margin: 0 auto; }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(255, 77, 28, 0.15);
+    color: var(--brand);
+    border: 1px solid rgba(255, 77, 28, 0.4);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+  }
+  h1 { font-size: 32px; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .subtitle { color: var(--muted); font-size: 16px; max-width: 780px; }
+  .climax {
+    background: linear-gradient(135deg, rgba(255,77,28,0.14), rgba(245,158,11,0.08));
+    border: 1px solid rgba(255,77,28,0.45);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 36px;
+  }
+  .climax h2 { font-size: 20px; color: var(--brand); margin-bottom: 14px; }
+  .top-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+    gap: 16px;
+  }
+  .top-card {
+    background: rgba(12, 13, 16, 0.75);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--emerald);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .top-card h3 { font-size: 16px; margin-bottom: 6px; color: #fff; }
+  .top-card p { font-size: 14px; color: var(--muted); }
+  .section { margin-bottom: 36px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .section-header h2 { font-size: 20px; }
+  .tech-tag {
+    font-size: 12px;
+    color: var(--amber);
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 3px 10px;
+    border-radius: 6px;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card h4 { font-size: 15px; margin-bottom: 6px; color: #fff; }
+  .card p { font-size: 13.5px; color: var(--muted); }
+  .tag-row { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--cyan);
+    border: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <span class="badge">BMAD Brainstorming · Modo Autônomo (Ideate For Me)</span>
+    <h1>O Que Ainda Faltava no Mapa do Picorte</h1>
+    <p class="subtitle">25 ideias geradas através de 5 lentes criativas do BMAD e filtradas na convergência (Impacto × Esforço) para maximizar views, retenção e receita nos seus canais próprios de cortes.</p>
+  </header>
+
+  <section class="climax">
+    <h2>🔥 As 6 Grandes Descobertas Recomendadas (Para Entrar no Mapa Agora)</h2>
+    <div class="top-grid">
+      <div class="top-card">
+        <h3>1. Sismógrafo do Chat da Live (Twitch / Kick / YT)</h3>
+        <p>Antes mesmo de gastar GPU, ler a velocidade de mensagens/s do chat da live (`KKKK`, `CLIP IT`, `LUL`, `???`). Acha o melhor momento de 6h de live em 1 segundo de CPU.</p>
+      </div>
+      <div class="top-card">
+        <h3>2. Engenharia dos Primeiros 2s (Cold Open + Loop)</h3>
+        <p>Colar 1,5s do clímax visual/sonoro no segundo 0:00 (Cold Open Reverso) para travar o swipe-away, e terminar o corte emendando com a primeira frase (Loop Infinito &gt;100% retenção).</p>
+      </div>
+      <div class="top-card">
+        <h3>3. Funil "Short Isca → Longo de 4 min" + Thumbnail</h3>
+        <p>Conectar automaticamente cada Short ao corte longo de 3–5 min via <em>Related Video</em> do YouTube e gerar a Thumbnail automática usando o frame de maior expressão facial + ação do jogo.</p>
+      </div>
+      <div class="top-card">
+        <h3>4. Multiplicador de Campanhas Pagas (CPM / Bounties)</h3>
+        <p>Cadastrar campanhas ativas que pagam por 1.000 views para o Bandit multiplicar o peso daquela fonte enquanto a campanha estiver pagando.</p>
+      </div>
+      <div class="top-card">
+        <h3>5. Filtro "Selo Verde" 15s + Detector de React Perigoso</h3>
+        <p>Micro-bleep automático em palavrões nos primeiros 15s (evita desmonetização) e Visão Computacional que detecta quando o streamer saiu do jogo para ver vídeo de terceiro (evita strike cruzado).</p>
+      </div>
+      <div class="top-card">
+        <h3>6. Autocaptura de Dataset Rotulado (Active Learning)</h3>
+        <p>Todo corte que bater 3x a mediana (ou flopar nos 3s) salva automaticamente seus vetores de visão/áudio/texto em <code>dataset_rotulado/</code> para você treinar seu modelo próprio na 4060 Ti.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>Lente 1 · Engenharia de Retenção e Formato</h2>
+      <span class="tech-tag">Técnica: Assumption Reversal (Deep)</span>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <h4>Cold Open Reverso (In Media Res)</h4>
+        <p>Pegar 1,5s do pico de reação do meio do corte e colocar no segundo 0:00 antes da história começar.</p>
+        <div class="tag-row"><span class="pill">Retenção 3s</span><span class="pill">FFmpeg</span></div>
+      </div>
+      <div class="card">
+        <h4>Compilação Cross-Streamer Automática</h4>
+        <p>Juntar num corte único a reação de 3–5 streamers ao mesmo trailer, anúncio ou bug (alinhado por imagem/áudio do jogo). Blindagem total contra "Conteúdo Reutilizado" no YPP (P2).</p>
+        <div class="tag-row"><span class="pill">YPP / P2</span><span class="pill">Visão Computacional</span></div>
+      </div>
+      <div class="card">
+        <h4>Faixa de Contexto ("Narrador Invisível")</h4>
+        <p>Nos primeiros 2s, exibir uma linha curta de contexto extraída pelo LLM dos 10 min anteriores da live ("4ª hora tentando passar sem morrer").</p>
+        <div class="tag-row"><span class="pill">P2 Contexto</span><span class="pill">LLM</span></div>
+      </div>
+      <div class="card">
+        <h4>Seamless Loop (Loop Infinito)</h4>
+        <p>Escolher o corte final onde a última frase conecta com a primeira palavra do segundo 0:00 para fazer o espectador assistir 1,3x sem notar.</p>
+        <div class="tag-row"><span class="pill">Algoritmo Shorts/TikTok</span></div>
+      </div>
+      <div class="card">
+        <h4>Reciclagem A/B de Gancho ("Segunda Vida")</h4>
+        <p>Se um corte teve ótima retenção após 5s mas swipe-away ruim nos primeiros 3s, re-renderizar trocando apenas o gancho de 2s e o título.</p>
+        <div class="tag-row"><span class="pill">Bandit / P3</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>Lente 2 · Sua Visão Computacional e Áudio em Games</h2>
+      <span class="tech-tag">Técnica: SCAMPER Method (Structured)</span>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <h4>Detector Visual de HUD / Killfeed</h4>
+        <p>Detectar eventos de Kill, Victory, Wasted, Clutch ou placar na tela do jogo via YOLO/OCR leve mesmo quando o streamer fica calado de tensão.</p>
+        <div class="tag-row"><span class="pill">Visão Computacional</span></div>
+      </div>
+      <div class="card">
+        <h4>Termômetro de Micro-Expressões na Facecam</h4>
+        <p>Medir abertura da boca (MAR), olhos arregalados e movimento brusco da cabeça (caindo na cadeira) na webcam como nota de reação.</p>
+        <div class="tag-row"><span class="pill">MediaPipe / Face</span></div>
+      </div>
+      <div class="card">
+        <h4>Sniper Crop (Zoom Dinâmico na Ação)</h4>
+        <p>Dar zoom suave no quadrante do jogo onde o movimento/explosão aconteceu em vez de recortar sempre o centro estático da tela.</p>
+        <div class="tag-row"><span class="pill">OpenCV</span></div>
+      </div>
+      <div class="card">
+        <h4>Troca Dinâmica de Layout no Mesmo Corte</h4>
+        <p>Alternar automaticamente entre 70% facecam (contando história), 50/50 (reação) e tela cheia com PiP (cutscene/tiroteio) dentro do mesmo vídeo.</p>
+        <div class="tag-row"><span class="pill">Reenquadramento</span></div>
+      </div>
+      <div class="card">
+        <h4>Jump-Cut de Tempos Mortos + Compressor Anti-Estouro</h4>
+        <p>Cortar segundos em que o streamer abre menu/inventário em silêncio e aplicar compressor de áudio para gritos não estourarem o fone do público.</p>
+        <div class="tag-row"><span class="pill">Áudio / FFmpeg</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>Lente 3 · Sinais da Comunidade, Receita e Blindagem (P1)</h2>
+      <span class="tech-tag">Técnicas: Ecosystem Thinking + Predator &amp; Prey</span>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <h4>1º Comentário Fixado "Isca de Debate"</h4>
+        <p>Postar automaticamente no primeiro comentário uma pergunta polarizadora sobre o lance ("Foi bug ou culpa dele no 0:14?") para segurar o vídeo rodando enquanto leem os comentários.</p>
+        <div class="tag-row"><span class="pill">Engajamento</span></div>
+      </div>
+      <div class="card">
+        <h4>Detector de "Treta / Pingue-Pongue"</h4>
+        <p>Quando o Streamer A cita o Streamer B na fala, avisar e buscar na live do Streamer B a resposta para montar um corte dos dois lados.</p>
+        <div class="tag-row"><span class="pill">Alto Alcance</span></div>
+      </div>
+      <div class="card">
+        <h4>Demucs Seletivo + Deduplicação Perceptual</h4>
+        <p>Separar voz/música na GPU só nos segundos com música detectada (preservando áudio do jogo no resto) e bloquear postagem duplicada do mesmo lance via pHash.</p>
+        <div class="tag-row"><span class="pill">P1 Segurança</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

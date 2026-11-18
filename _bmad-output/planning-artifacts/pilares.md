@@ -33,12 +33,12 @@ Tudo o que é publicado é medido, e a medição (somada aos sinais externos de 
 - **Viola:** permitir publicar por fora do sistema e "registrar depois", deixando cortes sem métricas ligadas a eles; ou um ranking "melhores assuntos de todos os tempos" que continua priorizando um jogo que esfriou.
 
 ### P4 · A inteligência de seleção é nossa
-Detectar, pontuar e decidir quais trechos viram corte é o núcleo do produto, e esse núcleo (critérios, dados rotulados, modelos, pesos do bandit) pertence ao projeto. Peças comuns podem vir de fora (transcrição, um LLM por API, bibliotecas de visão), desde que sejam trocáveis e não levem a decisão embora.
+Detectar, pontuar e decidir quais trechos viram corte é o núcleo do produto, e esse núcleo (critérios, dados rotulados, modelos, pesos do bandit) pertence ao projeto. Partir de código open-source local (`mehbul/chopify`, `fralapo/clippyme`, padrões de `FujiwaraChoki/supoclip`) e usar peças comuns (transcrição, um LLM por API ou local via Ollama, bibliotecas de visão computacional e áudio) reforça este pilar, desde que rodem sob nosso controle, sejam trocáveis e não levem a decisão nem os dados embora.
 
-- **Por quê:** quem decide o corte é quem aprende. Se a seleção estiver numa ferramenta de terceiros, o aprendizado e a margem ficam com ela.
-- **Pergunta de teste:** *se este fornecedor sumir amanhã, continuamos sabendo escolher cortes, com os mesmos dados e critérios?* Se não, viola.
-- **Reforça:** guardar cada pontuação, rótulo e resultado no nosso banco, mesmo quando a pontuação veio de um LLM por API.
-- **Viola:** mandar o vídeo para uma API de autoclip e publicar os trechos que ela escolher.
+- **Por quê:** quem decide o corte é quem aprende. Se a seleção estiver numa ferramenta paga de terceiros na nuvem, o aprendizado e a margem ficam com ela.
+- **Pergunta de teste:** *se um fornecedor externo sumir amanhã, continuamos sabendo escolher cortes na nossa máquina, com os mesmos dados, modelos e critérios?* Se não, viola.
+- **Reforça:** partir do motor local open-source do `chopify` (`evidence.py` + `visual.py` + `score_clips.py`), tunar com nossos detectores de visão computacional/chat e guardar cada pontuação, vetor (autocaptura de dataset rotulado) e resultado no nosso banco Postgres para treinar modelos próprios na RTX 4060 Ti.
+- **Viola:** mandar o vídeo para uma API paga de autoclip (Opus Clip, Klap, etc.) e publicar os trechos que ela escolher.
 
 ### P5 · Autônomo por padrão, revisável por escolha
 Da fonte à publicação, o sistema funciona sozinho. O operador pode ligar a revisão manual (por canal, por fonte ou por rede) e decidir corte a corte, mas a autonomia é o caminho padrão e nenhuma etapa obrigatória depende de trabalho manual.
@@ -81,27 +81,30 @@ Da fonte à publicação, o sistema funciona sozinho. O operador pode ligar a re
 
 ## Público
 
-| | Atual (MVP) | Futuro (SaaS, fora do MVP) |
-|---|---|---|
-| Quem | O próprio dono, operador de vários canais separados por nicho, começando em **games** | *Hipótese:* operadores de canais de cortes, participantes de campanhas de clipping e criadores que querem cortes autorizados do próprio conteúdo |
-| Fontes | Gameplay gravado por ele mesmo (menor risco), cortes de streamers com permissão, material oficial (alto risco de claim) | As fontes de cada cliente, com o status de permissão declarado pelo cliente |
-| O que muda | — | Isolamento por workspace; responsabilidade sobre as fontes transferida por termos de uso; onboarding; os portões de risco continuam obrigatórios e não podem ser desligados pelo cliente (P1) |
+| | Operação Própria (Escopo Total do Projeto) |
+|---|---|
+| **Quem** | O próprio dono (Bomba), operador de vários canais separados por nicho, começando em **games** com o canal **Bomba Clips**. |
+| **Fontes** | Gameplay gravado por ele mesmo (menor risco), lives/VODs de streamers com permissão, clipes virais de terceiros avaliados e re-transformados, e material de campanhas pagas de clipping (enquanto ativas). |
+| **Diretriz sobre SaaS** | **Fora de escopo.** O foco é 100% lucrar com a operação dos próprios canais (AdSense/YPP em vídeos longos e curtos + campanhas pagas de clipping/CPM). Não se gasta tempo com multi-tenant (`workspace_id`), cobrança ou onboarding de terceiros. Se um dia no futuro decidir virar SaaS, isso será tratado lá na frente. |
 
 ## O que é um "corte bom"
 
-Linguagem de produto; as métricas e os pesos ficam para a `cortes-ml` (E9). Os itens marcados com *(hipótese)* vêm de blogs e serão validados com dados reais.
+Linguagem de produto; as métricas e os pesos ficam para a `cortes-ml` e o motor multimodal. Os itens marcados com *(hipótese)* serão validados e recalibrados continuamente com os dados reais dos canais.
 
 **Todo corte bom:**
-1. **Passa em todos os portões de risco** (P1): fonte com permissão, sem música licenciada audível, sem spoiler fora da janela, sem conteúdo barrado pela política do publisher, sem nada na abertura que custe a monetização.
-2. **Entrega o momento rápido:** abre já na reação, na jogada ou no fato, sem intro nem saudação; o payoff chega antes que o espectador precise de contexto *(hipótese: gancho em 1–2 s, payoff em menos de 30 s)*.
-3. **Se entende sozinho**, sem ter visto o vídeo original.
-4. **Tem um momento marcante:** engraçado, inesperado, habilidoso, polêmico ou emocionante. Gameplay "normal" não é corte.
-5. **Tem identidade própria** (P2): título específico (em games, com o nome do jogo e o que acontece), nunca genérico ou numerado ("melhores momentos #315"); legenda legível; crédito à fonte.
-6. **É nativo da rede** (P2): título, legenda, duração e áreas seguras pensados para onde vai, sem marca d'água de outra rede *(hipótese: menos de 60 s nos formatos verticais)*.
+1. **Passa em todos os portões de risco** (P1): fonte com permissão, sem música licenciada audível (ou com música removida via separação neural de voz `Demucs` seletiva), sem spoiler fora da janela, sem conteúdo barrado pela política do publisher, sem "react perigoso" de vídeo de terceiro aberto pelo streamer, e com os primeiros 15 segundos limpos para monetização ("Selo Verde 15s": sem violência gráfica e com micro-bleep/censura automática em termos sensíveis).
+2. **Trava o espectador nos primeiros 2 segundos:** usa **Cold Open Reverso** (1,5s do clímax visual/sonoro colado em `0:00` antes da história começar) + **Faixa de Contexto Instantâneo** nos primeiros 2s ("Narrador Invisível" situando o desafio/momento), entregando o payoff sem enrolação.
+3. **Fecha em Loop Infinito (nos verticais):** em Shorts/Reels/TikTok, o ponto de corte final é ajustado para que a última frase/frame conecte com o segundo `0:00` (*Seamless Loop*), estimulando replay automático (>100% de retenção).
+4. **Se entende sozinho**, sem ter visto o vídeo original.
+5. **Tem um momento marcante (detectado por Texto + Áudio + Visão + Chat):** engraçado, inesperado, habilidoso, polêmico ou emocionante, confirmado pela convergência de sinais: explosão no **Sismógrafo do Chat da Live** (`msgs/s` e emotes), pico de áudio (grito/risada), **Visão Computacional** (micro-expressões na facecam, eventos de Kill/Victory/Wasted no HUD do jogo, ação intensa) e texto. Gameplay "normal" não é corte.
+6. **Tem identidade e transformação real** (P2, Score YPP):
+   - Título específico (em games, com o nome do jogo e o que acontece), nunca genérico ou numerado ("melhores momentos #315");
+   - Enquadramento inteligente: **Troca Dinâmica de Layout** (alternando entre foco na facecam na história, split Facecam + Gameplay na reação e tela cheia com PiP na ação) + **Sniper Crop** (zoom suave no quadrante onde a ação ocorre);
+   - Quando aplicável a grandes eventos/trailers/bugs: **Compilação Cross-Streamer** (reação de múltiplos streamers ao mesmo momento alinhado por imagem/áudio do jogo);
+   - **1º Comentário Fixado "Isca de Debate"** gerado junto com o corte para segurar espectadores discutindo nos comentários;
+   - **Funil Short Isca → Vídeo Longo (3–5 min):** quando o momento rende história maior, o Short vertical serve de isca ligada (via *Related Video*) ao corte longo 16:9 de 3–5 min acompanhado de **Thumbnail automática de alto CTR** (frame de maior expressão na facecam recortado + ação do jogo + 3 palavras).
 
-**Em games, em particular** *(hipóteses)*: física quebrada, NPC absurdo e falha inesperada rendem; facecam com reação aumenta a retenção; o pico de interesse está na semana de lançamento e em grandes atualizações ou polêmicas.
-
-**Sinais de corte ruim:** contexto longo antes do payoff; intro; ausência de momento marcante; título genérico; corte cru sem legenda; música com direitos.
+**Sinais de corte ruim:** contexto longo antes do payoff; intro; ausência de momento marcante; título genérico; corte cru sem legenda ou abaixo do Score mínimo de Transformação YPP; música com direitos audível; streamer assistindo vídeo protegido de terceiro.
 
 ## Histórico
 
@@ -113,3 +116,4 @@ Linguagem de produto; as métricas e os pesos ficam para a `cortes-ml` (E9). Os 
 | 2026-11-16 | P2 suavizado: exige título, legenda, duração e áreas seguras por rede e proíbe marca d'água de outra rede, mas permite o mesmo vídeo vertical em Shorts, Reels e TikTok; pergunta de teste e exemplos ajustados. | Exigir diferenças artificiais no vídeo beirava o disfarce de conteúdo barrado pelo A2. |
 | 2026-11-16 | **Aprovado** pelo usuário. | — |
 | 2026-11-16 | **Revisão do P3** (modo Revisar): título passa a "Os dados de agora decidem…"; enunciado, pergunta de teste e exemplos explicitam que o passado perde peso e que o sistema reage rápido quando o interesse muda. Documento afetado: `visao.md` (veredito continua "segue"; a ressalva sobre esquecimento fica resolvida). | Pedido do usuário: "o que funcionou ontem pode não funcionar hoje" é o centro da visão do produto. |
+| 2026-11-18 | **Revisão E3.5 (Ajuste de Rumo + Brainstorming):** (1) SaaS e multi-tenant retirados do escopo na seção Público — foco 100% em lucrar com os próprios canais de cortes; (2) P4 explicita o uso da base open-source local (`chopify`, `clippyme`, padrões de `supoclip`) sob controle local; (3) "O que é um corte bom" incorpora as alavancas aprovadas no brainstorming (Sismógrafo do Chat, Cold Open 1,5s, Seamless Loop, Contexto 2s, Cross-Streamer, Sniper Crop, Layout Dinâmico, HUD/Killfeed, Micro-expressões, Funil Short→Longo 4min + Thumbnail, Selo Verde 15s, Demucs seletivo, Detector de React Perigoso). Veredito `cortes-pilares` (modo Julgar) sobre o novo Plano Mestre Evolutivo: **segue**. | Decisão do usuário de priorizar lucro rápido e máximo com canais próprios partindo de clones open-source locais e evoluindo em camadas. |

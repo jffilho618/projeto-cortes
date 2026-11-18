@@ -4,68 +4,70 @@
 
 ## Platform
 
-web
+web + local GPU engine
 
 Uso igual em desktop e celular (decisão do usuário, 2026-11-16): fluxos completos nos dois, cada um com layout próprio. O celular não é o desktop espremido, e o desktop não é o celular esticado.
 
 ## Stack
 
-Decidida na arquitetura (E10 do `docs/plano-mestre.md`). O design system nasce como tokens e documentação, sem amarrar a um framework. Existe a intenção de fazer um fork do backend do ReSocial (Fastify + Postgres); o frontend é novo.
+Arquitetura híbrida local-first (definida na E3.5 em 2026-11-18 e detalhada na E5):
+- **Motor de Vídeo e IA (Python na GPU — RTX 4060 Ti 8 GB):** chassi baseado no `mehbul/chopify` (MIT: `faster-whisper`, `opencv-python`/YuNet, `numpy`, `yt-dlp`, `FFmpeg/NVENC` com legendas `.ass`), turbinado com módulos transplantados do `fralapo/clippyme` (MIT: `live_monitor.py` para lives ao vivo na Twitch/Kick/YouTube) e do `FujiwaraChoki/supoclip` (`reaction_layout.py` para Facecam + Jogo, `social/` para publicação OAuth e `mcp/` para controle por agente), mais detectores próprios de **Visão Computacional** (HUD/Killfeed, micro-expressões na facecam, Sniper Crop, Detector de React Perigoso, Fábrica de Thumbnails) e **Cirurgia de Áudio** (`Demucs` seletivo + Selo Verde 15s).
+- **Cérebro e Persistência (PostgreSQL local):** banco relacional para fontes, políticas por publisher/jogo, campanhas pagas de clipping, vídeos/lives, cortes, publicações, snapshots de métricas (1h/24h/7d), claims e pesos do Bandit.
+- **Frontend ("Estúdio do Criador"):** painel web responsivo (PC e celular) vestindo o motor local com os tokens e componentes do `DESIGN.md`.
 
 ## Users
 
-**Atual (MVP):** o próprio dono, operador de vários canais de cortes separados por nicho, começando em games. Ele não edita vídeo à mão. O trabalho dele é decidir **o que deixar o sistema publicar**: revisar a fila de cortes quando a revisão estiver ligada, mudar o status de permissão das fontes, reagir a alertas de risco (claim, strike, fonte não liberada em alta) e acompanhar o que está performando. Usa tanto no PC quanto no celular.
+**Único usuário (Escopo Total):** o próprio dono (Bomba), operador de vários canais de cortes separados por nicho, começando em **games** com o canal **Bomba Clips**. Ele não edita vídeo à mão. O trabalho dele é supervisionar a máquina (ou comandá-la via Claude / Gemini), mudar o status de permissão das fontes, cadastrar campanhas pagas de clipping, revisar cortes quando a revisão estiver ligada e acompanhar o retorno.
 
-**Futuro (SaaS, fora do MVP):** operadores de canais de cortes, participantes de campanhas de clipping e criadores que querem cortes autorizados do próprio conteúdo. Cada um em seu workspace.
+**Fora de escopo:** SaaS, venda de assinaturas, multi-tenant (`workspace_id`), billing e onboarding de terceiros (decisão de 2026-11-18: foco 100% em lucrar com os próprios cortes).
 
 ## Product Purpose
 
-O Picorte (pico + corte) transforma vídeos longos (lives, VODs, podcasts) em cortes nativos para YouTube Shorts, YouTube (cortes longos de 3–5 min), TikTok, Instagram Reels e Facebook. Ele publica, mede e **aprende o que está dando views agora**, em qualquer variável (jogo, streamer, formato, rede, assunto, horário), e passa a cortar mais disso. O que funcionou ontem perde peso quando o interesse muda. Sucesso é o canal crescer em visualizações sem tomar claim, strike nem desmonetização.
+O **Picorte** (pico + corte) transforma vídeos longos (VODs, lives gravadas), **lives ao vivo** e **clipes virais de terceiros** em cortes de altíssima retenção para YouTube Shorts, YouTube Longo (3–5 min com thumbnail automática), TikTok, Instagram Reels e Facebook. Ele detecta momentos por **Chat + Áudio + Visão Computacional + Texto**, aplica engenharia de retenção (Cold Open Reverso 1,5s, Faixa de Contexto 2s, Seamless Loop, Funil Short → Vídeo Longo), publica, mede e **aprende o que está dando views e dinheiro agora** (em qualquer variável: jogo, streamer, formato, rede, assunto, horário, campanha paga), passando a cortar mais disso e esquecendo rápido o que esfriou — tudo protegido por um **Escudo Anti-Strike (P1)** intransponível.
 
-Visão do dono, nas palavras dele: `_bmad-output/planning-artifacts/visao.md`.
+Visão completa: `_bmad-output/planning-artifacts/visao.md`.
 
 ## Positioning
 
-Ferramentas de autoclip (ex.: Cortaí, cortai.pro) cortam bem e param aí. O Picorte **persegue o pico**: junta o radar de tendências e o calendário de eventos com o aprendizado sobre o desempenho dos próprios cortes publicados, e decide sozinho o que cortar, onde e quando. Tudo isso por trás de um **freio de risco** que nenhum modo desliga (status de permissão da fonte, políticas por publisher/jogo, música licenciada, janela de spoiler, regras de monetização, pausa automática ao primeiro claim). A seleção é própria: o projeto não usa ferramenta de autoclip paga.
+Ferramentas pagas de autoclip (Opus Clip, Cortaí) cobram mensalidade por minuto, olham quase só para o texto e param no arquivo `.mp4`. Clones open-source puros (`chopify`, `supoclip`, `clippyme`) entregam boas peças mecânicas, mas não têm inteligência de mercado nem blindagem de copyright. O **Picorte** funde o melhor motor open-source local com **Visão Computacional de Games**, **Sismógrafo do Chat da Live**, **Escudo Anti-Strike (P1)** e um **Cérebro Bandit + Radar de Alta (P3)**, operando a custo zero de assinatura na própria GPU.
 
 ## Operating Context
 
-- O sistema roda sozinho por padrão; a revisão manual é opcional (por canal, fonte ou rede).
-- Uma fonte com status "desconhecida" **não publica e nem é baixada** até o operador mudar o status. Se ela estiver em alta, o sistema avisa o que falta para liberá-la.
-- O processamento pesado roda num worker local (PC com GPU) que pode estar desligado; a fila espera sem perder nada. A interface precisa mostrar isso com honestidade (ex.: "worker offline, 12 vídeos na fila").
-- Cada rede tem as suas regras e limites (cotas de upload, auditoria pendente = publicação privada). A interface diz o que cada rede permite de verdade.
+- O sistema evolui em 7 Épicos práticos, começando pelo clone rodando na GPU (Épico 1) e controle via Claude/Gemini (Épico 2) até o ciclo autônomo completo (Épico 7).
+- Uma fonte com status `desconhecida` **não publica e nem é baixada** até o operador mudar o status. Se ela estiver em alta no Radar, o sistema avisa o que falta para liberá-la.
+- Os 8 GB de VRAM da RTX 4060 Ti são gerenciados em fila serializada (um modelo pesado por vez), com **Modo Madrugada** para lotes pesados (VODs de +2h, `Demucs`, treino de modelos próprios).
+- Cada rede tem suas regras e limites (cotas de upload, auditoria pendente = publicação privada ou assistida). A interface diz o que cada rede permite de verdade.
 - Datas gravadas em UTC e mostradas no fuso de Brasília.
 
 ## Capabilities and Constraints
 
-- Gerar cortes: transcrição → detecção de ganchos e momentos → corte → reenquadramento 9:16 (facecam + jogo em games) → legenda.
-- Importar e dar nota a cortes de terceiros.
-- Publicar em várias redes com título, legenda, duração e áreas seguras próprios de cada uma; nunca com marca d'água de outra rede.
-- Métricas por corte (snapshots de 1h/24h/7d), radar de tendências, calendário de eventos, bandit que aprende e esquece.
-- Módulo de risco obrigatório: status de permissão da fonte (liberada / contrato / campanha, que expira / gameplay próprio, que nasce autorizado / desconhecida), crédito automático, monitor de claims e strikes, pausa automática em todas as redes, lista negra, registro de políticas por publisher/jogo.
-- Multi-tenant desde o início (workspaces); OAuth por workspace; nunca senha de rede.
-- **Em aberto:** a stack (E10); se o Kwai entra como rede (E7); a fórmula da recompensa (E9: views sem premiar clickbait).
+- **Ingestão 360º:** VODs longas em blocos de áudio (`chopify`), **Lives Ao Vivo** (`streamlink` + `live_monitor.py`) e **Clipes Virais de Terceiros** (avaliados e re-transformados).
+- **Detecção Multimodal 4D:** Sismógrafo do Chat da Live (`msgs/s` + emotes) + Áudio 1 Hz (`evidence.py`) + Visão Computacional 2 fps (Micro-expressões na facecam, HUD/Killfeed do jogo, ação visual) + Texto (LLM local Ollama ou API Claude/Gemini).
+- **Engenharia de Retenção e Formato:** Cold Open Reverso (1,5s), Faixa de Contexto (2s), Seamless Loop, Troca Dinâmica de Layout (Facecam + Jogo), Sniper Crop, Compilação Cross-Streamer, 1º Comentário Fixado "Isca de Debate", e **Funil Short Isca → Vídeo Longo (3–5 min) + Fábrica Automática de Thumbnail**.
+- **Escudo Anti-Strike (P1):** status da fonte, políticas por publisher/jogo, cirurgia de música com `Demucs` seletivo, Selo Verde 15s (sem violência gráfica + micro-bleep de palavrão), Detector de React Perigoso, Score de Transformação YPP, Deduplicação `pHash`, crédito automático e pausa global ao 1º claim.
+- **Aprendizado Contínuo (P3):** snapshots de 1h/24h/7d, Radar de Tendências + Calendário, Multiplicador de Campanhas Pagas (CPM), Bandit com esquecimento, Reciclagem A/B de Gancho ("Segunda Vida") e Autocaptura de Dataset Rotulado (*Active Learning*).
+- **Excluído por decisão do usuário:** Jump-Cut de Tempos Mortos + Compressor de Áudio; SaaS / multi-tenant.
 
 ## Brand Commitments
 
-- Nome: **Picorte** (pico + corte). Domínio pretendido: `picorte.com.br` (ainda não registrado).
-- Identidade **inteiramente nova**. Nada é herdado do ReSocial: nem nome, nem paleta violeta, nem logotipo, nem `DESIGN.md`.
-- O canal de cortes do dono (**Bomba Clips**) é independente e **não pode ter ligação visível** com a marca Picorte (P1: um claim no canal não deve respingar no produto).
-- Voz: português do Brasil, direto e honesto. Nunca promete ganhos (A5), nunca soa como truque ou atalho viral (A2).
-- Cores e ícones das redes (YouTube, TikTok etc.) aparecem só para identificar a rede, no formato oficial de cada uma.
+- Nome da ferramenta: **Picorte** (pico + corte).
+- Canal de cortes de games: **Bomba Clips** (independente e sem ligação visível com a marca Picorte — P1).
+- Identidade visual: **"Estúdio do Criador"** com a assinatura **"Curva do Mais Repetido"** (`DESIGN.md`, `design/tokens/tokens.css`, `design/brand/`).
+- Voz: português do Brasil, direto e honesto.
 
 ## Evidence on Hand
 
-- Pilares e anti-pilares aprovados: `_bmad-output/planning-artifacts/pilares.md`.
-- Concorrente de referência: `_bmad-output/planning-artifacts/concorrentes.md` (Cortaí: linha do tempo com forma de onda e trechos marcados, prévias verticais facecam + jogo, legenda com a palavra ativa destacada).
-- **Não existem:** clientes, depoimentos, métricas reais, preços de planos nem cortes publicados. Nada disso pode ser inventado em tela ou em marketing. Dados de exemplo precisam vir marcados como exemplo.
+- Pilares e anti-pilares aprovados e revisados na E3.5: `_bmad-output/planning-artifacts/pilares.md`.
+- Visão consolidada e mapa completo de capacidades: `_bmad-output/planning-artifacts/visao.md`.
+- Auditoria de código dos 10 clones open-source (`referencias/`) e mapa de transplante: `_bmad-output/planning-artifacts/concorrentes.md`.
+- Sessão completa de Brainstorming BMAD: `_bmad-output/brainstorming/brainstorm-mapa-funcionalidades-picorte-2026-11-18/brainstorm.html`.
 
 ## Product Principles
 
-1. **O canal vem antes do alcance.** Todo estado de risco é visível, explicado e nunca contornável pela interface.
-2. **Os dados de agora decidem.** A interface mostra por que o sistema escolheu um corte (o que está em alta, o que funcionou) e o que mudou desde ontem.
-3. **Autônomo por padrão.** O operador supervisiona, não opera corte a corte. Pedir atenção é exceção e tem motivo.
-4. **Honestidade sobre o que cada rede e o próprio sistema conseguem fazer**, inclusive quando o worker está offline ou a auditoria não saiu.
+1. **O canal vem antes do alcance (P1).** Todo estado de risco é visível, explicado e nunca contornável.
+2. **Os dados de agora decidem (P3).** A interface mostra por que o sistema escolheu um corte (chat, áudio, visão, radar, campanha ativa) e o que mudou desde ontem.
+3. **Autônomo por padrão (P5).** O operador supervisiona (via painel ou via Claude/Gemini), não edita corte a corte.
+4. **Honestidade sobre o que cada rede e o próprio hardware conseguem fazer.**
 5. **Português claro antes de termo técnico.**
 
 ## Accessibility & Inclusion
