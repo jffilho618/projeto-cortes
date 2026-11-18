@@ -44,7 +44,10 @@ A visão detalhada e completa está em `_bmad-output/planning-artifacts/visao.md
    - transformação real em cada corte (Score mínimo YPP — P2).
 5. **Foco 100% em uso próprio (SaaS fora de escopo):** não gastar tempo com multi-tenant (`workspace_id`), planos de assinatura, billing ou onboarding de clientes.
 6. **Toda etapa que custa dinheiro tem estimativa de custo** escrita antes de ser executada (API de LLM, GPU alugada, hospedagem, domínio etc.). Gasto recorrente precisa de um teto mensal definido.
-7. **Local/grátis primeiro.** O PC de mesa (**RTX 4060 Ti 8 GB**) é o worker principal (`faster-whisper`, `FFmpeg/NVENC`, Visão Computacional, `Demucs`, Ollama/treino leve — rodando modelos pesados em fila serializada para caber nos 8 GB de VRAM, com Modo Madrugada para lotes pesados). O notebook (**GTX 1650 4 GB**) é para desenvolvimento e testes leves.
+7. **Local/grátis primeiro e 100% Multiplataforma (Windows 11 + Linux Ubuntu):**
+   - O **PC de mesa (Windows 11 + RTX 4070 Ti / 4060 Ti)** é o worker principal de produção (`faster-whisper`, `FFmpeg/NVENC`, Visão Computacional, `Demucs`, Ollama/treino — rodando modelos pesados em fila serializada com Modo Madrugada).
+   - O **notebook (Linux Ubuntu + GTX 1650 4 GB)** é usado para desenvolvimento e testes leves.
+   - **Regra obrigatória de código multiplataforma (`AD-11`):** todo código Python, script, lock (`filelock`, nunca `fcntl`), caminho (`pathlib.Path`, `.venv/Scripts` no Windows e `.venv/bin` no Linux) e filtro `FFmpeg` deve funcionar identicamente no **Windows** e no **Linux**.
 8. **Nunca copiar `.env` nem segredos** do ReSocial ou de qualquer outro lugar.
 9. **Skill de terceiros só se instala com aprovação.** Antes de pedir, mostrar: o que ela faz, de onde vem, quem mantém e o que executa (scripts, hooks).
 

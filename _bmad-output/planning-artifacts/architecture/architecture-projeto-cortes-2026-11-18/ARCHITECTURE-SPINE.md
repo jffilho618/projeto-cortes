@@ -156,6 +156,12 @@ flowchart TD
 - **Prevents:** Regras de negócio duplicadas ou funcionalidades disponíveis apenas na tela web e inacessíveis pelo Claude/Gemini (ou vice-versa).
 - **Rule:** Nenhuma rota HTTP (`picorte/api/`) nem ferramenta MCP (`picorte/mcp/`) contém lógica de domínio ou SQL direto; ambas chamam exclusivamente as funções da camada `picorte/services/`.
 
+### AD-11 — Compatibilidade Nativa Multiplataforma: Linux Ubuntu (Notebook) + Windows 11 (PC de Mesa RTX) [ADOPTED]
+
+- **Binds:** `all`
+- **Prevents:** Código desenvolvido no notebook Ubuntu quebrar ao rodar no PC de mesa Windows 11 (por caminhos POSIX hardcoded, `/tmp`, `.venv/bin`, `fcntl` ou sintaxe de filtro `subtitles=` do `FFmpeg` com `C:\`).
+- **Rule:** Todo código deve usar `pathlib.Path`, `tempfile`, `picorte.config.get_venv_bin_dir()` (`.venv/Scripts` no Windows, `.venv/bin` no Linux), `picorte.config.resolve_cli_binary()` (resolvendo `.exe`/`.cmd` no Windows e `C:\Windows\System32\nvidia-smi.exe`), `filelock` (nunca `fcntl`/`posix`) para locks de processo/VRAM e execução do `ffmpeg` com `cwd` no diretório de trabalho ou caminhos relativos para que filtros `subtitles=_caption.ass` e `sendcmd=f=_crop.cmd` nunca sofram erro de parsing com `C:\` no Windows.
+
 ## Consistency Conventions
 
 | Concern | Convention |

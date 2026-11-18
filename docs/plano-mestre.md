@@ -48,10 +48,10 @@ FASE B — ESPECIFICAÇÃO UNIFICADA E ARQUITETURA DE FUSÃO (Concluída ✅)
   E6 Quebra nos 7 Épicos e Sprint Status (`bmad-create-epics-and-stories` + `bmad-sprint-planning`) ✅
 
 FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico entrega o sistema rodando num patamar acima)
-  Épico 1 (MVP Zero): Clone Base (`chopify`) instalado e gerando os primeiros cortes .mp4 na GPU ⏳ PRÓXIMO
+  Épico 1 (MVP Zero): Clone Base (`chopify`) instalado e gerando os primeiros cortes .mp4 na GPU ✅
    │
    ▼
-  Épico 2: Controle por Agente (Skill + MCP para Claude/Gemini) + Banco PostgreSQL local + Gerenciador de Fila/VRAM
+  Épico 2: Controle por Agente (Skill + MCP para Claude/Gemini) + Banco PostgreSQL local + Gerenciador de Fila/VRAM + Seletor de IA na UI ⏳ PRÓXIMO
    │
    ▼
   Épico 3: Upgrade Multimodal 4D (Sismógrafo do Chat + Áudio + Visão Computacional de Games: Facecam/HUD/Micro-expressões)
@@ -158,7 +158,7 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 
 ---
 
-### ÉPICO 1 (MVP Zero) · O Clone Base (`chopify`) Rodando na Máquina e Gerando Cortes ⏳ EM EXECUÇÃO
+### ÉPICO 1 (MVP Zero) · O Clone Base (`chopify`) Rodando na Máquina e Gerando Cortes ✅ (2026-11-18)
 - **Objetivo:** ter o motor base do `mehbul/chopify` instalado dentro do nosso projeto, rodando com GPU (`faster-whisper` + `FFmpeg` + `OpenCV YuNet`) e gerando os primeiros cortes `.mp4` legendados (9:16 e 16:9) a partir de um vídeo real de gameplay.
 - **De onde vem o código:**
   - Copiar a base de `referencias/mehbul_chopify/` (`chopify.py`, `ingest.py`, `sections.py`, `download_and_transcribe.py`, `evidence.py`, `visual.py`, `score_clips.py`, `render_clips.py`, `captions.py`, `branding.py`, `tighten.py`, `projects.py`, `dashboard.py` e `tests/`) para a estrutura definida na E5.

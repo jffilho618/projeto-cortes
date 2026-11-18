@@ -14,3 +14,8 @@ node_modules/
 # Python
 __pycache__/
 *.pyc
+.venv/
+.pytest_cache/
+projects/
+clips/
+work/
