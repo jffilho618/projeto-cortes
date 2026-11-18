@@ -1,0 +1,56 @@
+# Sprint Status — projeto-cortes (Picorte)
+# Gerado em conformidade com sprint-status-template.yaml do BMAD v6.12.4
+
+generated: 11-18-2026 03:36
+last_updated: 11-18-2026 03:36
+project: projeto-cortes
+project_key: PICORTE
+tracking_system: file-system
+story_location: "_bmad-output/implementation-artifacts"
+
+development_status:
+  epic-1: backlog
+  1-1-ambiente-local-diagnostico-de-gpu-e-transplante-do-chassi-chopify: backlog
+  1-2-pipeline-ponta-a-ponta-de-corte-9-16-e-16-9-com-area-segura-unificada: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-schema-canonico-postgresql-e-camada-de-repositorios: backlog
+  2-2-orquestrador-serial-de-vram-vram-runner-py-e-modo-madrugada: backlog
+  2-3-roteador-de-ia-de-4-modos-llm-router-py-com-seletor-na-ui: backlog
+  2-4-servidor-mcp-picorte-mcp-e-skill-picorte-operador: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-sismografo-do-chat-da-live-chat-seismic-py: backlog
+  3-2-visao-computacional-de-games-micro-expressoes-mar-e-detector-de-hud-killfeed: backlog
+  3-3-enquadramento-9-16-de-games-layout-facecam-jogo-troca-dinamica-e-sniper-crop: backlog
+  3-4-engenharia-de-retencao-cold-open-reverso-1-5s-contexto-2s-seamless-loop-e-cross-streamer: backlog
+  3-5-par-short-isca-corte-longo-3-5-min-e-fabrica-automatica-de-thumbnail: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-portao-de-status-da-fonte-e-politicas-por-publisher-jogo-policy-gate-py: backlog
+  4-2-cirurgia-seletiva-de-musica-com-demucs-na-gpu-music-surgeon-py: backlog
+  4-3-filtro-selo-verde-15s-detector-de-react-perigoso-e-guardiao-ypp-phash: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-radar-de-tendencias-calendario-de-eventos-campanhas-cpm-e-limpeza-de-30-dias: backlog
+  5-2-monitor-de-lives-ao-vivo-e-feeds-de-vods-live-monitor-py: backlog
+  5-3-cacador-de-clipes-de-terceiros-clip-hunter-py-e-detector-de-treta-storyline-detector-py: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-pacote-de-publicacao-assistida-export-pack-py-e-cofre-oauth-publicadores-das-5-redes: backlog
+  6-2-monitor-de-claims-e-disjuntor-global-automatico-claim-breaker-py: backlog
+  6-3-painel-web-estudio-do-criador-desktop-e-celular-design-md: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-coletor-de-snapshots-1h-24h-7d-e-recompensa-anti-clickbait-reward-py: backlog
+  7-2-bandit-contextual-com-esquecimento-temporal-e-reciclagem-a-b-de-gancho: backlog
+  7-3-autocaptura-de-dataset-rotulado-active-learning-py-e-treino-local-na-rtx-4060-ti: backlog
+  epic-7-retrospective: optional
+
+action_items: []

@@ -26,10 +26,15 @@
 
 ## 2. Onde estamos e qual é o próximo passo imediato
 
-- **Concluído:** Fase A inteira (`E0`, `E1`, `E2`, `E3` e `E3.5`).
-- **Próxima etapa imediata (`⏳ PRÓXIMA` no `docs/plano-mestre.md`):**
-  - **E4 · Especificação Unificada (`bmad-spec`)** → seguida de **E5 · Arquitetura de Fusão (`bmad-architecture`)** → **E6 · Quebra nos 7 Épicos (`bmad-create-epics-and-stories`)** → e início imediato do **Épico 1 (colocar o `chopify` rodando na máquina e gerando os primeiros cortes `.mp4`)**.
+- **Concluído nesta sessão:**
+  - **Fase A inteira (`E0` a `E3.5`):** Pilares, Visão, Naming (`Picorte` / `Bomba Clips`), Design System (`DESIGN.md`), Auditoria de Código dos 10 Clones (`concorrentes.md`), Brainstorming BMAD (`brainstorm.html`) e Plano Mestre Evolutivo v2 (`docs/plano-mestre.md`).
+  - **Fase B inteira (`E4`, `E5` e `E6`):**
+    - **E4 (`bmad-spec`):** `_bmad-output/specs/spec-picorte/SPEC.md` + 4 companions + `.memlog.md` (incluindo o **Seletor de IA de 4 Modos na UI: `Ollama` / `Claude` / `Gemini` / `Dupla: Filtro + Acompanhamento`** e o **Modo de Publicação Assistida Inicial**).
+    - **E5 (`bmad-architecture` + `bmad-testarch-test-design`):** `_bmad-output/planning-artifacts/architecture.md` (e `ARCHITECTURE-SPINE.md` validado com `0 findings` no `lint_spine.py`) + `_bmad-output/test-artifacts/test-design-picorte.md` (matriz de testes P0/P1).
+    - **E6 (`bmad-create-epics-and-stories` + `bmad-sprint-planning`):** `_bmad-output/planning-artifacts/epics.md` (7 Épicos, 22 Histórias detalhadas com origem de código e critérios de aceite) + `_bmad-output/implementation-artifacts/sprint-status.yaml`.
+- **Próxima etapa imediata (`⏳ PRÓXIMO` no `docs/plano-mestre.md`):**
+  - **Fase C — Épico 1 (MVP Zero): `Story 1.1: Ambiente Local, Diagnóstico de GPU e Transplante do Chassi Chopify`** (liderada pelo `superpowers`).
 - **Nota sobre o hardware:**
   - Quando a sessão rodar no **notebook**, a GPU é uma **GTX 1650 (4 GB VRAM)**.
   - Quando rodar no **PC de mesa**, a GPU é uma **RTX 4060 Ti (8 GB VRAM)**.
-  - Em ambos, modelos pesados de GPU devem rodar de forma serializada (um por vez na VRAM).
+  - Em ambos, modelos pesados de GPU devem rodar de forma serializada (`vram_runner.py`).

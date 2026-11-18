@@ -38,17 +38,17 @@ FASE A — FUNDAÇÃO, IDENTIDADE E AJUSTE DE RUMO (Concluída ✅)
                                                                               │
                                                                               └──► T1 Trilha Paralela: Contas Dev + Auditorias (corre até o Épico 6)
 
-FASE B — ESPECIFICAÇÃO UNIFICADA E ARQUITETURA DE FUSÃO (Planejamento enxuto com BMAD)
-  E4 Spec Unificada (`bmad-spec`) ⏳ PRÓXIMA
+FASE B — ESPECIFICAÇÃO UNIFICADA E ARQUITETURA DE FUSÃO (Concluída ✅)
+  E4 Spec Unificada (`bmad-spec`) ✅
    │
    ▼
-  E5 Arquitetura de Fusão + Estratégia de Testes (`bmad-architecture` + `bmad-testarch-test-design`)
+  E5 Arquitetura de Fusão + Estratégia de Testes (`bmad-architecture` + `bmad-testarch-test-design`) ✅
    │
    ▼
-  E6 Quebra nos 7 Épicos e Sprint Status (`bmad-create-epics-and-stories` + `bmad-sprint-planning`)
+  E6 Quebra nos 7 Épicos e Sprint Status (`bmad-create-epics-and-stories` + `bmad-sprint-planning`) ✅
 
 FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico entrega o sistema rodando num patamar acima)
-  Épico 1 (MVP Zero): Clone Base (`chopify`) instalado e gerando os primeiros cortes .mp4 na GPU
+  Épico 1 (MVP Zero): Clone Base (`chopify`) instalado e gerando os primeiros cortes .mp4 na GPU ⏳ PRÓXIMO
    │
    ▼
   Épico 2: Controle por Agente (Skill + MCP para Claude/Gemini) + Banco PostgreSQL local + Gerenciador de Fila/VRAM
