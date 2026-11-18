@@ -204,6 +204,13 @@ class Handler(BaseHTTPRequestHandler):
                         {"words": list(stems), "emoji": emoji}
                         for stems, emoji in render_clips.EMOJI_RULES
                     ],
+                    "ai_modes": [
+                        {"id": "heuristic", "label": "Determinístico (sem LLM)"},
+                        {"id": "ollama", "label": "Só Ollama (local GPU)"},
+                        {"id": "claude", "label": "Só Claude (assinatura/API)"},
+                        {"id": "gemini", "label": "Só Gemini (assinatura/API)"},
+                        {"id": "dupla", "label": "Dupla (Um filtra + Outro acompanha)"},
+                    ],
                 })
             if parts == ["api", "projects"]:
                 return self.send_json({"projects": self.app.list_projects()})

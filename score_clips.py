@@ -1576,7 +1576,8 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 
 
 def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
-           band=None, llm=None, host=OLLAMA_HOST, mode="heuristic"):
+           band=None, llm=None, host=OLLAMA_HOST, mode="heuristic",
+           ai_mode="heuristic", ai_filter="ollama", ai_companion="claude"):
     """Read candidates.json, write segments.json and selection.json."""
     workdir = Path(workdir)
     candidates, discovery = load_candidates(workdir)
@@ -1585,7 +1586,31 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         if band is None else band)
     deduped = dedupe_candidates(candidates, preferred_len=preferred_len,
                                 band=effective_band, min_score=min_score)
-    if llm:
+    if ai_mode and ai_mode != "heuristic":
+        from picorte.ai.llm_router import LLMRouter
+        router = LLMRouter(ollama_host=host, ollama_model=llm or None)
+        try:
+            routed = router.rerank_candidates(
+                deduped[:50],
+                ai_mode=ai_mode,
+                filter_provider=ai_filter,
+                companion_provider=ai_companion,
+                model=llm,
+            )
+            adjusted = routed["candidates"]
+            used_mode = routed["llm_mode_used"]
+        except Exception as exc:
+            print(f"AI router fallback ({exc}) -> deterministic scores", flush=True)
+            adjusted, used_mode = None, "heuristic"
+        if adjusted:
+            by_key = {_candidate_key(item): item for item in adjusted}
+            candidates = [{**item, **by_key[_candidate_key(item)]}
+                          if _candidate_key(item) in by_key else item
+                          for item in candidates]
+            deduped = [by_key.get(_candidate_key(item), item) for item in deduped]
+            mode = used_mode
+            save_candidates(workdir, candidates, discovery, mode=mode)
+    elif llm:
         adjusted = ollama_rerank(deduped[:50], llm, host)
         if adjusted is not None:
             by_key = {_candidate_key(item): item for item in adjusted}
@@ -1640,7 +1665,8 @@ def _no_clips_message(workdir, threshold):
 
 def run(workdir, llm=None, host=OLLAMA_HOST, min_score=None, max_clips=None,
         min_len=15, max_len=300, search=None, pick=None, semantic=None,
-        embed_model="nomic-embed-text", preferred_len=None, explain=False):
+        embed_model="nomic-embed-text", preferred_len=None, explain=False,
+        ai_mode="heuristic", ai_filter="ollama", ai_companion="claude"):
     """Score the transcript in workdir and write the discovery artifacts.
 
     Returns (segments, mode): 'ollama', 'heuristic', or 'semantic'.
@@ -1697,7 +1723,9 @@ def run(workdir, llm=None, host=OLLAMA_HOST, min_score=None, max_clips=None,
         segments, mode = select(workdir, min_score=effective_score,
                                 max_clips=max_clips,
                                 preferred_len=preferred_len,
-                                llm=llm, host=host)
+                                llm=llm, host=host,
+                                ai_mode=ai_mode, ai_filter=ai_filter,
+                                ai_companion=ai_companion)
 
     if not segments:
         _no_clips_message(workdir, effective_score)

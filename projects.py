@@ -21,7 +21,9 @@ DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "loudnorm": False, "whisper_model": "medium", "device": "cpu",
                    "min_len": 15, "max_len": 300, "max_clips": None,
                    "min_score": 8.0, "preferred_len": None,
-                   "llm": None, "search": None, "semantic": None,
+                   "llm": None, "ai_mode": "heuristic",
+                   "ai_filter": "ollama", "ai_companion": "claude",
+                   "search": None, "semantic": None,
                    "embed_model": "nomic-embed-text", "brand": None,
                    "layout": "single", "centers": [0.25, 0.75], "caption": None}
 
@@ -79,6 +81,11 @@ def validate_options(options):
         result["preferred_len"] = int(preferred) if preferred.is_integer() else preferred
     if result["device"] not in {"cpu", "cuda", "auto"}:
         raise ValueError("Device must be cpu, cuda or auto.")
+    if result["ai_mode"] not in {"heuristic", "ollama", "claude", "gemini", "dupla"}:
+        raise ValueError("ai_mode must be heuristic, ollama, claude, gemini or dupla.")
+    for k in ("ai_filter", "ai_companion"):
+        if result[k] not in {"ollama", "claude", "gemini"}:
+            raise ValueError(f"{k} must be ollama, claude or gemini.")
     if result["search"] and result["semantic"]:
         raise ValueError("Choose keyword search or semantic search, not both.")
     centers = result["centers"]
@@ -97,8 +104,9 @@ def validate_options(options):
 
 
 def score_options(options):
-    keys = ("llm", "search", "semantic", "embed_model", "min_score",
-            "max_clips", "min_len", "max_len", "preferred_len")
+    keys = ("llm", "ai_mode", "ai_filter", "ai_companion", "search",
+            "semantic", "embed_model", "min_score", "max_clips", "min_len",
+            "max_len", "preferred_len")
     return {key: options[key] for key in keys}
 
 
@@ -110,8 +118,10 @@ def score_keys(transcript_key, data, options):
     discovery_key = digest([transcript_key, data, discovery_options,
                             evidence.EVIDENCE_VERSION,
                             visual.FEATURE_VERSION])
-    selection_options = {key: options[key] for key in (
-        "min_score", "max_clips", "llm")}
+    selection_options = {
+        key: options.get(key, DEFAULT_OPTIONS.get(key))
+        for key in ("min_score", "max_clips", "llm", "ai_mode", "ai_filter", "ai_companion")
+    }
     selection_key = digest([discovery_key, selection_options])
     return discovery_key, selection_key
 
@@ -376,7 +386,11 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         path,
                         min_score=options["min_score"] if options["min_score"] is not None else 8.0,
                         max_clips=options["max_clips"],
-                        preferred_len=options["preferred_len"], llm=options["llm"])
+                        preferred_len=options["preferred_len"],
+                        llm=options["llm"],
+                        ai_mode=options.get("ai_mode", "heuristic"),
+                        ai_filter=options.get("ai_filter", "ollama"),
+                        ai_companion=options.get("ai_companion", "claude"))
                     state["cache"]["selection"] = selection_key
                     save_project(path, state)
 

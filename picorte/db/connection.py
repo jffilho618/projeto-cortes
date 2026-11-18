@@ -1,0 +1,110 @@
+"""Gerenciador de conexão de banco de dados (PostgreSQL 16 via DATABASE_URL + SQLite3 local cross-platform)."""
+from __future__ import annotations
+
+import os
+import sqlite3
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any, Iterator
+
+from picorte.config import PROJECT_ROOT
+
+SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
+
+
+class Database:
+    """Abstração transacional compatível com PostgreSQL (psycopg3) e SQLite local."""
+
+    def __init__(self, dsn: str | None = None) -> None:
+        self.dsn = dsn or os.environ.get("DATABASE_URL") or f"sqlite:///{PROJECT_ROOT / 'picorte.db'}"
+        self.is_postgres = self.dsn.startswith(("postgresql://", "postgres://"))
+        if not self.is_postgres:
+            if self.dsn.startswith("sqlite:///"):
+                raw_path = self.dsn[len("sqlite:///") :]
+            else:
+                raw_path = self.dsn
+            self.sqlite_path = Path(raw_path)
+            self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            self.sqlite_path = None
+
+    @contextmanager
+    def connect(self) -> Iterator[Any]:
+        if self.is_postgres:
+            import psycopg
+            from psycopg.rows import dict_row
+
+            conn = psycopg.connect(self.dsn, row_factory=dict_row)
+            try:
+                with conn:
+                    yield conn
+            finally:
+                conn.close()
+        else:
+            conn = sqlite3.connect(str(self.sqlite_path))
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys = ON")
+            try:
+                with conn:
+                    yield conn
+            finally:
+                conn.close()
+
+    def init_schema(self) -> None:
+        sql = SCHEMA_PATH.read_text(encoding="utf-8")
+        with self.connect() as conn:
+            if self.is_postgres:
+                conn.execute(sql)
+            else:
+                conn.executescript(sql)
+
+    def execute(self, query: str, params: tuple[Any, ...] = ()) -> None:
+        q = query.replace("?", "%s") if self.is_postgres else query
+        with self.connect() as conn:
+            conn.execute(q, params)
+
+    def fetch_one(self, query: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
+        q = query.replace("?", "%s") if self.is_postgres else query
+        with self.connect() as conn:
+            cur = conn.execute(q, params)
+            row = cur.fetchone()
+            return dict(row) if row is not None else None
+
+    def fetch_all(self, query: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
+        q = query.replace("?", "%s") if self.is_postgres else query
+        with self.connect() as conn:
+            cur = conn.execute(q, params)
+            return [dict(r) for r in cur.fetchall()]
+
+    def list_tables(self) -> list[str]:
+        if self.is_postgres:
+            rows = self.fetch_all(
+                "SELECT tablename AS name FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename"
+            )
+        else:
+            rows = self.fetch_all(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            )
+        return [r["name"] for r in rows]
+
+    def list_columns(self, table_name: str) -> list[str]:
+        if self.is_postgres:
+            rows = self.fetch_all(
+                "SELECT column_name AS name FROM information_schema.columns WHERE table_name = ?",
+                (table_name,),
+            )
+            return [r["name"] for r in rows]
+        with self.connect() as conn:
+            cur = conn.execute(f"PRAGMA table_info({table_name})")
+            return [row["name"] for row in cur.fetchall()]
+
+
+_DEFAULT_DB: Database | None = None
+
+
+def get_default_db() -> Database:
+    global _DEFAULT_DB
+    if _DEFAULT_DB is None:
+        _DEFAULT_DB = Database()
+        _DEFAULT_DB.init_schema()
+    return _DEFAULT_DB

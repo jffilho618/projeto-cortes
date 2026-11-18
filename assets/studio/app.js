@@ -750,6 +750,9 @@ $("#settings-form").addEventListener(
     delete values.center1;
     delete values.center2;
     values.llm = values.llm.trim() || null;
+    values.ai_mode = values.ai_mode || "heuristic";
+    values.ai_filter = values.ai_filter || "ollama";
+    values.ai_companion = values.ai_companion || "claude";
     values.search = null;
     values.semantic = null;
     const mode = $("#search-mode").value;

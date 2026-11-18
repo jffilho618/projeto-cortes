@@ -14,11 +14,11 @@ development_status:
   1-2-pipeline-ponta-a-ponta-de-corte-9-16-e-16-9-com-area-segura-unificada: done
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-schema-canonico-postgresql-e-camada-de-repositorios: backlog
-  2-2-orquestrador-serial-de-vram-vram-runner-py-e-modo-madrugada: backlog
-  2-3-roteador-de-ia-de-4-modos-llm-router-py-com-seletor-na-ui: backlog
-  2-4-servidor-mcp-picorte-mcp-e-skill-picorte-operador: backlog
+  epic-2: done
+  2-1-schema-canonico-postgresql-e-camada-de-repositorios: done
+  2-2-orquestrador-serial-de-vram-vram-runner-py-e-modo-madrugada: done
+  2-3-roteador-de-ia-de-4-modos-llm-router-py-com-seletor-na-ui: done
+  2-4-servidor-mcp-picorte-mcp-e-skill-picorte-operador: done
   epic-2-retrospective: optional
 
   epic-3: backlog

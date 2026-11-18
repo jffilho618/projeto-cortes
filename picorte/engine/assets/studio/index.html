@@ -354,6 +354,29 @@
                     <option>auto</option>
                   </select></label
                 ><label
+                  >Motor de IA (Seleção e Títulos)<select name="ai_mode">
+                    <option value="heuristic">Determinístico (sem LLM)</option>
+                    <option value="ollama">Só Ollama (local na GPU)</option>
+                    <option value="claude">Só Claude (assinatura / API)</option>
+                    <option value="gemini">Só Gemini (assinatura / API)</option>
+                    <option value="dupla">Modo Dupla (Filtro + Acompanhamento)</option>
+                  </select></label
+                ><div class="pair">
+                  <label
+                    >Motor 1 (Filtro)<select name="ai_filter">
+                      <option value="ollama">ollama</option>
+                      <option value="claude">claude</option>
+                      <option value="gemini">gemini</option>
+                    </select></label
+                  ><label
+                    >Motor 2 (Acompanha)<select name="ai_companion">
+                      <option value="claude">claude</option>
+                      <option value="gemini">gemini</option>
+                      <option value="ollama">ollama</option>
+                    </select></label
+                  >
+                </div>
+                <label
                   >Local scoring model (optional)<input
                     name="llm"
                     placeholder="qwen2.5:7b" /></label

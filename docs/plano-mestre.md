@@ -51,10 +51,10 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
   Épico 1 (MVP Zero): Clone Base (`chopify`) instalado e gerando os primeiros cortes .mp4 na GPU ✅
    │
    ▼
-  Épico 2: Controle por Agente (Skill + MCP para Claude/Gemini) + Banco PostgreSQL local + Gerenciador de Fila/VRAM + Seletor de IA na UI ⏳ PRÓXIMO
+  Épico 2: Controle por Agente (Skill + MCP para Claude/Gemini) + Banco PostgreSQL local + Gerenciador de Fila/VRAM + Seletor de IA na UI ✅
    │
    ▼
-  Épico 3: Upgrade Multimodal 4D (Sismógrafo do Chat + Áudio + Visão Computacional de Games: Facecam/HUD/Micro-expressões)
+  Épico 3: Upgrade Multimodal 4D (Sismógrafo do Chat + Áudio + Visão Computacional de Games: Facecam/HUD/Micro-expressões) ⏳ PRÓXIMO
            + Engenharia de Retenção (Cold Open 1,5s, Contexto 2s, Seamless Loop, Layout Dinâmico, Sniper Crop,
              Compilação Cross-Streamer, Cortes Longos 3-5 min + Fábrica de Thumbnail)
    │
@@ -171,7 +171,7 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 
 ---
 
-### ÉPICO 2 · Controle por Agente (Claude & Gemini via MCP/Skill) + Banco PostgreSQL + Fila de VRAM
+### ÉPICO 2 · Controle por Agente (Claude & Gemini via MCP/Skill) + Banco PostgreSQL + Fila de VRAM ✅ (2026-11-18)
 - **Objetivo:** fazer o motor conversar diretamente com o **Claude Code** e com o **Gemini (Antigravity)** e substituir o controle solto em arquivos JSON por um banco **PostgreSQL local** com gerenciador de fila que respeita o limite de VRAM e possui **Modo Madrugada**.
 - **De onde vem o código:**
   - Base de contrato para agente: `referencias/mehbul_chopify/docs/AGENT-API.md`.
@@ -190,7 +190,7 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 
 ---
 
-### ÉPICO 3 · Upgrade Multimodal 4D (Chat + Áudio + Visão Computacional de Games) e Engenharia de Retenção
+### ÉPICO 3 · Upgrade Multimodal 4D (Chat + Áudio + Visão Computacional de Games) e Engenharia de Retenção ⏳ PRÓXIMO
 - **Objetivo:** transformar o cortador básico em um especialista em **Lives de Games**, capaz de enxergar o jogo e o streamer, ler a explosão do chat, gerar **cortes curtos (<60s)** e **cortes longos (3–5 min com Thumbnail automática)** e aplicar todas as travas de retenção dos primeiros 2 segundos e do loop final.
 - **De onde vem o código (transplantes + código próprio):**
   - Detecção de Facecam de canto e layout dividido: `referencias/FujiwaraChoki_supoclip/backend/src/media/reaction_layout.py` (`find_reactor_face`) e `face_detection.py` (YuNet).
