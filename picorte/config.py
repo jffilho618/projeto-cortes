@@ -20,13 +20,25 @@ def get_venv_bin_dir(repo_root: Path | None = None, platform_name: str | None = 
 
 
 def ensure_venv_on_path(repo_root: Path | None = None) -> Path:
-    """Injeta .venv/bin (Linux) ou .venv/Scripts (Windows) no PATH do processo atual."""
+    """Injeta .venv/bin (Linux) ou .venv/Scripts (Windows) e FFmpeg do WinGet no PATH do processo atual."""
     bin_dir = get_venv_bin_dir(repo_root)
     if bin_dir.is_dir():
         current_path = os.environ.get("PATH", "")
         parts = current_path.split(os.pathsep) if current_path else []
         if str(bin_dir) not in parts:
             os.environ["PATH"] = str(bin_dir) + (os.pathsep + current_path if current_path else "")
+
+    if sys.platform == "win32" and shutil.which("ffmpeg") is None:
+        local_app = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+        winget_pkgs = local_app / "Microsoft" / "WinGet" / "Packages"
+        if winget_pkgs.is_dir():
+            for ff_exe in winget_pkgs.glob("Gyan.FFmpeg*/*/bin/ffmpeg.exe"):
+                ff_dir = str(ff_exe.parent)
+                current_path = os.environ.get("PATH", "")
+                parts = current_path.split(os.pathsep) if current_path else []
+                if ff_dir not in parts:
+                    os.environ["PATH"] = ff_dir + (os.pathsep + current_path if current_path else "")
+                break
     return bin_dir
 
 

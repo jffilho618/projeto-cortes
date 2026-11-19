@@ -685,11 +685,21 @@ function renderOutputs(detail) {
             related = detail.files.filter(
               (f) =>
                 f.kind === file.kind &&
-                [stem + ".srt", stem + ".png", stem + ".meta.json"].includes(
-                  f.name,
-                ),
-            );
-          return `<article class="output-card"><video controls preload="none" src="${encodeURI(file.url)}"></video><div class="output-info"><p>${escapeHTML(file.kind === "previews" ? "DRAFT · " : "EXPORT · ")}${escapeHTML(stem)}</p><div class="output-links"><a href="${encodeURI(file.url)}" download>MP4 ↓</a>${related.map((f) => `<a href="${encodeURI(f.url)}" download>${f.name.endsWith(".srt") ? "SRT" : f.name.endsWith(".png") ? "POSTER" : "METADATA"} ↓</a>`).join("")}</div></div></article>`;
+                [
+                  stem + ".srt",
+                  stem + ".png",
+                  stem + "_thumb.png",
+                  stem + ".meta.json",
+                ].includes(f.name),
+            ),
+            thumbFile =
+              related.find((f) => f.name === stem + "_thumb.png") ||
+              related.find((f) => f.name === stem + ".png"),
+            posterAttr = thumbFile ? ` poster="${encodeURI(thumbFile.url)}"` : "",
+            thumbImg = thumbFile
+              ? `<a class="output-thumb-wrap" href="${encodeURI(thumbFile.url)}" target="_blank" rel="noopener"><img class="output-thumb" src="${encodeURI(thumbFile.url)}" alt="Thumbnail de ${escapeHTML(stem)}" loading="lazy"></a>`
+              : "";
+          return `<article class="output-card"><video controls preload="none"${posterAttr} src="${encodeURI(file.url)}"></video>${thumbImg}<div class="output-info"><p>${escapeHTML(file.kind === "previews" ? "DRAFT · " : "EXPORT · ")}${escapeHTML(stem)}</p><div class="output-links"><a href="${encodeURI(file.url)}" download>MP4 ↓</a>${related.map((f) => `<a href="${encodeURI(f.url)}" download>${f.name.endsWith(".srt") ? "SRT" : f.name.endsWith(".png") ? "THUMB" : "METADATA"} ↓</a>`).join("")}</div></div></article>`;
         })
         .join("")
     : '<p class="muted">Choose candidates and make a preview or export.</p>';

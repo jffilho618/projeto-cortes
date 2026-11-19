@@ -95,3 +95,65 @@ def test_sniper_crop_ema_smoothing_and_preset_backends():
     assert high_track["backend_used"] == "YOLO11n+tracking"
     assert yolo_calls["count"] == 6
     assert high_track["centers"][-1][0] > high_track["centers"][0][0]
+
+
+def test_build_reaction_layout_avoids_facecam_in_gameplay_crop():
+    from picorte.engine.reaction_layout import build_reaction_layout
+
+    # Webcam no canto superior esquerdo (ex.: x=220..510) mesmo com focus_x puxado para esquerda (0.10)
+    left_spec = build_reaction_layout(
+        source_w=1920,
+        source_h=1080,
+        out_w=1080,
+        out_h=1920,
+        facecam_box=(220, 50, 290, 225),
+        facecam_h=640,
+        focus_x_norm=0.10,
+    )
+    assert left_spec["gameplay_crop"]["x"] >= 220 + 290
+
+    # Webcam no canto superior direito (ex.: x=1540..1884) mesmo com focus_x puxado para direita (0.95)
+    right_spec = build_reaction_layout(
+        source_w=1920,
+        source_h=1080,
+        out_w=1080,
+        out_h=1920,
+        facecam_box=(1540, 12, 344, 265),
+        facecam_h=640,
+        focus_x_norm=0.95,
+    )
+    assert right_spec["gameplay_crop"]["x"] + right_spec["gameplay_crop"]["w"] <= 1540
+
+
+def test_sniper_crop_ignores_facecam_exclude_box():
+    from picorte.engine.reframe_games import compute_sniper_crop_track
+
+    # Facecam brilhante no canto superior esquerdo (x=0..200, y=0..150) e alvo de gameplay à direita (x=480)
+    frames = []
+    for idx in range(5):
+        frame = np.zeros((360, 640, 3), dtype=np.uint8)
+        frame[20:130, 30:170] = 255 if idx % 2 == 0 else 180
+        frame[150:220, 450:510] = 200
+        frames.append(frame)
+
+    res_low = compute_sniper_crop_track(
+        frames,
+        source_w=640,
+        source_h=360,
+        vision_preset="low",
+        vram_mib=4096,
+        exclude_box=(20, 10, 180, 140),
+    )
+    assert res_low["centers"][-1][0] >= 0.55
+
+    # Mesmo que um tracker retorne coordenada dentro da facecam, deve ser ignorada
+    res_high = compute_sniper_crop_track(
+        frames,
+        source_w=640,
+        source_h=360,
+        vision_preset="high",
+        vram_mib=12288,
+        exclude_box=(20, 10, 180, 140),
+        tracker_runner=lambda _f, _i: (0.15, 0.20),
+    )
+    assert res_high["centers"][-1][0] >= 0.55

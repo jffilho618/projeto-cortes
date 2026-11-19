@@ -48,6 +48,14 @@ def library_directories() -> list[Path]:
 
 @lru_cache(maxsize=1)
 def ensure_cuda_libraries() -> list[Path]:
+    # No Windows, se ctranslate2 carregar sua cudnn64_9.dll antes do torch,
+    # PyTorch/YOLO falha depois com "Could not load symbol cudnnGetLibConfig. Error code 127".
+    if sys.platform == "win32" and "ctranslate2" not in sys.modules and "torch" not in sys.modules:
+        try:
+            import torch  # noqa: F401
+        except Exception:
+            pass
+
     directories = library_directories()
     if not directories:
         return []

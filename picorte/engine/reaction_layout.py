@@ -122,6 +122,16 @@ def build_reaction_layout(
     gx = int(round(max(0.0, min(1.0, focus_x_norm)) * max_cx))
     gy = int(round(max(0.0, min(1.0, focus_y_norm)) * max_cy))
 
+    if facecam_box is not None and crop_w < source_w:
+        face_left = inset["x"]
+        face_right = inset["x"] + inset["width"]
+        # Margem extra para cobrir bordas da moldura da webcam além do recorte justo do rosto
+        pad_clear = max(32, int(round(inset["width"] * 0.35)))
+        if inset["corner"].endswith("_left") and face_left < source_w * 0.40:
+            gx = max(gx, min(max_cx, face_right + pad_clear))
+        elif inset["corner"].endswith("_right") and face_right > source_w * 0.60:
+            gx = min(gx, max(0, face_left - pad_clear - crop_w))
+
     fx, fy, fw, fh = inset["x"], inset["y"], inset["width"], inset["height"]
     filter_chain = (
         f"[0:v]split=2[vface][vgame];"

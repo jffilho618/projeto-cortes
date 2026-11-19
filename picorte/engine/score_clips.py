@@ -1819,14 +1819,18 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
         # Só roda análise visual de vídeo se o arquivo possuir stream de vídeo (evita audio.webm)
         if Path(visual_media).name.startswith("audio.") is False:
             from picorte.engine.hud_detector import detect_hud_events
-            from picorte.engine.visual_games import analyze_facecam_reactions
+            from picorte.engine.visual_games import analyze_facecam_reactions, sample_video_frames
 
             ranked = sorted(candidates, key=lambda c: float(c.get("overall") or 0.0), reverse=True)[:12]
-            for cand in ranked:
+            total_ranked = len(ranked)
+            for idx, cand in enumerate(ranked, 1):
                 s_t, e_t = float(cand["start"]), float(cand["end"])
+                print(f"  [vision {idx}/{total_ranked}] {s_t:.1f}s-{e_t:.1f}s", flush=True)
                 try:
-                    fg = analyze_facecam_reactions(visual_media, s_t, e_t, vision_preset=vision_preset)
-                    hd = detect_hud_events(visual_media, s_t, e_t, vision_preset=vision_preset)
+                    sampled = sample_video_frames(visual_media, s_t, e_t, fps=2.0, max_width=640)
+                    hud_frames = sampled[::2] if sampled else []
+                    fg = analyze_facecam_reactions(sampled or visual_media, s_t, e_t, vision_preset=vision_preset)
+                    hd = detect_hud_events(hud_frames or visual_media, s_t, e_t, vision_preset=vision_preset)
                     visual_scores[(s_t, e_t)] = {
                         "visual_score": float(fg.get("score") or 0.0),
                         "hud_score": float(hd.get("score") or 0.0),

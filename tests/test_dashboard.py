@@ -119,3 +119,36 @@ def test_queued_projects_reject_duplicate_jobs_and_edits(server, monkeypatch):
             assert exc.value.code == 400
     finally:
         gate.set()
+
+
+def test_send_file_ignores_connection_aborted_error(tmp_path):
+    import io
+    import dashboard
+
+    media = tmp_path / "clip.mp4"
+    media.write_bytes(b"abcdefghij")
+
+    class BrokenWFile:
+        def write(self, _chunk):
+            raise ConnectionAbortedError(10053, "An established connection was aborted")
+
+    handler = object.__new__(dashboard.Handler)
+    handler.headers = {}
+    handler.wfile = BrokenWFile()
+    handler._headers_buffer = []
+    handler.send_response = lambda *_a, **_k: None
+    handler.send_header = lambda *_a, **_k: None
+    handler.end_headers = lambda *_a, **_k: None
+    handler.send_json = lambda *_a, **_k: None
+
+    # Deve absorver ConnectionAbortedError (WinError 10053) sem propagar
+    handler.send_file(media)
+
+
+def test_studio_ui_renders_thumb_png_for_outputs():
+    from pathlib import Path
+    import dashboard
+
+    app_js = (dashboard.STATIC / "app.js").read_text(encoding="utf-8")
+    assert "_thumb.png" in app_js
+    assert "poster=" in app_js

@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import math
+import subprocess
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable
 
 import cv2
 import numpy as np
 
-from picorte.config import resolve_vision_preset
+from picorte.config import resolve_cli_binary, resolve_vision_preset
 from picorte.engine.vram_runner import VRAMRunner
 
 
@@ -25,26 +27,133 @@ def compute_mouth_aspect_ratio(mouth_points: list[tuple[float, float]] | np.ndar
     return float((v1 + v2) / (2.0 * horiz))
 
 
-def _sample_video_frames(video_path: str | Path, start: float, end: float, fps: float = 2.0) -> list[np.ndarray]:
+def _probe_video_dimensions(video_path: str | Path) -> tuple[int, int]:
+    """Obtém (width, height) sem realizar seeks por frame."""
+    ffprobe_bin = resolve_cli_binary("ffprobe")
+    if ffprobe_bin:
+        try:
+            res = subprocess.run(
+                [
+                    ffprobe_bin,
+                    "-v", "error",
+                    "-select_streams", "v:0",
+                    "-show_entries", "stream=width,height",
+                    "-of", "csv=s=x:p=0",
+                    str(video_path),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+            if res.returncode == 0 and "x" in res.stdout:
+                w_str, h_str = res.stdout.strip().splitlines()[0].split("x", 1)
+                w, h = int(w_str), int(h_str)
+                if w > 0 and h > 0:
+                    return w, h
+        except Exception:
+            pass
+    cap = cv2.VideoCapture(str(video_path))
+    try:
+        if cap.isOpened():
+            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+            if w > 0 and h > 0:
+                return w, h
+    finally:
+        cap.release()
+    return 1280, 720
+
+
+def _scaled_dimensions(src_w: int, src_h: int, max_width: int = 640) -> tuple[int, int]:
+    if src_w <= 0 or src_h <= 0:
+        return 640, 360
+    if src_w <= max_width:
+        out_w = max(2, src_w - (src_w % 2))
+        out_h = max(2, src_h - (src_h % 2))
+        return out_w, out_h
+    out_w = max(2, int(max_width) - (int(max_width) % 2))
+    raw_h = int(round(src_h * (out_w / float(src_w))))
+    out_h = max(2, raw_h - (raw_h % 2))
+    return out_w, out_h
+
+
+def sample_video_frames(
+    video_path: str | Path,
+    start: float,
+    end: float,
+    fps: float = 2.0,
+    max_width: int = 640,
+) -> list[np.ndarray]:
+    """Amostra frames em sequência via FFmpeg (ou grab sequencial OpenCV como fallback), sem seeks por frame."""
+    fps_val = max(0.5, float(fps))
+    start_s = max(0.0, float(start))
+    dur_s = max(0.1, float(end) - start_s)
+    src_w, src_h = _probe_video_dimensions(video_path)
+    out_w, out_h = _scaled_dimensions(src_w, src_h, max_width=max_width)
+
+    ffmpeg_bin = resolve_cli_binary("ffmpeg")
+    if ffmpeg_bin:
+        try:
+            res = subprocess.run(
+                [
+                    ffmpeg_bin,
+                    "-v", "error",
+                    "-ss", f"{start_s:.3f}",
+                    "-t", f"{dur_s:.3f}",
+                    "-i", str(video_path),
+                    "-vf", f"fps={fps_val:g},scale={out_w}:{out_h}",
+                    "-f", "rawvideo",
+                    "-pix_fmt", "bgr24",
+                    "pipe:1",
+                ],
+                capture_output=True,
+                timeout=60,
+                check=False,
+            )
+            frame_bytes = out_w * out_h * 3
+            if res.returncode == 0 and res.stdout and frame_bytes > 0:
+                count = len(res.stdout) // frame_bytes
+                if count > 0:
+                    raw = np.frombuffer(res.stdout[: count * frame_bytes], dtype=np.uint8)
+                    return [raw[i * frame_bytes : (i + 1) * frame_bytes].reshape((out_h, out_w, 3)).copy() for i in range(count)]
+        except Exception:
+            pass
+
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
         return []
     frames: list[np.ndarray] = []
     try:
-        step = 1.0 / max(0.5, float(fps))
-        t = float(start)
-        while t <= float(end) + 1e-6:
-            cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000.0)
-            ok, frame = cap.read()
-            if not ok or frame is None:
+        step = 1.0 / fps_val
+        cap.set(cv2.CAP_PROP_POS_MSEC, start_s * 1000.0)
+        next_t = start_s
+        end_s = float(end)
+        while True:
+            if not cap.grab():
                 break
-            frames.append(frame)
-            t += step
+            cur_t = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            if cur_t > end_s + 1e-6:
+                break
+            if cur_t + 1e-3 >= next_t:
+                ok, frame = cap.retrieve()
+                if not ok or frame is None:
+                    break
+                if frame.shape[1] > out_w:
+                    frame = cv2.resize(frame, (out_w, out_h), interpolation=cv2.INTER_AREA)
+                frames.append(frame)
+                while next_t <= cur_t + 1e-3:
+                    next_t += step
     finally:
         cap.release()
     return frames
 
 
+def _sample_video_frames(video_path: str | Path, start: float, end: float, fps: float = 2.0) -> list[np.ndarray]:
+    return sample_video_frames(video_path, start, end, fps=fps)
+
+
+@lru_cache(maxsize=2)
 def _default_landmark_runner_factory(preset: str) -> Callable[[np.ndarray], list[tuple[float, float]] | None]:
     """Cria detector MediaPipe quando disponível; caso contrário retorna None (fallback óptico)."""
     try:
@@ -68,6 +177,7 @@ def _default_landmark_runner_factory(preset: str) -> Callable[[np.ndarray], list
         return lambda _frame: None
 
 
+@lru_cache(maxsize=1)
 def _default_emotion_runner_factory() -> Callable[[np.ndarray], dict[str, float]]:
     try:
         from hsemotion.facial_emotions import HSEmotionRecognizer  # type: ignore

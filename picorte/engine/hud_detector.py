@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable
 
@@ -9,6 +10,7 @@ import cv2
 import numpy as np
 
 from picorte.config import resolve_vision_preset
+from picorte.engine.visual_games import sample_video_frames
 from picorte.engine.vram_runner import VRAMRunner
 
 HUD_KEYWORDS_RE = re.compile(
@@ -18,25 +20,22 @@ HUD_KEYWORDS_RE = re.compile(
 
 
 def _sample_hud_frames(video_path: str | Path, start: float, end: float, fps: float = 1.0) -> list[np.ndarray]:
-    cap = cv2.VideoCapture(str(video_path))
-    if not cap.isOpened():
-        return []
-    frames: list[np.ndarray] = []
-    try:
-        step = 1.0 / max(0.5, float(fps))
-        t = float(start)
-        while t <= float(end) + 1e-6:
-            cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000.0)
-            ok, frame = cap.read()
-            if not ok or frame is None:
-                break
-            frames.append(frame)
-            t += step
-    finally:
-        cap.release()
-    return frames
+    return sample_video_frames(video_path, start, end, fps=fps)
 
 
+def _resolve_yolo_weights_path() -> str:
+    """Resolve caminho de cache do yolo11n.pt sem sujar a raiz do repositório."""
+    cache_weights = Path.home() / ".cache" / "picorte" / "yolo11n.pt"
+    if cache_weights.is_file():
+        return str(cache_weights)
+    local_weights = Path("yolo11n.pt")
+    if local_weights.is_file():
+        return str(local_weights)
+    cache_weights.parent.mkdir(parents=True, exist_ok=True)
+    return str(cache_weights)
+
+
+@lru_cache(maxsize=1)
 def _default_ocr_runner_factory() -> Callable[[np.ndarray, int], list[str]]:
     try:
         from rapidocr_onnxruntime import RapidOCR  # type: ignore
@@ -54,11 +53,12 @@ def _default_ocr_runner_factory() -> Callable[[np.ndarray, int], list[str]]:
         return lambda _frame, _idx: []
 
 
+@lru_cache(maxsize=1)
 def _default_yolo_runner_factory() -> Callable[[np.ndarray], list[dict[str, Any]]]:
     try:
         from ultralytics import YOLO  # type: ignore
 
-        model = YOLO("yolo11n.pt")
+        model = YOLO(_resolve_yolo_weights_path())
 
         def _run(frame: np.ndarray) -> list[dict[str, Any]]:
             preds = model.predict(frame, verbose=False)

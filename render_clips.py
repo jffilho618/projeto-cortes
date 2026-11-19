@@ -1047,11 +1047,26 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
 
         focus_x, focus_y = 0.5, 0.5
         if sampled_frames:
+            excl_box = None
+            if face_box is not None:
+                fx, fy, fw, fh = face_box
+                cx_f = fx + fw / 2.0
+                if cx_f < W * 0.40:
+                    excl_w = max(fx + fw + 32, int(round(W * 0.34)))
+                    excl_h = max(fy + fh + 48, int(round(H * 0.44)))
+                    excl_box = (0, 0, min(W, excl_w), min(H, excl_h))
+                elif cx_f > W * 0.60:
+                    excl_x = min(max(0, fx - 32), int(round(W * 0.66)))
+                    excl_h = max(fy + fh + 48, int(round(H * 0.44)))
+                    excl_box = (excl_x, 0, W - excl_x, min(H, excl_h))
+                else:
+                    excl_box = face_box
             track_res = compute_sniper_crop_track(
                 sampled_frames,
                 source_w=W,
                 source_h=H,
                 vision_preset=vision_preset,
+                exclude_box=excl_box,
             )
             pts = track_res.get("centers") or [(0.5, 0.5)]
             focus_x = sum(p[0] for p in pts) / len(pts)

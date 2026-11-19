@@ -120,9 +120,9 @@ def _atomic_json(path, data):
 def _load_model(model_size, device, compute_type):
     from picorte.config import detect_gpu_profile
     from picorte.engine.cuda import ensure_cuda_libraries, has_cuda_runtime_libraries
-    from faster_whisper import WhisperModel
 
     ensure_cuda_libraries()
+    from faster_whisper import WhisperModel
     if model_size in (None, "", "auto") or device in (None, "", "auto"):
         prof = detect_gpu_profile()
         if model_size in (None, "", "auto"):

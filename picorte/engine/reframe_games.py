@@ -1,12 +1,14 @@
 """Reenquadramento 9:16 de Games (Story 3.3): Troca Dinâmica com Histerese + Sniper Crop (EMA)."""
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any, Callable
 
 import cv2
 import numpy as np
 
 from picorte.config import resolve_vision_preset
+from picorte.engine.hud_detector import _resolve_yolo_weights_path
 from picorte.engine.reaction_layout import build_reaction_layout, find_reactor_face
 from picorte.engine.vram_runner import VRAMRunner
 
@@ -69,21 +71,58 @@ def compute_dynamic_layout_timeline(
     return segments
 
 
-def _default_yolo_tracker_factory() -> Callable[[np.ndarray, int], tuple[float, float] | None]:
-    try:
-        from ultralytics import YOLO  # type: ignore
+def _normalize_exclude_box(
+    exclude_box: tuple[int, int, int, int] | None,
+    source_w: int,
+    source_h: int,
+) -> tuple[float, float, float, float] | None:
+    if exclude_box is None:
+        return None
+    ex, ey, ew, eh = [float(v) for v in exclude_box]
+    if ew <= 0 or eh <= 0:
+        return None
+    sw = max(1.0, float(source_w))
+    sh = max(1.0, float(source_h))
+    return (
+        max(0.0, min(1.0, ex / sw)),
+        max(0.0, min(1.0, ey / sh)),
+        max(0.0, min(1.0, (ex + ew) / sw)),
+        max(0.0, min(1.0, (ey + eh) / sh)),
+    )
 
-        model = YOLO("yolo11n.pt")
+
+def _point_in_norm_box(rx: float, ry: float, norm_box: tuple[float, float, float, float] | None) -> bool:
+    if norm_box is None:
+        return False
+    x0, y0, x1, y1 = norm_box
+    return x0 <= rx <= x1 and y0 <= ry <= y1
+
+
+@lru_cache(maxsize=1)
+def _load_yolo_sniper_model():
+    from ultralytics import YOLO  # type: ignore
+
+    return YOLO(_resolve_yolo_weights_path())
+
+
+def _default_yolo_tracker_factory(
+    exclude_norm: tuple[float, float, float, float] | None = None,
+) -> Callable[[np.ndarray, int], tuple[float, float] | None]:
+    try:
+        model = _load_yolo_sniper_model()
 
         def _track(frame: np.ndarray, _idx: int) -> tuple[float, float] | None:
             h, w = frame.shape[:2]
-            preds = model.track(frame, persist=True, verbose=False)
+            preds = model.predict(frame, verbose=False)
             for r in preds:
                 boxes = getattr(r, "boxes", None)
                 if boxes is None or len(boxes) == 0:
                     continue
-                xywh = boxes.xywh[0].tolist()
-                return float(xywh[0]) / max(1.0, float(w)), float(xywh[1]) / max(1.0, float(h))
+                for box_xywh in boxes.xywh.tolist():
+                    rx = float(box_xywh[0]) / max(1.0, float(w))
+                    ry = float(box_xywh[1]) / max(1.0, float(h))
+                    if not _point_in_norm_box(rx, ry, exclude_norm):
+                        return rx, ry
             return None
 
         return _track
@@ -91,23 +130,27 @@ def _default_yolo_tracker_factory() -> Callable[[np.ndarray, int], tuple[float, 
         return lambda _frame, _idx: None
 
 
-def _optical_centroid(frame: np.ndarray, prev_gray: np.ndarray | None) -> tuple[float, float, np.ndarray]:
+def _optical_centroid(
+    frame: np.ndarray,
+    prev_gray: np.ndarray | None,
+    exclude_norm: tuple[float, float, float, float] | None = None,
+) -> tuple[float, float, np.ndarray]:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame
     h, w = gray.shape[:2]
     if prev_gray is None or prev_gray.shape != gray.shape:
-        # Fallback inicial: centroide de intensidade
-        arr = gray.astype(np.float64)
-        total = float(np.sum(arr))
-        if total <= 1e-6:
-            return 0.5, 0.5, gray
-        ys, xs = np.mgrid[0:h, 0:w]
-        cx = float(np.sum(xs * arr) / total) / max(1.0, float(w))
-        cy = float(np.sum(ys * arr) / total) / max(1.0, float(h))
-        return cx, cy, gray
+        energy = gray.astype(np.float64)
+    else:
+        diff = cv2.absdiff(gray, prev_gray).astype(np.float64)
+        energy = diff + 0.25 * gray.astype(np.float64)
 
-    diff = cv2.absdiff(gray, prev_gray).astype(np.float64)
-    # Mistura diferença temporal + brilho local para seguir alvo em movimento mesmo em quadros lentos
-    energy = diff + 0.25 * gray.astype(np.float64)
+    if exclude_norm is not None:
+        x0 = max(0, min(w, int(round(exclude_norm[0] * w))))
+        y0 = max(0, min(h, int(round(exclude_norm[1] * h))))
+        x1 = max(0, min(w, int(round(exclude_norm[2] * w))))
+        y1 = max(0, min(h, int(round(exclude_norm[3] * h))))
+        if x1 > x0 and y1 > y0:
+            energy[y0:y1, x0:x1] = 0.0
+
     total = float(np.sum(energy))
     if total <= 1e-6:
         return 0.5, 0.5, gray
@@ -127,6 +170,7 @@ def compute_sniper_crop_track(
     gpu_name: str | None = None,
     tracker_runner: Callable[[np.ndarray, int], tuple[float, float] | None] | None = None,
     ema_alpha: float = 0.25,
+    exclude_box: tuple[int, int, int, int] | None = None,
     vram_runner: VRAMRunner | None = None,
 ) -> dict[str, Any]:
     """Calcula trajetória suavizada (EMA) para o Sniper Crop no gameplay respeitando o preset Low/High."""
@@ -136,9 +180,10 @@ def compute_sniper_crop_track(
     if not frames:
         return {"preset": preset, "backend_used": backend_used, "centers": [(0.5, 0.5)]}
 
+    exclude_norm = _normalize_exclude_box(exclude_box, source_w, source_h)
     runner = vram_runner or VRAMRunner()
     use_yolo = preset == "high"
-    track_fn = (tracker_runner or _default_yolo_tracker_factory()) if use_yolo else None
+    track_fn = (tracker_runner or _default_yolo_tracker_factory(exclude_norm)) if use_yolo else None
 
     def _run_stage() -> dict[str, Any]:
         centers: list[tuple[float, float]] = []
@@ -148,8 +193,10 @@ def compute_sniper_crop_track(
 
         for idx, frame in enumerate(frames):
             coords = track_fn(frame, idx) if track_fn is not None else None
+            if coords is not None and _point_in_norm_box(float(coords[0]), float(coords[1]), exclude_norm):
+                coords = None
             if coords is None:
-                rx, ry, prev_gray = _optical_centroid(frame, prev_gray)
+                rx, ry, prev_gray = _optical_centroid(frame, prev_gray, exclude_norm=exclude_norm)
             else:
                 rx, ry = float(coords[0]), float(coords[1])
                 prev_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame

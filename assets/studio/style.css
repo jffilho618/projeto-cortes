@@ -630,6 +630,17 @@ summary {
   background: #080c0e;
   display: block;
 }
+.output-thumb-wrap {
+  display: block;
+  border-top: 1px solid var(--line);
+  background: #080c0e;
+}
+.output-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
 .output-info {
   padding: 12px;
 }

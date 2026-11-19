@@ -42,6 +42,62 @@ class TestGpuProfile(unittest.TestCase):
         dirs = ensure_cuda_libraries()
         self.assertIsInstance(dirs, list)
 
+    def test_ensure_cuda_libraries_prevents_ctranslate2_torch_cudnn_clash(self):
+        import importlib.util
+        import subprocess
+        import sys
+
+        if not (
+            importlib.util.find_spec("faster_whisper")
+            and importlib.util.find_spec("torch")
+            and importlib.util.find_spec("ultralytics")
+        ):
+            self.skipTest("faster_whisper, torch ou ultralytics ausentes")
+
+        code = (
+            "from picorte.engine.cuda import ensure_cuda_libraries\n"
+            "ensure_cuda_libraries()\n"
+            "import faster_whisper, numpy as np, torch\n"
+            "if not torch.cuda.is_available():\n"
+            "    raise SystemExit(0)\n"
+            "from ultralytics import YOLO\n"
+            "from picorte.engine.hud_detector import _resolve_yolo_weights_path\n"
+            "m = YOLO(_resolve_yolo_weights_path())\n"
+            "res = m.predict(np.zeros((160, 160, 3), dtype=np.uint8), verbose=False)\n"
+            "assert len(res) >= 1\n"
+        )
+        res = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=60)
+        self.assertEqual(res.returncode, 0, f"stderr={res.stderr}\nstdout={res.stdout}")
+        self.assertNotIn("cudnnGetLibConfig", res.stdout + res.stderr)
+
+    def test_chopify_preflight_does_not_trigger_ctranslate2_torch_cudnn_clash(self):
+        import importlib.util
+        import subprocess
+        import sys
+
+        if not (
+            importlib.util.find_spec("faster_whisper")
+            and importlib.util.find_spec("torch")
+            and importlib.util.find_spec("ultralytics")
+        ):
+            self.skipTest("faster_whisper, torch ou ultralytics ausentes")
+
+        code = (
+            "import chopify\n"
+            "chopify.check_environment()\n"
+            "import numpy as np, torch\n"
+            "if not torch.cuda.is_available():\n"
+            "    raise SystemExit(0)\n"
+            "from ultralytics import YOLO\n"
+            "from picorte.engine.hud_detector import _resolve_yolo_weights_path\n"
+            "m = YOLO(_resolve_yolo_weights_path())\n"
+            "res = m.predict(np.zeros((160, 160, 3), dtype=np.uint8), verbose=False)\n"
+            "assert len(res) >= 1\n"
+        )
+        res = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=60)
+        self.assertEqual(res.returncode, 0, f"returncode={res.returncode}\nstderr={res.stderr}\nstdout={res.stdout}")
+        self.assertNotIn("cudnnGetLibConfig", res.stdout + res.stderr)
+
     def test_cross_platform_venv_bin_dir_windows_and_linux(self):
         from picorte.config import get_venv_bin_dir
 

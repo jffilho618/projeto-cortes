@@ -262,7 +262,7 @@ class Handler(BaseHTTPRequestHandler):
             if filename in static:
                 return self.send_file(STATIC / static[filename])
             self.send_json({"error": "Not found."}, 404)
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             pass
         except (OSError, KeyError):
             self.send_json({"error": "Project or file not found."}, 404)
@@ -369,7 +369,7 @@ class Handler(BaseHTTPRequestHandler):
                         break
                     self.wfile.write(chunk)
                     remaining -= len(chunk)
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             pass
 
 

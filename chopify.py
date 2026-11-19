@@ -43,6 +43,9 @@ FFMPEG_HINT = ("install a full ffmpeg build and put it on PATH "
 
 def _missing_modules():
     """Modules from IMPORT_HINTS that cannot be imported, as [(module, hint)]."""
+    from picorte.engine.cuda import ensure_cuda_libraries
+
+    ensure_cuda_libraries()
     missing = []
     for mod, hint in IMPORT_HINTS.items():
         try:

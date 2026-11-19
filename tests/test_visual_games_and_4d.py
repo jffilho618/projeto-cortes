@@ -146,3 +146,47 @@ def test_score_clips_4d_fusion_and_snap_integration():
     assert updated[0]["end"] >= 30.3
     assert updated[0]["overall"] > 7.4
     assert updated[0]["evidence"]["chat"] >= 7.0
+
+
+def test_sample_video_frames_avoids_per_frame_seek_and_caches_runners(tmp_path, monkeypatch):
+    import subprocess
+    import cv2
+    from picorte.config import resolve_cli_binary
+    from picorte.engine import hud_detector, visual_games
+
+    src = tmp_path / "sample.mp4"
+    ff = resolve_cli_binary("ffmpeg") or "ffmpeg"
+    subprocess.run(
+        [
+            ff, "-y", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=15:duration=4",
+            "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", str(src),
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    seek_calls = {"count": 0}
+    orig_vc = cv2.VideoCapture
+
+    class CountingVC:
+        def __init__(self, *args, **kwargs):
+            self._inner = orig_vc(*args, **kwargs)
+
+        def set(self, prop, val):
+            if prop == cv2.CAP_PROP_POS_MSEC:
+                seek_calls["count"] += 1
+            return self._inner.set(prop, val)
+
+        def __getattr__(self, item):
+            return getattr(self._inner, item)
+
+    monkeypatch.setattr(cv2, "VideoCapture", CountingVC)
+    frames = visual_games.sample_video_frames(src, 1.0, 3.0, fps=2.0, max_width=320)
+    assert len(frames) >= 4
+    assert frames[0].shape[1] <= 320
+    assert seek_calls["count"] <= 1
+
+    # Cache de runners pesados entre candidatos
+    assert hud_detector._default_ocr_runner_factory() is hud_detector._default_ocr_runner_factory()
+    assert visual_games._default_landmark_runner_factory("low") is visual_games._default_landmark_runner_factory("low")
