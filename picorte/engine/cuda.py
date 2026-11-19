@@ -73,3 +73,23 @@ def ensure_cuda_libraries() -> list[Path]:
             if loaded_any:
                 registered.append(directory)
     return registered
+
+
+def has_cuda_runtime_libraries() -> bool:
+    """Verifica se cuBLAS 12 (libcublas.so.12 / cublas64_12.dll) realmente carrega em runtime."""
+    ensure_cuda_libraries()
+    target = "cublas64_12.dll" if sys.platform == "win32" else "libcublas.so.12"
+    try:
+        ctypes.CDLL(target)
+        return True
+    except OSError:
+        pass
+    for directory in library_directories():
+        cand = directory / target
+        if cand.is_file():
+            try:
+                ctypes.CDLL(str(cand))
+                return True
+            except OSError:
+                continue
+    return False

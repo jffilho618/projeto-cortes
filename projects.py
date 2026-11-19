@@ -18,7 +18,8 @@ import branding
 from captions import update_transcript
 
 DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
-                   "loudnorm": False, "whisper_model": "medium", "device": "cpu",
+                   "loudnorm": False, "whisper_model": "auto", "device": "auto",
+                   "vision_preset": "auto",
                    "min_len": 15, "max_len": 300, "max_clips": None,
                    "min_score": 8.0, "preferred_len": None,
                    "llm": None, "ai_mode": "heuristic",
@@ -56,10 +57,10 @@ def validate_options(options):
     result = {**DEFAULT_OPTIONS, **options}
     if result["aspect"] not in render_clips.ASPECTS or result["style"] not in render_clips.CAPTION_STYLES:
         raise ValueError("Unknown aspect ratio or caption style.")
-    if result["layout"] not in {"single", "split"}:
-        raise ValueError("Layout must be single or split.")
-    if result["layout"] == "split" and result["aspect"] != "9:16":
-        raise ValueError("Podcast split-screen requires aspect 9:16.")
+    if result["layout"] not in {"single", "split", "games"}:
+        raise ValueError("Layout must be single, split or games.")
+    if result["layout"] in {"split", "games"} and result["aspect"] != "9:16":
+        raise ValueError("Split/Games split-screen requires aspect 9:16.")
     for key in ("min_len", "max_len"):
         if isinstance(result[key], bool) or not isinstance(result[key], int) or not 1 <= result[key] <= 3600:
             raise ValueError(f"{key} must be an integer from 1 to 3600.")
@@ -81,6 +82,18 @@ def validate_options(options):
         result["preferred_len"] = int(preferred) if preferred.is_integer() else preferred
     if result["device"] not in {"cpu", "cuda", "auto"}:
         raise ValueError("Device must be cpu, cuda or auto.")
+    if result["vision_preset"] not in {"auto", "low", "high"}:
+        raise ValueError("vision_preset must be auto, low or high.")
+    if result["whisper_model"] == "auto" or result["device"] == "auto":
+        from picorte.config import resolve_vision_preset
+        vp = resolve_vision_preset(result["vision_preset"])
+        if result["whisper_model"] == "auto":
+            if result["vision_preset"] == "auto":
+                result["whisper_model"] = vp["gpu_profile"]["whisper_model"]
+            else:
+                result["whisper_model"] = vp["models"]["whisper_model"]
+        if result["device"] == "auto":
+            result["device"] = vp["gpu_profile"]["device"]
     if result["ai_mode"] not in {"heuristic", "ollama", "claude", "gemini", "dupla"}:
         raise ValueError("ai_mode must be heuristic, ollama, claude, gemini or dupla.")
     for k in ("ai_filter", "ai_companion"):
@@ -104,7 +117,7 @@ def validate_options(options):
 
 
 def score_options(options):
-    keys = ("llm", "ai_mode", "ai_filter", "ai_companion", "search",
+    keys = ("llm", "ai_mode", "ai_filter", "ai_companion", "vision_preset", "search",
             "semantic", "embed_model", "min_score", "max_clips", "min_len",
             "max_len", "preferred_len")
     return {key: options[key] for key in keys}
@@ -120,7 +133,7 @@ def score_keys(transcript_key, data, options):
                             visual.FEATURE_VERSION])
     selection_options = {
         key: options.get(key, DEFAULT_OPTIONS.get(key))
-        for key in ("min_score", "max_clips", "llm", "ai_mode", "ai_filter", "ai_companion")
+        for key in ("min_score", "max_clips", "llm", "ai_mode", "ai_filter", "ai_companion", "vision_preset")
     }
     selection_key = digest([discovery_key, selection_options])
     return discovery_key, selection_key
@@ -319,10 +332,17 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         render_from_sections=render_from_sections,
                         identity=source_identity)
                 else:
+                    from picorte.config import resolve_vision_preset
+                    vp_trans = resolve_vision_preset(options.get("vision_preset", "auto"))
+                    compute_type = (
+                        "int8"
+                        if options["device"] == "cpu"
+                        else vp_trans["models"]["compute_type"]
+                    )
                     dt.transcribe(
                         source, path, options["whisper_model"],
                         options["device"],
-                        "int8" if options["device"] == "cpu" else "default",
+                        compute_type,
                         duration=duration if long else None,
                         chunked=bool(long), source=source_input,
                         media_kind=media_kind,
@@ -373,9 +393,21 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
             else:
                 if (not resume or state["cache"].get("discovery") != discovery_key
                         or not candidates_path.exists()):
+                    visual_proxy = None
+                    if (is_url and long and media_kind == "audio"
+                            and options.get("layout") == "games"
+                            and meta.get("has_video")):
+                        visual_proxy = ingest._find_media(path, "discovery")
+                        if visual_proxy is None:
+                            try:
+                                visual_proxy = ingest.download_visual_discovery(source_input, path)
+                            except Exception as vis_exc:
+                                print(f"Visual proxy skipped ({vis_exc})", flush=True)
                     score_clips.discover(
                         path, min_len=options["min_len"], max_len=options["max_len"],
-                        preferred_len=options["preferred_len"])
+                        preferred_len=options["preferred_len"],
+                        vision_preset=options.get("vision_preset", "auto"),
+                        visual_source=visual_proxy)
                     state["cache"]["discovery"] = discovery_key
                     save_project(path, state)
 
@@ -417,6 +449,11 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                                  f"--action prepare to review the range.")
             # Assign stable IDs before subset selection so names do not shift.
             segments = [{**s, "id": f"{i:03}"} for i, s in enumerate(segments, 1)]
+            try:
+                from picorte.engine.retention_engine import pair_short_and_long_clips
+                segments = pair_short_and_long_clips(segments)
+            except Exception:
+                pass
             segments = score_clips.pick_segments(segments, pick)
             out = path / ("previews" if preview else "clips")
             out.mkdir(exist_ok=True)
@@ -506,11 +543,44 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                     else:
                         render_source, W, H = loaded
                 try:
-                    output = render_clips.render({**segment, "id": segment["id"] + "-" + key[:8]}, data["words"], render_source, W, H, path,
+                    enriched_seg = {**segment, "id": segment["id"] + "-" + key[:8]}
+                    try:
+                        from picorte.engine.retention_engine import build_cold_open_plan
+                        enriched_seg["cold_open"] = build_cold_open_plan(
+                            float(segment["start"]), float(segment["end"])
+                        )
+                    except Exception:
+                        pass
+                    output = render_clips.render(enriched_seg, data["words"], render_source, W, H, path,
                         options["aspect"], out_dir=out, style=options["style"],
                         do_tighten=options["tighten"], loudnorm=options["loudnorm"], preview=preview,
                         brand=brand, layout=options["layout"], centers=options["centers"],
-                        caption=options["caption"], source_offset=source_offset)
+                        caption=options["caption"], source_offset=source_offset,
+                        vision_preset=options.get("vision_preset", "auto"),
+                        dominant_language=data.get("language"))
+                    try:
+                        from picorte.engine.thumbnail_factory import generate_thumbnail
+                        thumb_out = Path(output).with_name(Path(output).stem + "_thumb.png")
+                        clip_dur = max(0.5, float(segment["end"]) - float(segment["start"]))
+                        thumb_ts = max(0.0, float(segment["start"]) - source_offset + clip_dur * 0.4)
+                        thumb_src = render_source if (W and H and W >= H) else Path(output)
+                        thumb_res = generate_thumbnail(
+                            thumb_src,
+                            thumb_out,
+                            title_text=(
+                                enriched_seg.get("thumbnail_words")
+                                or enriched_seg.get("proposed_title")
+                                or enriched_seg.get("hook")
+                                or "DESTAQUE"
+                            ),
+                            timestamp_s=thumb_ts if thumb_src == render_source else clip_dur * 0.4,
+                            vision_preset=options.get("vision_preset", "auto"),
+                        )
+                        if not preview:
+                            enriched_seg["thumbnail_1280x720"] = thumb_res["path"]
+                            render_clips.write_meta(enriched_seg, Path(output))
+                    except Exception as thumb_exc:
+                        print(f"Thumbnail warning: {thumb_exc}", flush=True)
                 except (Exception, SystemExit) as exc:
                     if not render_from_sections:
                         raise
@@ -534,6 +604,19 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                 sections.cleanup_sections(path)
             state.update(status="review" if preview else "complete", stage="preview ready" if preview else "complete")
         save_project(path, state)
+        try:
+            from picorte.services.studio_service import StudioService
+            seg_list = read_json(path / "segments.json") if (path / "segments.json").exists() else []
+            t_dur = float((read_json(path / "transcript.json") or {}).get("duration") or 0.0) if (path / "transcript.json").exists() else 0.0
+            StudioService().sync_studio_project(
+                state,
+                segments=seg_list,
+                outputs=state.get("last_outputs") or [],
+                workdir=path,
+                duration_seconds=t_dur,
+            )
+        except Exception:
+            pass
         return state
     except (Exception, SystemExit) as exc:
         state.update(status="failed", error=str(exc), stage=state.get("stage", "failed"))

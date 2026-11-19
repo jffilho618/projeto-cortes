@@ -11,6 +11,7 @@ import math
 import os
 import re
 import subprocess
+import tempfile
 import urllib.request
 from typing import Any, Callable
 
@@ -27,11 +28,13 @@ FILTER_SYSTEM_PROMPT = (
 )
 
 COMPANION_SYSTEM_PROMPT = (
-    "Você é o Editor-Chefe de cortes de games em português do Brasil (Picorte). "
+    "Você é o Editor-Chefe de cortes virais de games em português do Brasil (Picorte). "
     "Revise os candidatos (considerando as notas da Triagem quando presentes) e retorne APENAS um array JSON com objetos: "
-    '{"index": int, "adjustment": float (-1.0 a 1.0), "reason": str, '
+    '{"index": int, "adjustment": float (-2.5 a 3.0), "reason": str, '
     '"proposed_title": str, "context_banner_2s": str (até 8 palavras), '
-    '"thumbnail_words": str (2-3 palavras em caixa alta), "pinned_comment_debate": str}.'
+    '"thumbnail_words": str (2-3 palavras em caixa alta), "pinned_comment_debate": str}. '
+    "REGRAS: penalize (-2.0 a -2.5) intros genéricas ('e aí pessoal'), anúncios/patrocínios ou telas de configuração; "
+    "dê bônus alto (+2.0 a +3.0) para momentos com reações fortes, humor, mecânicas inéditas, descobertas ou tensão real em gameplay."
 )
 
 
@@ -118,7 +121,14 @@ class LLMRouter:
                 cmd = [cli, "-p", prompt_full, "--output-format", "json"]
                 if model:
                     cmd.extend(["--model", model])
-                res = subprocess.run(cmd, capture_output=True, text=True, timeout=180, check=True)
+                res = subprocess.run(
+                    cmd,
+                    cwd=tempfile.gettempdir(),
+                    capture_output=True,
+                    text=True,
+                    timeout=180,
+                    check=True,
+                )
                 return res.stdout
             api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
             if api_key:
@@ -147,9 +157,18 @@ class LLMRouter:
             cli = resolve_cli_binary("agy") or resolve_cli_binary("gemini")
             if cli:
                 cmd = [cli, "-p", prompt_full, "--output-format", "json"]
+                if os.path.basename(cli).lower().startswith("agy"):
+                    cmd.append("--disable-slash-commands")
                 if model:
                     cmd.extend(["--model", model])
-                res = subprocess.run(cmd, capture_output=True, text=True, timeout=180, check=True)
+                res = subprocess.run(
+                    cmd,
+                    cwd=tempfile.gettempdir(),
+                    capture_output=True,
+                    text=True,
+                    timeout=180,
+                    check=True,
+                )
                 return res.stdout
             api_key = os.environ.get("GOOGLE_API_KEY", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()
             if api_key:
@@ -188,7 +207,7 @@ class LLMRouter:
                 continue
             if isinstance(adj, bool) or not isinstance(adj, (int, float)) or not math.isfinite(adj):
                 continue
-            adj_clamped = max(-1.0, min(1.0, float(adj)))
+            adj_clamped = max(-2.5, min(3.0, float(adj)))
             rec = updated[idx]
             base = float(rec.get("overall", 0.0))
             if not accumulate:
@@ -204,7 +223,7 @@ class LLMRouter:
             reason = str(entry.get("reason", "")).strip()
             if reason:
                 old_reason = str(rec.get("reason", "")).strip()
-                rec["reason"] = f"{old_reason} | {reason}".strip(" |")[:220]
+                rec["reason"] = f"{old_reason} | {reason}".strip(" |")[:500]
             for field in ("proposed_title", "context_banner_2s", "thumbnail_words", "pinned_comment_debate"):
                 val = entry.get(field)
                 if isinstance(val, str) and val.strip():
@@ -228,7 +247,21 @@ class LLMRouter:
         if not candidates or ai_mode == "heuristic":
             return {"candidates": [dict(c) for c in candidates], "llm_mode_used": "heuristic"}
 
-        ranked = sorted(candidates, key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0))))[:50]
+        if len(candidates) <= 60:
+            ranked = sorted(candidates, key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0))))
+        else:
+            # Garante cobertura do vídeo inteiro (top 35 por nota + 25 distribuídos ao longo da linha do tempo)
+            by_score = sorted(candidates, key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0))))
+            top_part = by_score[:35]
+            seen_ids = {id(x) for x in top_part}
+            by_time = [x for x in sorted(candidates, key=lambda c: float(c.get("start", 0.0))) if id(x) not in seen_ids]
+            step = max(1.0, len(by_time) / 25.0)
+            time_part = []
+            idx_f = 0.0
+            while int(idx_f) < len(by_time) and len(time_part) < 25:
+                time_part.append(by_time[int(idx_f)])
+                idx_f += step
+            ranked = sorted(top_part + time_part, key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0))))
 
         def _payload_for(items: list[dict[str, Any]], include_triage: bool = False) -> str:
             rows = []

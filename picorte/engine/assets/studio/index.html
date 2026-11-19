@@ -35,6 +35,9 @@
     <main>
       <header class="topbar">
         <span>THE LOCAL CUTTING ROOM</span
+        ><span class="topbar-badges"
+          ><span id="hardware-badge" class="badge">GPU: detectando...</span
+          ><span id="db-badge" class="badge">DB: ...</span></span
         ><span id="connection"><span class="dot"></span> Local session</span>
       </header>
       <div id="notice" role="status" aria-live="polite" hidden></div>
@@ -73,11 +76,20 @@
             >
             <label
               >Transcription model<select id="new-model">
+                <option value="auto" selected>Automático (GPU / Preset)</option>
                 <option>tiny</option>
                 <option>base</option>
                 <option>small</option>
-                <option selected>medium</option>
+                <option>medium</option>
+                <option>large-v3-turbo</option>
                 <option>large-v3</option>
+              </select></label
+            >
+            <label
+              >Enquadramento<select id="new-layout" name="new_layout">
+                <option value="single" selected>Single / Face tracking</option>
+                <option value="games">Games · Facecam topo + Jogo embaixo (9:16)</option>
+                <option value="split">Podcast · two stacked speakers (9:16)</option>
               </select></label
             >
             <label
@@ -95,6 +107,25 @@
                 <option>hormozi</option>
                 <option>mrbeast</option>
                 <option>podcast</option>
+              </select></label
+            >
+            <label
+              >Motor de IA<select id="new-ai-mode" name="ai_mode">
+                <option value="heuristic">Determinístico (sem LLM)</option>
+                <option value="ollama">Só Ollama (local GPU)</option>
+                <option value="claude">Só Claude (assinatura/API)</option>
+                <option value="gemini">Só Gemini (assinatura/API)</option>
+                <option value="dupla">Modo Dupla (Filtro + Acompanha)</option>
+              </select></label
+            >
+            <label
+              >Preset Visão Computacional<select
+                id="new-vision-preset"
+                name="vision_preset"
+              >
+                <option value="auto">Automático (detectar GPU)</option>
+                <option value="low">Low / Leve (Notebook 4GB / CPU)</option>
+                <option value="high">High / Pesado (Desktop RTX 8GB+)</option>
               </select></label
             >
           </div>
@@ -241,6 +272,7 @@
               <label
                 >Framing<select name="layout">
                   <option value="single">Single frame / face tracking</option>
+                  <option value="games">Games · Facecam topo + Jogo embaixo (9:16)</option>
                   <option value="split">Podcast · two stacked speakers</option>
                 </select></label
               >
@@ -341,10 +373,12 @@
                 <summary>Transcription & scoring</summary>
                 <label
                   >Whisper model<select name="whisper_model">
+                    <option value="auto">Automático (GPU / Preset)</option>
                     <option>tiny</option>
                     <option>base</option>
                     <option>small</option>
                     <option>medium</option>
+                    <option>large-v3-turbo</option>
                     <option>large-v3</option>
                   </select></label
                 ><label
@@ -352,6 +386,12 @@
                     <option>cpu</option>
                     <option>cuda</option>
                     <option>auto</option>
+                  </select></label
+                ><label
+                  >Preset Visão Computacional<select name="vision_preset">
+                    <option value="auto">Automático (detectar GPU)</option>
+                    <option value="low">Low / Leve (Notebook 4GB / CPU)</option>
+                    <option value="high">High / Pesado (Desktop RTX 8GB+)</option>
                   </select></label
                 ><label
                   >Motor de IA (Seleção e Títulos)<select name="ai_mode">

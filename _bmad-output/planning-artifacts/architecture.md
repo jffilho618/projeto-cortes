@@ -162,6 +162,15 @@ flowchart TD
 - **Prevents:** Código desenvolvido no notebook Ubuntu quebrar ao rodar no PC de mesa Windows 11 (por caminhos POSIX hardcoded, `/tmp`, `.venv/bin`, `fcntl` ou sintaxe de filtro `subtitles=` do `FFmpeg` com `C:\`).
 - **Rule:** Todo código deve usar `pathlib.Path`, `tempfile`, `picorte.config.get_venv_bin_dir()` (`.venv/Scripts` no Windows, `.venv/bin` no Linux), `picorte.config.resolve_cli_binary()` (resolvendo `.exe`/`.cmd` no Windows e `C:\Windows\System32\nvidia-smi.exe`), `filelock` (nunca `fcntl`/`posix`) para locks de processo/VRAM e execução do `ffmpeg` com `cwd` no diretório de trabalho ou caminhos relativos para que filtros `subtitles=_caption.ass` e `sendcmd=f=_crop.cmd` nunca sofram erro de parsing com `C:\` no Windows.
 
+### AD-12 — Presets Gráficos de Visão Computacional (`auto` / `low` / `high`) Selecionáveis na UI [ADOPTED]
+
+- **Binds:** `CAP-5`, `CAP-6`, `CAP-9`, `CAP-14`
+- **Prevents:** Hardcode de modelos pesados que travam o notebook (4 GB VRAM) ou subutilização da RTX 4070 Ti no PC de mesa Windows, além de troca não autorizada de modelos.
+- **Rule:** Ao iniciar, `picorte.config.resolve_vision_preset(preset="auto")` detecta a GPU e atribui `low` (`<= 6144 MiB`) ou `high` (`>= 6145 MiB`). O operador pode trocar manualmente (`auto` / `low` / `high`) nas configurações da UI:
+  - **`low` (Leve):** Facecam `YuNet` + `MediaPipe FaceLandmarker`; HUD `RapidOCR`; Sniper Crop por Fluxo Óptico (`OpenCV`); Thumbnail `rembg` (`u2netp`); Whisper `small` (`int8`).
+  - **`high` (Forte):** Facecam `YuNet` + `MediaPipe` + `HSEmotion` (e/ou confirmação VLM); HUD `YOLO11n` + `RapidOCR`; Sniper Crop `YOLO11n` + tracking (fallback fluxo óptico); Thumbnail `rembg` (`BiRefNet`); Whisper `large-v3-turbo` (`int8_float16`).
+  - Qualquer sugestão de troca de modelo dentro desses presets deve ser perguntada ao usuário antes de substituir.
+
 ## Consistency Conventions
 
 | Concern | Convention |

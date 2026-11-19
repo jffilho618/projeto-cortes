@@ -77,3 +77,102 @@ class StudioService:
 
     def list_clips(self, video_id: str | None = None) -> list[dict[str, Any]]:
         return self.repos.clips.list_clips(video_id=video_id)
+
+    def sync_studio_project(
+        self,
+        project_state: dict[str, Any],
+        *,
+        segments: list[dict[str, Any]] | None = None,
+        outputs: list[str] | None = None,
+        workdir: Any = "",
+        duration_seconds: float = 0.0,
+    ) -> dict[str, Any]:
+        """Espelha um projeto do Studio/CLI para as tabelas canônicas videos e clips."""
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc).isoformat()
+        project_id = str(project_state["id"])
+        video_id = f"studio-{project_id}"
+        source_url = str(project_state.get("source") or project_state.get("video") or "")
+        status = str(project_state.get("status") or "queued")
+        options = project_state.get("options") or {}
+        aspect = options.get("aspect", "9:16")
+        fmt = "short_9_16" if aspect == "9:16" else ("long_16_9" if aspect == "16:9" else "square_1_1")
+        ai_mode = str(options.get("ai_mode") or ("ollama" if options.get("llm") else "heuristic"))
+
+        existing_video = self.db.fetch_one("SELECT * FROM videos WHERE id = ?", (video_id,))
+        if existing_video:
+            self.db.execute(
+                """UPDATE videos SET source_url = ?, duration_seconds = ?, workdir_path = ?,
+                   status = ?, updated_at = ? WHERE id = ?""",
+                (source_url, float(duration_seconds), str(workdir), status, now, video_id),
+            )
+        else:
+            self.db.execute(
+                """INSERT INTO videos
+                   (id, source_id, origin_type, source_url, game_slug, duration_seconds, workdir_path, status, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (video_id, None, "local_file", source_url, "", float(duration_seconds), str(workdir), status, now, now),
+            )
+
+        out_list = list(outputs or [])
+        synced_clips = []
+        for idx, seg in enumerate(segments or [], 1):
+            seg_id = str(seg.get("id") or f"{idx:03}")
+            clip_id = f"{video_id}:{seg_id}"
+            mp4_path = out_list[idx - 1] if idx - 1 < len(out_list) else ""
+            mode_used = str(seg.get("llm_mode_used") or ai_mode)
+            title = str(seg.get("proposed_title") or seg.get("hook") or "")
+            ctx_banner = str(seg.get("context_banner_2s") or "")
+            pinned = str(seg.get("pinned_comment_debate") or "")
+            overall = float(seg.get("overall") or 0.0)
+            start_sec = float(seg.get("start") or 0.0)
+            end_sec = float(seg.get("end") or 0.0)
+
+            existing_clip = self.db.fetch_one("SELECT id FROM clips WHERE id = ?", (clip_id,))
+            if existing_clip:
+                self.db.execute(
+                    """UPDATE clips SET start_sec = ?, end_sec = ?, score_overall = ?,
+                       llm_mode_used = ?, mp4_path = ?, proposed_title = ?,
+                       context_banner_2s = ?, pinned_comment_debate = ? WHERE id = ?""",
+                    (start_sec, end_sec, overall, mode_used, mp4_path, title, ctx_banner, pinned, clip_id),
+                )
+            else:
+                self.db.execute(
+                    """INSERT INTO clips
+                       (id, video_id, parent_long_clip_id, format_type, ab_variant, start_sec, end_sec,
+                        score_chat, score_audio, score_visual, score_text, score_overall,
+                        ypp_transform_score, phash_signature, llm_mode_used, risk_status,
+                        mp4_path, thumbnail_path, proposed_title, context_banner_2s, pinned_comment_debate, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        clip_id,
+                        video_id,
+                        None,
+                        fmt,
+                        1,
+                        start_sec,
+                        end_sec,
+                        0.0,
+                        0.0,
+                        0.0,
+                        overall,
+                        overall,
+                        0,
+                        "",
+                        mode_used,
+                        "pending",
+                        mp4_path,
+                        "",
+                        title,
+                        ctx_banner,
+                        pinned,
+                        now,
+                    ),
+                )
+            synced_clips.append(self.db.fetch_one("SELECT * FROM clips WHERE id = ?", (clip_id,)))
+
+        return {
+            "video": self.db.fetch_one("SELECT * FROM videos WHERE id = ?", (video_id,)),
+            "clips": synced_clips,
+        }

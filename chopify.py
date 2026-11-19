@@ -231,7 +231,7 @@ def main():
     ap.add_argument("--semantic", help="find clips by meaning with local embeddings")
     ap.add_argument("--embed-model", default="nomic-embed-text")
     ap.add_argument("--brand", help="JSON brand preset path")
-    ap.add_argument("--layout", choices=["single", "split"], default="single")
+    ap.add_argument("--layout", choices=["single", "split", "games"], default="single")
     ap.add_argument("--centers", type=float, nargs=2, default=[0.25, 0.75],
                     help="horizontal speaker centers from 0 to 1 for split-screen")
     ap.add_argument("--device", choices=["cpu", "cuda", "auto"], default="cpu")
@@ -269,8 +269,9 @@ def main():
     if options["brand"]:
         options["brand"] = str(Path(options["brand"]).resolve())
     interactive = (
-        not args.no_input and not args.batch and args.action != "render"
-        and not args.search and not args.semantic and sys.stdin.isatty()
+        not args.no_input and not args.batch and not args.project
+        and args.action != "render" and not args.search and not args.semantic
+        and sys.stdin.isatty()
     )
     ask_score = not flag_given("--min-score")
     ask_length = not flag_given("--preferred-len")

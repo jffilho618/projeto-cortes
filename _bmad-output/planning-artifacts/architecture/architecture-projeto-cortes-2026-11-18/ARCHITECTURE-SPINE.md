@@ -162,6 +162,15 @@ flowchart TD
 - **Prevents:** Código desenvolvido no notebook Ubuntu quebrar ao rodar no PC de mesa Windows 11 (por caminhos POSIX hardcoded, `/tmp`, `.venv/bin`, `fcntl` ou sintaxe de filtro `subtitles=` do `FFmpeg` com `C:\`).
 - **Rule:** Todo código deve usar `pathlib.Path`, `tempfile`, `picorte.config.get_venv_bin_dir()` (`.venv/Scripts` no Windows, `.venv/bin` no Linux), `picorte.config.resolve_cli_binary()` (resolvendo `.exe`/`.cmd` no Windows e `C:\Windows\System32\nvidia-smi.exe`), `filelock` (nunca `fcntl`/`posix`) para locks de processo/VRAM e execução do `ffmpeg` com `cwd` no diretório de trabalho ou caminhos relativos para que filtros `subtitles=_caption.ass` e `sendcmd=f=_crop.cmd` nunca sofram erro de parsing com `C:\` no Windows.
 
+### AD-12 — Presets de Visão Computacional Selecionáveis na UI (`auto` / `low` / `high`) com Detector de Hardware [ADOPTED]
+
+- **Binds:** `CAP-4`, `CAP-5`, `CAP-6`, `CAP-9`, `CAP-14`
+- **Prevents:** Hardcoding de modelos pesados (inviáveis no notebook GTX 1650 4 GB) ou redução definitiva para modelos leves (desperdiçando a RTX 4070 Ti do PC de mesa).
+- **Rule:** O módulo `picorte/config.py` expõe `resolve_vision_preset(requested_preset="auto", ...)` combinando o detector de hardware no boot (`probe_nvidia_smi` + `detect_gpu_profile`) com a escolha explícita do operador na UI (`auto`, `low`, `high`, análogo ao gráfico Low/High de jogos):
+  - **`low`** (automático quando VRAM `<= 6144 MiB` ou CPU): `facecam=YuNet+MediaPipe`, `hud=RapidOCR+optical_flow`, `sniper_crop=optical_flow`, `thumbnail_cutout=u2netp`, `whisper_model=small`, `compute_type=int8`.
+  - **`high`** (automático quando VRAM `>= 6145 MiB`): `facecam=YuNet+MediaPipe+HSEmotion`, `hud=YOLO11n+RapidOCR`, `sniper_crop=YOLO11n+tracking`, `thumbnail_cutout=BiRefNet`, `whisper_model=large-v3-turbo`, `compute_type=int8_float16`.
+  - Qualquer override manual (`low` ou `high`) nas configurações da UI sobrescreve a detecção automática apenas para aquele projeto/job. Nenhum modelo dentro de um preset pode ser substituído silenciosamente sem aprovação do operador.
+
 ## Consistency Conventions
 
 | Concern | Convention |

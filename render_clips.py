@@ -437,8 +437,159 @@ def ass_escape(s):
     return s.replace("\\", "").replace("{", "(").replace("}", ")")
 
 
+_PT_EXCLUSIVE_WORDS = {
+    "à", "ao", "aos", "até", "com", "como", "das", "dos", "é", "ela", "ele",
+    "então", "essa", "esse", "está", "estão", "estou", "eu", "faz", "fez",
+    "foi", "fui", "gente", "aqui", "ali", "agora", "isso", "isto", "já", "lá",
+    "mais", "mano", "mas", "meu", "minha", "muito", "na", "não", "nas", "né",
+    "nos", "nossa", "olha", "os", "ou", "para", "pelo", "pela", "por", "pra",
+    "que", "quem", "sem", "ser", "será", "sim", "só", "tá", "tem", "ter",
+    "tô", "tudo", "um", "uma", "vai", "vamos", "você", "vocês", "cara",
+    "caramba", "opa", "nunca", "sempre", "porque", "quando", "onde", "nada",
+}
+
+_EN_STOPWORDS = {
+    "a", "about", "after", "all", "am", "an", "and", "any", "anybody's", "are",
+    "around", "as", "at", "be", "because", "been", "being", "believe", "brat",
+    "bro", "brother", "but", "by", "can", "can't", "come", "could", "did",
+    "didn't", "do", "does", "doesn't", "don't", "down", "every", "everyone",
+    "for", "from", "funny", "get", "go", "going", "good", "got", "had", "has",
+    "have", "he", "he's", "her", "here", "hey", "him", "his", "how", "i",
+    "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't", "it",
+    "it's", "just", "keeping", "know", "last", "let", "let's", "like", "look",
+    "man", "me", "mean", "more", "my", "need", "never", "not", "nothing", "now",
+    "of", "off", "on", "one", "only", "or", "other", "our", "out", "over",
+    "people", "point", "really", "right", "said", "say", "see", "she", "she's",
+    "shit", "should", "so", "some", "something", "stop", "sure", "take", "tell",
+    "than", "that", "that's", "the", "their", "them", "then", "there", "these",
+    "they", "they're", "thing", "think", "this", "those", "time", "to", "too",
+    "up", "us", "very", "want", "was", "wasn't", "way", "we", "we're", "well",
+    "were", "what", "what's", "when", "where", "which", "who", "why", "will",
+    "with", "won't", "would", "yeah", "yes", "you", "you're", "you've",
+    "your", "arguing", "ice", "again",
+}
+
+_PT_ACCENT_RE = re.compile(r"[áéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]")
+
+
+def _is_pure_english_npc_sentence(sent_words: list[dict]) -> bool:
+    text = " ".join(str(w.get("word", "")).strip() for w in sent_words)
+    if _PT_ACCENT_RE.search(text):
+        return False
+    tokens = [re.sub(r"[^a-zA-Z0-9'áéíóúâêôãõç]", "", w.get("word", "").lower()) for w in sent_words]
+    tokens = [t for t in tokens if t]
+    if not tokens:
+        return False
+    pt_hits = sum(1 for t in tokens if t in _PT_EXCLUSIVE_WORDS)
+    if pt_hits > 0:
+        return False
+    en_hits = sum(1 for t in tokens if t in _EN_STOPWORDS)
+    if len(tokens) == 1:
+        return tokens[0] in {"i", "i'm", "he's", "she's", "it's", "they're", "we're", "you're", "the", "yeah"}
+    return en_hits >= 2 and (en_hits / len(tokens)) >= 0.45
+
+
+def filter_streamer_language_words(words: list[dict], dominant_language: str | None = "pt") -> list[dict]:
+    """Remove falas isoladas em inglês (NPCs/cutscenes) quando o idioma principal do streamer é PT-BR."""
+    if not words or (dominant_language or "").lower() not in {"pt", "pt-br", "portuguese"}:
+        return list(words or [])
+
+    # Divide por pausa >= 0.65s ou fim de sentença para preservar gírias em inglês dentro de frases PT
+    sentences: list[list[dict]] = []
+    cur: list[dict] = []
+    for w in words:
+        if cur and (float(w["start"]) - float(cur[-1]["end"])) >= 0.65:
+            sentences.append(cur)
+            cur = []
+        cur.append(w)
+        if re.search(r"[.!?…][\"')\]]?$", str(w.get("word", "")).strip()):
+            sentences.append(cur)
+            cur = []
+    if cur:
+        sentences.append(cur)
+
+    flags = [_is_pure_english_npc_sentence(s) for s in sentences]
+    kept: list[dict] = []
+    for idx, sent in enumerate(sentences):
+        if flags[idx]:
+            continue
+        # Remove resíduo isolado de 1 token inglês ("I", "Oh,", etc.) se os blocos vizinhos eram NPC em inglês
+        if len(sent) <= 2 and (
+            (idx > 0 and flags[idx - 1]) or (idx + 1 < len(sentences) and flags[idx + 1])
+        ):
+            txt = " ".join(re.sub(r"[^a-zA-Z']", "", w.get("word", "").lower()) for w in sent).strip()
+            if txt in {"i", "oh", "ah", "uh", "well", "and", "but", "so"}:
+                continue
+        kept.extend(sent)
+    return kept
+
+
+_BANNER_STOPWORDS = {
+    "a", "o", "as", "os", "e", "em", "de", "do", "da", "dos", "das",
+    "no", "na", "nos", "nas", "um", "uma", "por", "para", "com", "que",
+    "se", "é", "eh", "foi", "vai", "ao", "ou", "quando", "como", "ele", "ela",
+}
+
+
+def _format_games_banner_ass(text: str, max_chars_per_line: int = 24) -> str:
+    clean = " ".join(str(text).replace("\n", " ").split())
+    if not clean:
+        return ""
+    raw_words = clean.split(" ")
+    if len(raw_words) > 9:
+        raw_words = raw_words[:9]
+
+    best_idx = None
+    best_score = -1.0
+    for idx, tok in enumerate(raw_words):
+        stripped = re.sub(r"[^\wáàâãéêíóôõúüç]", "", tok.lower())
+        if not stripped or stripped in _BANNER_STOPWORDS:
+            continue
+        score = len(stripped) + (2.0 if any(ch.isdigit() for ch in stripped) else 0.0)
+        if 0 < idx < len(raw_words) - 1:
+            score += 0.5
+        if score > best_score:
+            best_score = score
+            best_idx = idx
+    highlight_indices: set[int] = set()
+    if best_idx is not None:
+        highlight_indices.add(best_idx)
+        if best_idx + 1 < len(raw_words):
+            nxt = re.sub(r"[^\wáàâãéêíóôõúüç]", "", raw_words[best_idx + 1].lower())
+            if nxt and nxt not in _BANNER_STOPWORDS and len(nxt) >= 4:
+                highlight_indices.add(best_idx + 1)
+
+    styled_tokens = []
+    for idx, tok in enumerate(raw_words):
+        word_up = ass_escape(tok.upper())
+        word_color = "&H0000D4FF&" if idx in highlight_indices else "&H00FFFFFF&"
+        styled_tokens.append("{\\c" + word_color + "}" + word_up)
+
+    total_chars = sum(len(w) for w in raw_words) + max(0, len(raw_words) - 1)
+    if len(raw_words) <= 1 or total_chars <= 15:
+        return " ".join(styled_tokens)
+
+    # Balanced 2-line split near midpoint so neither line has a tiny orphan
+    best_split = 1
+    best_diff = 10**9
+    for split_at in range(1, len(raw_words)):
+        left_len = len(" ".join(raw_words[:split_at]))
+        right_len = len(" ".join(raw_words[split_at:]))
+        overflow_pen = 0
+        if left_len > max_chars_per_line:
+            overflow_pen += (left_len - max_chars_per_line) * 4
+        if right_len > max_chars_per_line:
+            overflow_pen += (right_len - max_chars_per_line) * 4
+        diff = abs(left_len - right_len) + overflow_pen
+        if diff < best_diff:
+            best_diff = diff
+            best_split = split_at
+    return " ".join(styled_tokens[:best_split]) + "\\N" + " ".join(styled_tokens[best_split:])
+
+
 def build_ass(words, clip_start, clip_end, path, tw, th, font_size, margin_v,
-              style_name=DEFAULT_STYLE, brand=None, caption=None):
+              style_name=DEFAULT_STYLE, brand=None, caption=None,
+              context_banner_2s=None, games_layout=False, facecam_h=None):
     st = resolve_caption(style_name, brand, caption)
     color = ass_style_color(st["color"])
     highlight = ass_style_color(st["highlight"])
@@ -461,8 +612,40 @@ def build_ass(words, clip_start, clip_end, path, tw, th, font_size, margin_v,
         back_colour = "&H64000000"
     sub = [w for w in words
            if not w.get("hidden") and w["end"] > clip_start and w["start"] < clip_end]
-    margin_l = 80
-    margin_r = max(160, round(160 * tw / 1080)) if th > tw else 80
+    if games_layout:
+        margin_l = max(20, round(60 * tw / 1080))
+        margin_r = margin_l
+        cap_font_size = max(12, round(font_size * 0.78))
+        cap_margin_v = max(30, round(th * 0.12))
+        cap_y = round(th * 0.825)
+        banner_clean_len = len(" ".join(str(context_banner_2s or "").split()))
+        if banner_clean_len <= 30:
+            banner_ratio, banner_scalex = 0.044, 92
+        elif banner_clean_len <= 38:
+            banner_ratio, banner_scalex = 0.041, 90
+        else:
+            banner_ratio, banner_scalex = 0.033, 84
+        banner_font = max(20, round(th * banner_ratio))
+        banner_font_name = "Impact" if sys.platform == "win32" else "Ubuntu Sans"
+        banner_outline = max(2, round(banner_font * 0.115))
+        banner_shadow = max(1, round(banner_font * 0.065))
+        banner_margin_lr = max(20, round(tw * 0.085))
+        banner_style_line = (
+            f"Style: ContextBanner,{banner_font_name},{banner_font},&H00FFFFFF,&H00FFFFFF,"
+            f"&H00000000,&HC0000000,-1,0,0,0,{banner_scalex},100,-0.5,0,1,{banner_outline},"
+            f"{banner_shadow},5,{banner_margin_lr},{banner_margin_lr},20,1\n\n"
+        )
+    else:
+        margin_l = 80
+        margin_r = max(160, round(160 * tw / 1080)) if th > tw else 80
+        cap_font_size = font_size
+        cap_margin_v = margin_v
+        cap_y = None
+        banner_style_line = (
+            f"Style: ContextBanner,{st['font']},{max(22, round(font_size * 0.65))},"
+            f"&H00FFFFFF,&H00FFFFFF,&HC8000000,&HC8000000,-1,0,0,0,100,100,0,0,3,12,"
+            f"0,8,80,80,{max(40, round(th * 0.14))},1\n\n"
+        )
     header = (
         "[Script Info]\nScriptType: v4.00+\n"
         f"PlayResX: {tw}\nPlayResY: {th}\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n"
@@ -471,26 +654,52 @@ def build_ass(words, clip_start, clip_end, path, tw, th, font_size, margin_v,
         "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, "
         "ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, "
         "MarginL, MarginR, MarginV, Encoding\n"
-        f"Style: Cap,{st['font']},{font_size},{color},{color},{outline_colour},"
+        f"Style: Cap,{st['font']},{cap_font_size},{color},{color},{outline_colour},"
         f"{back_colour},{st['weight']},0,0,0,100,100,0,0,{border_style},"
-        f"{outline_px},{shadow_px},{alignment},{margin_l},{margin_r},{margin_v},1\n\n"
-        "[Events]\n"
+        f"{outline_px},{shadow_px},{alignment},{margin_l},{margin_r},{cap_margin_v},1\n"
+        + banner_style_line
+        + "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, "
         "Effect, Text\n"
     )
     group_size = int(st["words_per_cue"] or WORDS_PER_LINE)
-    groups = [sub[i:i + group_size] for i in range(0, len(sub), group_size)]
+    groups = []
+    cur_group = []
+    for w in sub:
+        if cur_group and (
+            len(cur_group) >= group_size
+            or (float(w["start"]) - float(cur_group[-1]["end"])) >= 0.70
+        ):
+            groups.append(cur_group)
+            cur_group = []
+        cur_group.append(w)
+    if cur_group:
+        groups.append(cur_group)
+
     animation = st["animation"]
     events = []
+    next_group_starts = {
+        id(groups[idx][-1]): float(groups[idx + 1][0]["start"])
+        for idx in range(len(groups) - 1)
+    }
     for group in groups:
         emphasised = _cue_highlight(group, bool(st["emphasis"]))
         emoji_index, emoji = _cue_emoji(group) if st["emoji"] else (None, None)
         for i, word in enumerate(group):
-            s0 = max(word["start"], clip_start) - clip_start
-            en = min(clip_end, group[i + 1]["start"] if i + 1 < len(group)
-                     else word["end"]) - clip_start
-            if en <= s0:
-                en = s0 + 0.12
+            w_start = max(float(word["start"]), clip_start)
+            # Evita timestamps esticados pelo Whisper (> 1.8s numa palavra única)
+            w_end = min(float(word["end"]), w_start + 1.8)
+            s0 = w_start - clip_start
+            if i + 1 < len(group):
+                next_s = float(group[i + 1]["start"])
+                if next_s - w_end <= 0.35:
+                    raw_en = min(clip_end, next_s) - clip_start
+                else:
+                    raw_en = min(clip_end, w_end + 0.15) - clip_start
+            else:
+                cap_next = next_group_starts.get(id(word), float(clip_end))
+                raw_en = min(clip_end, cap_next, w_end + 0.15) - clip_start
+            en = max(s0 + 0.08, raw_en)
             parts = []
             for j, item in enumerate(group):
                 if animation == "typewriter" and j > i:
@@ -510,17 +719,34 @@ def build_ass(words, clip_start, clip_end, path, tw, th, font_size, margin_v,
                     word_color = color
                 motion = _motion_tag(animation) if j == i else ""
                 parts.append("{" + f"\\c{word_color}" + motion + "}" + token)
+            pos_tag = f"{{\\an8\\pos({tw // 2},{cap_y})}}" if cap_y is not None else ""
             events.append(
-                f"Dialogue: 0,{ass_time(s0)},{ass_time(en)},Cap,,0,0,0,,{' '.join(parts)}")
+                f"Dialogue: 0,{ass_time(s0)},{ass_time(en)},Cap,,0,0,0,,{pos_tag}{' '.join(parts)}")
+    if context_banner_2s:
+        banner_raw = str(context_banner_2s).replace("\n", " ").strip()
+        if banner_raw:
+            if games_layout:
+                seam_y = int(facecam_h) if facecam_h else ((round(th / 3.0)) // 2) * 2
+                banner_styled = _format_games_banner_ass(banner_raw, max_chars_per_line=28)
+                events.append(
+                    f"Dialogue: 1,0:00:00.00,0:00:06.00,ContextBanner,,0,0,0,,{{\\q2\\an5\\pos({tw // 2},{seam_y})}}{banner_styled}"
+                )
+            else:
+                banner_txt = ass_escape(banner_raw)
+                safe_x = tw // 2
+                safe_y = max(40, round(th * 0.156))  # ~300px em 1080x1920 (y=240..360 AD-7)
+                events.append(
+                    f"Dialogue: 1,0:00:00.00,0:00:02.00,ContextBanner,,0,0,0,,{{\\an8\\pos({safe_x},{safe_y})}}{banner_txt}"
+                )
     Path(path).write_text(header + "\n".join(events) + "\n", encoding="utf-8")
 
 
 def write_meta(seg, out_path):
     """Deterministic ready-to-post metadata saved as <clip>.meta.json."""
     hook = str(seg.get("hook", "clip")).replace("-", " ").strip()
-    title = hook.capitalize()
+    title = str(seg.get("proposed_title") or hook.capitalize()).strip()
     meta = {
-        "title": f"{title} #shorts",
+        "title": title if "#" in title else f"{title} #shorts",
         "description": (f"{hook.capitalize()} - full video on the channel.\n"
                         "#shorts #reels #fyp #viral #podcast"),
         "hashtags": ["#shorts", "#reels", "#fyp", "#viral"],
@@ -528,6 +754,17 @@ def write_meta(seg, out_path):
         "start": seg.get("start"),
         "end": seg.get("end"),
     }
+    for extra in (
+        "proposed_title",
+        "context_banner_2s",
+        "pinned_comment_debate",
+        "parent_long_clip_id",
+        "cold_open",
+        "thumbnail_1280x720",
+        "llm_mode_used",
+    ):
+        if seg.get(extra) is not None:
+            meta[extra] = seg[extra]
     Path(out_path).with_suffix(".meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return Path(out_path).with_suffix(".meta.json")
@@ -604,17 +841,107 @@ def caption_from_args(args):
     return branding.validate_caption(caption) if supplied else None
 
 
+def _detect_overlay_border(frame, axis: str, search_start: int, search_end: int, span_a: int, span_b: int, *, prefer_inner: str) -> int | None:
+    """Detecta borda retangular da webcam (transição contínua de cor/luminância) ao longo de uma faixa."""
+    import numpy as np
+
+    lo = max(0, min(search_start, search_end))
+    hi = max(search_start, search_end)
+    if hi - lo < 6:
+        return None
+    sa, sb = max(0, min(span_a, span_b)), max(span_a, span_b)
+    if sb - sa < 16:
+        return None
+
+    patch = frame[sa:sb, lo:hi] if axis == "x" else frame[lo:hi, sa:sb]
+    if patch.size == 0:
+        return None
+    f32 = patch.astype(np.float32)
+    if axis == "x":
+        # Diferença média entre colunas adjacentes ao longo de toda a altura da webcam
+        diffs = np.mean(np.abs(f32[:, 1:, :] - f32[:, :-1, :]), axis=(0, 2))
+    else:
+        diffs = np.mean(np.abs(f32[1:, :, :] - f32[:-1, :, :]), axis=(1, 2))
+    if diffs.size == 0:
+        return None
+    med = float(np.median(diffs))
+    best_idx = int(np.argmax(diffs))
+    peak = float(diffs[best_idx])
+    if peak >= max(10.0, med * 2.2):
+        # Retorna posição absoluta + margem de segurança para dentro da webcam
+        pos = lo + best_idx
+        return pos + 3 if prefer_inner == "right" else pos - 3
+    return None
+
+
+def expand_facecam_box(detected, frame_w: int, frame_h: int, frame=None) -> tuple[int, int, int, int]:
+    """Expande a caixa facial do YuNet para enquadrar a webcam inteira sem vazar pixels do jogo."""
+    if frame is not None and hasattr(frame, "shape"):
+        frame_h, frame_w = int(frame.shape[0]), int(frame.shape[1])
+    fx, fy, fw, fh = [int(v) for v in detected]
+    pad_x = max(48, int(round(fw * 1.25)))
+    pad_top = max(24, int(round(fh * 0.50)))
+    pad_bot = max(32, int(round(fh * 0.65)))
+
+    x1 = max(0, fx - pad_x)
+    y1 = max(0, fy - pad_top)
+    x2 = min(frame_w, fx + fw + pad_x)
+    y2 = min(frame_h, fy + fh + pad_bot)
+
+    if frame is not None:
+        # Detecta bordas reais da webcam ao redor do rosto para cortar exatamente dentro da moldura
+        span_y1 = max(0, fy - int(fh * 0.3))
+        span_y2 = min(frame_h, fy + fh + int(fh * 0.3))
+        span_x1 = max(0, fx - int(fw * 0.6))
+        span_x2 = min(frame_w, fx + fw + int(fw * 0.6))
+
+        left_edge = _detect_overlay_border(frame, "x", max(0, fx - int(fw * 2.0)), max(2, fx - 4), span_y1, span_y2, prefer_inner="right")
+        if left_edge is not None and left_edge > x1 and (fx + fw - left_edge) >= int(fw * 1.3):
+            x1 = max(0, min(fx - 8, left_edge))
+        right_edge = _detect_overlay_border(frame, "x", min(frame_w - 2, fx + fw + 4), min(frame_w, fx + fw + int(fw * 2.0)), span_y1, span_y2, prefer_inner="left")
+        if right_edge is not None and right_edge < x2 and (right_edge - fx) >= int(fw * 1.3):
+            x2 = min(frame_w, max(fx + fw + 8, right_edge))
+        bot_edge = _detect_overlay_border(frame, "y", min(frame_h - 2, fy + fh + 4), min(frame_h, fy + fh + int(fh * 1.4)), span_x1, span_x2, prefer_inner="left")
+        if bot_edge is not None and bot_edge < y2:
+            y2 = min(frame_h, max(fy + fh + 8, bot_edge))
+        top_edge = _detect_overlay_border(frame, "y", max(0, fy - int(fh * 1.2)), max(2, fy - 4), span_x1, span_x2, prefer_inner="right")
+        if top_edge is not None and top_edge > y1:
+            y1 = max(0, min(fy - 8, top_edge))
+
+    if x2 <= x1 + max(64, fw):
+        x1 = max(0, fx - pad_x)
+        x2 = min(frame_w, fx + fw + pad_x)
+    if y2 <= y1 + max(64, fh):
+        y1 = max(0, fy - pad_top)
+        y2 = min(frame_h, fy + fh + pad_bot)
+
+    w = max(64, x2 - x1)
+    h = max(64, y2 - y1)
+    if frame is None:
+        min_w = int(round(h * 1.30))
+        if w < min_w and min_w <= frame_w:
+            extra = min_w - w
+            left_shift = min(x1, extra // 2)
+            x1 -= left_shift
+            x2 = min(frame_w, x2 + (extra - left_shift))
+            if (x2 - x1) < min_w and x1 > 0:
+                x1 = max(0, x2 - min_w)
+            w = max(64, x2 - x1)
+
+    return int(x1), int(y1), int(w), int(h)
+
+
 def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAULT_STYLE,
            do_tighten=False, loudnorm=False, preview=False, brand=None,
            layout="single", centers=(0.25, 0.75), caption=None,
-           source_offset=0.0):
+           source_offset=0.0, vision_preset="auto", dominant_language=None):
     from captions import write_srt
     out_dir = (Path(out_dir) if out_dir else default_out()).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     source = Path(source).resolve()
     resolved = resolve_caption(style, brand, caption)
-    if layout not in {"single", "split"} or (layout == "split" and aspect != "9:16"):
-        raise ValueError("Split-screen requires vertical 9:16 output.")
+    if layout not in {"single", "split", "games"} or (layout in {"split", "games"} and aspect != "9:16"):
+        raise ValueError("Split/Games layout requires vertical 9:16 output.")
     if len(centers) != 2 or any(not math.isfinite(v) or not 0 <= v <= 1 for v in centers):
         raise ValueError("Speaker centers must be between 0 and 1.")
     full_w, full_h, font_size, margin_v = ASPECTS[aspect]
@@ -640,19 +967,48 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
     cw, ch, x0, y0 = crop_for(W, H, tw, th)
 
     cap_words = words
+    if dominant_language is None and workdir:
+        t_json = Path(workdir) / "transcript.json"
+        if t_json.is_file():
+            try:
+                dominant_language = json.loads(t_json.read_text(encoding="utf-8")).get("language")
+            except (OSError, ValueError):
+                pass
+    if dominant_language:
+        cap_words = filter_streamer_language_words(cap_words, dominant_language=dominant_language)
     render_src = source
     if do_tighten:
-        keeps = tighten.plan_cuts(words, start, end)
+        keeps = tighten.plan_cuts(cap_words, start, end)
         render_src = out_dir / "_tight_source.mp4"
         tighten.apply_cuts(source, keeps, start, render_src,
                            source_offset=offset)
-        cap_words, dur = tighten.remap_words(words, start, keeps)
+        cap_words, dur = tighten.remap_words(cap_words, start, keeps)
         print(f"  tightened: {len(keeps)} keep-ranges, "
               f"{(end - start) - dur:.1f}s removed", flush=True)
         start = 0.0
         local_start = 0.0
+    games_layout = layout == "games"
+    games_facecam_h = ((round(th / 3.0)) // 2) * 2 if games_layout else None
+    banner_text = seg.get("context_banner_2s")
+    if games_layout and not banner_text:
+        banner_text = seg.get("proposed_title") or (
+            str(seg["hook"]).replace("-", " ").strip() if seg.get("hook") else None
+        )
     build_ass(cap_words, start, start + dur, out_dir / "_caption.ass",
-              tw, th, font_size, margin_v, style, brand, caption)
+              tw, th, font_size, margin_v, style, brand, caption,
+              context_banner_2s=banner_text, games_layout=games_layout,
+              facecam_h=games_facecam_h)
+
+    badge_path = None
+    badge_seam_top = 0
+    if games_layout and banner_text and str(banner_text).strip():
+        from picorte.engine.title_badge import create_torn_paper_badge
+
+        badge_w = min(tw - 20, max(160, round(tw * 0.86)))
+        badge_h = max(64, round(th * 0.132))
+        badge_path = out_dir / "_title_badge.png"
+        create_torn_paper_badge(badge_path, width=badge_w, height=badge_h)
+        badge_seam_top = max(0, int(games_facecam_h) - badge_h // 2)
 
     needs_track = cw < W * 0.95          # real horizontal crop -> track the speaker
     if layout == "split":
@@ -666,6 +1022,61 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
               f"scale={tw}:{panel_h}[bottom];[top][bottom]vstack=inputs=2,"
               f"pad={tw}:{th}:0:0,subtitles=_caption.ass")
         mode = "podcast split-screen"
+    elif layout == "games":
+        import cv2
+        from picorte.engine.reaction_layout import build_reaction_layout, find_reactor_face
+        from picorte.engine.reframe_games import compute_sniper_crop_track
+
+        cap = cv2.VideoCapture(str(render_src))
+        sampled_frames = []
+        face_box = None
+        try:
+            n_samples = 6
+            for idx in range(n_samples):
+                ts_ms = (local_start + (dur * (idx + 0.5) / n_samples)) * 1000.0
+                cap.set(cv2.CAP_PROP_POS_MSEC, ts_ms)
+                ok, frame = cap.read()
+                if ok and frame is not None:
+                    sampled_frames.append(frame)
+                    if face_box is None:
+                        detected = find_reactor_face(frame)
+                        if detected is not None:
+                            face_box = expand_facecam_box(detected, W, H, frame=frame)
+        finally:
+            cap.release()
+
+        focus_x, focus_y = 0.5, 0.5
+        if sampled_frames:
+            track_res = compute_sniper_crop_track(
+                sampled_frames,
+                source_w=W,
+                source_h=H,
+                vision_preset=vision_preset,
+            )
+            pts = track_res.get("centers") or [(0.5, 0.5)]
+            focus_x = sum(p[0] for p in pts) / len(pts)
+            focus_y = sum(p[1] for p in pts) / len(pts)
+
+        facecam_h = games_facecam_h
+        rl = build_reaction_layout(
+            source_w=W,
+            source_h=H,
+            out_w=tw,
+            out_h=th,
+            facecam_box=face_box,
+            facecam_h=facecam_h,
+            focus_x_norm=focus_x,
+            focus_y_norm=focus_y,
+        )
+        if badge_path is not None:
+            vf = (
+                rl["filter_chain"]
+                + f",setsar=1[games_bg];[games_bg][1:v]overlay=(W-w)/2:{badge_seam_top}"
+                + ":enable='between(t,0,6.0)',subtitles=_caption.ass"
+            )
+        else:
+            vf = rl["filter_chain"] + ",setsar=1,subtitles=_caption.ass"
+        mode = "games facecam+gameplay"
     elif needs_track:
         track = smooth_track(detect_track(render_src, local_start, dur, W, workdir), W, cw)
         build_sendcmd(track, cw, out_dir / "_crop.cmd")
@@ -684,16 +1095,21 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
            "-t", f"{dur:.3f}",
            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)]
+    next_input_idx = 1
+    if badge_path is not None:
+        pos = cmd.index("-t")
+        cmd[pos:pos] = ["-i", badge_path.name]
+        next_input_idx += 1
     if brand and brand.get("logo"):
         width = max(20, round(brand["logo_width"] * tw / 1920))
         if layout == "single":
             vf = "[0:v]" + vf
-        graph = (vf + f"[captioned];[1:v]scale={width}:-1[logo];"
+        graph = (vf + f"[captioned];[{next_input_idx}:v]scale={width}:-1[logo];"
                  "[captioned][logo]overlay=W-w-24:24:eof_action=repeat[v]")
         pos = cmd.index("-t")
         cmd[pos:pos] = ["-i", brand["logo"]]
         cmd[cmd.index("-c:v"):cmd.index("-c:v")] = ["-filter_complex", graph, "-map", "[v]", "-map", "0:a?"]
-    elif layout == "split":
+    elif layout in {"split", "games"}:
         cmd[cmd.index("-c:v"):cmd.index("-c:v")] = ["-filter_complex", vf + "[v]", "-map", "[v]", "-map", "0:a?"]
     else:
         cmd[cmd.index("-c:v"):cmd.index("-c:v")] = ["-vf", vf]
@@ -705,7 +1121,7 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
     write_srt(cap_words, start, start + dur, out.with_suffix(".srt"),
               group_size=resolved["words_per_cue"])
 
-    for tmpf in (out_dir / "_caption.ass", out_dir / "_crop.cmd"):
+    for tmpf in (out_dir / "_caption.ass", out_dir / "_crop.cmd", out_dir / "_title_badge.png"):
         try:
             tmpf.unlink()
         except OSError:
@@ -751,7 +1167,7 @@ def main():
                     help="render fast 480p drafts (no poster/meta) to review "
                          "clip selection before the full render")
     ap.add_argument("--brand", help="path to reusable JSON brand preset")
-    ap.add_argument("--layout", choices=["single", "split"], default="single")
+    ap.add_argument("--layout", choices=["single", "split", "games"], default="single")
     ap.add_argument("--centers", type=float, nargs=2, default=[0.25, 0.75])
     add_caption_arguments(ap)
     args = ap.parse_args()

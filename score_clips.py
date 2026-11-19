@@ -101,23 +101,59 @@ def normalize_seed_indices(sentences, seed_indices=None):
 FILLER_TOKENS = {"um", "uh", "uhh", "umm", "erm", "er", "hmm", "mmm", "mm", "ah", "eh"}
 FILLER_SEQS = {("you", "know"), ("i", "mean"), ("kind", "of"), ("sort", "of")}
 
-HOOK_CUES = ("the secret", "nobody tells you", "here's the thing", "here is the thing",
-             "what most people", "the truth is", "here's why", "here is why", "imagine",
-             "the problem is", "the biggest mistake", "let me tell you", "you need to",
-             "here's how", "here is how", "the trick", "the key", "listen", "story")
-SHOCK_CUES = ("insane", "crazy", "shocking", "unbelievable", "never", "nobody", "everyone",
-              "banned", "illegal", "mistake", "wrong", "destroyed", "worst", "best",
-              "huge", "million", "billion", "dead", "killed")
-HUMOUR_CUES = ("haha", "lol", "laugh", "joke", "funny", "hilarious", "kidding", "ridiculous")
-CONTROVERSY_CUES = ("i disagree", "unpopular opinion", "hot take", "controversial",
-                    "stop doing", "don't do", "do not do", "overrated", "underrated",
-                    "everyone is wrong", "myth", "lie", "scam")
-INSIGHT_CUES = ("because", "the reason", "how it works", "step one", "first", "second",
-                "third", "the way", "what happens", "if you", "the difference",
-                "framework", "system", "lesson", "learned", "the point")
-EMOTION_CUES = ("love", "hate", "afraid", "scared", "amazing", "terrible", "proud",
-                "embarrassed", "angry", "excited", "grateful", "hurts", "cried",
-                "dream", "hope", "believe")
+HOOK_CUES = (
+    "the secret", "nobody tells you", "here's the thing", "here is the thing",
+    "what most people", "the truth is", "here's why", "here is why", "imagine",
+    "the problem is", "the biggest mistake", "let me tell you", "you need to",
+    "here's how", "here is how", "the trick", "the key", "listen", "story",
+    # PT-BR
+    "olha isso", "olha só", "olha o que", "espera aí", "peraí", "não acredito",
+    "o segredo", "ninguém te conta", "presta atenção", "se liga", "meu deus",
+    "pela primeira vez", "o mais louco", "imagina", "voce não vai acreditar",
+    "você não vai acreditar", "revelando", "descobri", "o que é isso",
+)
+SHOCK_CUES = (
+    "insane", "crazy", "shocking", "unbelievable", "never", "nobody", "everyone",
+    "banned", "illegal", "mistake", "wrong", "destroyed", "worst", "best",
+    "huge", "million", "billion", "dead", "killed",
+    # PT-BR
+    "absurdo", "insano", "inacreditável", "impossível", "mentira", "bizarro",
+    "surreal", "destruiu", "maluco", "loucura", "proibido", "morreu",
+    "eliminado", "explodiu", "choque", "secreto", "gigante", "colossal",
+)
+HUMOUR_CUES = (
+    "haha", "lol", "laugh", "joke", "funny", "hilarious", "kidding", "ridiculous",
+    # PT-BR
+    "kkkk", "rsrs", "engraçado", "piada", "rindo", "hilário", "zueira",
+    "brincadeira", "ridículo", "meme", "zuando",
+)
+CONTROVERSY_CUES = (
+    "i disagree", "unpopular opinion", "hot take", "controversial",
+    "stop doing", "don't do", "do not do", "overrated", "underrated",
+    "everyone is wrong", "myth", "lie", "scam",
+    # PT-BR
+    "discordo", "opinião impopular", "polêmico", "polêmica", "para de",
+    "superestimado", "subestimado", "todo mundo erra", "mito", "bloqueado",
+    "sem chance", "não faz sentido",
+)
+INSIGHT_CUES = (
+    "because", "the reason", "how it works", "step one", "first", "second",
+    "third", "the way", "what happens", "if you", "the difference",
+    "framework", "system", "lesson", "learned", "the point",
+    # PT-BR
+    "porque", "o motivo", "como funciona", "sistema", "diferença", "na verdade",
+    "dica", "funciona assim", "olha a diferença", "detalhe", "aprendi",
+    "o problema é", "a verdade é",
+)
+EMOTION_CUES = (
+    "love", "hate", "afraid", "scared", "amazing", "terrible", "proud",
+    "embarrassed", "angry", "excited", "grateful", "hurts", "cried",
+    "dream", "hope", "believe",
+    # PT-BR
+    "amo", "odeio", "medo", "assustado", "incrível", "terrível", "orgulho",
+    "raiva", "empolgado", "ansioso", "arrepiado", "emocionante", "nostalgia",
+    "histórico", "viciante", "lindo", "maravilhoso", "caramba", "nossa",
+)
 
 
 # ---------------------------------------------------------------- transcript
@@ -179,37 +215,85 @@ def sentenceize(words, gap=1.2):
 
 # ------------------------------------------------------------- heuristic core
 
-META_OPENERS = ("welcome back", "welcome to", "in this video", "today we",
-                "before we start", "quick intro")
-META_OUTROS = ("thanks for watching", "subscribe", "like and comment",
-               "hit the bell", "see you next time", "sponsor")
-ANAPHORIC_OPENERS = ("this", "that", "it", "he", "she", "they", "those", "these")
+META_OPENERS = (
+    "welcome back", "welcome to", "in this video", "today we",
+    "before we start", "quick intro",
+    "e aí pessoal", "fala galera", "bem-vindos ao canal", "nesse vídeo",
+    "antes de começar", "cupom de desconto", "patrocinado",
+)
+META_OUTROS = (
+    "thanks for watching", "subscribe", "like and comment",
+    "hit the bell", "see you next time", "sponsor",
+    "obrigado por assistir", "inscreva-se", "deixa o like", "link na descrição",
+    "até a próxima", "patrocínio", "kabum",
+)
+ANAPHORIC_OPENERS = ("this", "that", "it", "he", "she", "they", "those", "these",
+                     "isso", "esse", "essa", "aquilo", "ele", "ela")
 EARLIER_REFERENCES = ("as i said", "like i mentioned", "earlier", "last time",
-                      "previous video", "as you know")
-INTENSITY_WORDS = ("insane", "crazy", "unbelievable", "massive", "huge",
-                   "terrified", "furious", "incredible", "disgusting", "wild",
-                   "forever", "broke", "destroyed", "brutal")
-REACTION_PHRASES = ("no way", "let's go", "what the", "oh my god", "are you kidding")
-PAYOFF_WORDS = ("so", "therefore", "that is why", "the result", "it turned out",
-                "in the end", "changed", "finally", "which means", "the lesson",
-                "turned out", "which is why")
-CURIOSITY_CUES = ("secret", "nobody tells", "truth", "reason", "mistake",
-                  "hidden", "discovery", "nobody knows", "what happened")
-STAKES_WORDS = ("lose", "losing", "lost", "risk", "money", "business", "life",
-                "death", "everything", "nothing", "fail", "failure", "broke",
-                "fired", "quit", "divorce", "war", "fight", "survive", "broke")
-SUPERLATIVE_WORDS = ("best", "worst", "biggest", "most", "least", "never",
-                     "always", "everyone", "nobody", "ever")
-NEGATION_WORDS = ("not", "don't", "dont", "never", "no", "nothing", "can't",
-                  "cant", "won't", "wont", "isn't", "isnt", "wasn't", "wasnt")
-GAMEPLAY_CUES = ("clutch", "ace", "kill", "win", "gg", "no way", "let's go",
-                 "boss", "speedrun", "world record", "one shot", "comeback",
-                 "pentakill", "headshot", "round")
-STOPWORDS = {"the", "a", "an", "and", "or", "but", "to", "of", "in", "on",
-             "for", "with", "is", "are", "was", "were", "be", "been", "it",
-             "this", "that", "you", "your", "i", "my", "we", "our", "me",
-             "at", "as", "so", "if", "then", "than", "have", "has", "had",
-             "do", "does", "did", "will", "would", "can", "could", "just"}
+                      "previous video", "as you know",
+                      "como eu disse", "no vídeo passado", "como vocês sabem")
+INTENSITY_WORDS = (
+    "insane", "crazy", "unbelievable", "massive", "huge",
+    "terrified", "furious", "incredible", "disgusting", "wild",
+    "forever", "broke", "destroyed", "brutal",
+    "absurdo", "insano", "inacreditável", "gigante", "enorme",
+    "apavorado", "furioso", "incrível", "nojento", "selvagem",
+    "destruído", "brutal", "absurdamente", "bizarro", "surreal",
+)
+REACTION_PHRASES = (
+    "no way", "let's go", "what the", "oh my god", "are you kidding",
+    "não acredito", "meu deus", "que isso", "caramba", "mentira",
+    "tá louco", "olha isso", "não é possível", "eita", "nossa senhora",
+)
+PAYOFF_WORDS = (
+    "so", "therefore", "that is why", "the result", "it turned out",
+    "in the end", "changed", "finally", "which means", "the lesson",
+    "turned out", "which is why",
+    "então", "por isso", "o resultado", "no final", "finalmente",
+    "na prática", "ou seja", "a diferença", "o segredo", "portanto",
+)
+CURIOSITY_CUES = (
+    "secret", "nobody tells", "truth", "reason", "mistake",
+    "hidden", "discovery", "nobody knows", "what happened",
+    "segredo", "ninguém conta", "verdade", "motivo", "erro",
+    "escondido", "descoberta", "ninguém sabe", "o que aconteceu",
+)
+STAKES_WORDS = (
+    "lose", "losing", "lost", "risk", "money", "business", "life",
+    "death", "everything", "nothing", "fail", "failure", "broke",
+    "fired", "quit", "divorce", "war", "fight", "survive",
+    "perder", "perdeu", "risco", "dinheiro", "vida", "morte",
+    "tudo", "nada", "falhou", "guerra", "luta", "sobreviver", "choque",
+)
+SUPERLATIVE_WORDS = (
+    "best", "worst", "biggest", "most", "least", "never",
+    "always", "everyone", "nobody", "ever",
+    "melhor", "pior", "maior", "menor", "nunca", "sempre",
+    "todo mundo", "ninguém", "jamais",
+)
+NEGATION_WORDS = (
+    "not", "don't", "dont", "never", "no", "nothing", "can't",
+    "cant", "won't", "wont", "isn't", "isnt", "wasn't", "wasnt",
+    "não", "nunca", "nada", "jamais", "nem",
+)
+GAMEPLAY_CUES = (
+    "clutch", "ace", "kill", "win", "gg", "no way", "let's go",
+    "boss", "speedrun", "world record", "one shot", "comeback",
+    "pentakill", "headshot", "round",
+    "jogada", "chefão", "chefe", "missão", "campanha", "musculatura",
+    "cobra", "carro", "polícia", "tiro", "tiroteio", "fuga",
+)
+STOPWORDS = {
+    "the", "a", "an", "and", "or", "but", "to", "of", "in", "on",
+    "for", "with", "is", "are", "was", "were", "be", "been", "it",
+    "this", "that", "you", "your", "i", "my", "we", "our", "me",
+    "at", "as", "so", "if", "then", "than", "have", "has", "had",
+    "do", "does", "did", "will", "would", "can", "could", "just",
+    "o", "a", "os", "as", "um", "uma", "de", "do", "da", "dos",
+    "das", "e", "ou", "mas", "para", "pra", "em", "no", "na",
+    "nos", "nas", "com", "por", "que", "se", "eu", "você", "ele",
+    "ela", "nós", "é", "foi", "são", "ter", "tem", "muito",
+}
 
 TEXT_WEIGHTS = {
     "hook": 0.18, "payoff": 0.16, "self_containment": 0.12, "arc": 0.12,
@@ -923,20 +1007,31 @@ def dedupe_candidates(candidates, preferred_len=None, band=(30, 120),
 PUBLIC_SEGMENT_KEYS = ("start", "end", "hook", "overall", "duration", "rank",
                        "raw_score", "score_parts", "reason")
 
+OPTIONAL_SEGMENT_KEYS = (
+    "evidence",
+    "proposed_title",
+    "context_banner_2s",
+    "thumbnail_words",
+    "pinned_comment_debate",
+    "llm_mode_used",
+    "parent_long_clip_id",
+)
+
 
 def _public_segment(item):
     segment = {
         "start": item["start"],
         "end": item["end"],
-        "hook": item.get("hook", "clip"),
+        "hook": item.get("proposed_title") or item.get("hook", "clip"),
         "overall": item["overall"],
         "duration": round(float(item.get("duration", item["end"] - item["start"])), 2),
         "raw_score": item.get("raw_score", item["overall"]),
         "score_parts": item.get("score_parts", {}),
-        "reason": str(item.get("reason", ""))[:160],
+        "reason": str(item.get("reason", ""))[:500],
     }
-    if item.get("evidence") is not None:
-        segment["evidence"] = item["evidence"]
+    for extra in OPTIONAL_SEGMENT_KEYS:
+        if item.get(extra) is not None:
+            segment[extra] = item[extra]
     return segment
 
 
@@ -969,8 +1064,9 @@ def select_candidates(candidates, min_score=8.0, max_clips=None,
     segments = []
     for segment in public:
         record = {key: segment[key] for key in PUBLIC_SEGMENT_KEYS}
-        if "evidence" in segment:
-            record["evidence"] = segment["evidence"]
+        for extra in OPTIONAL_SEGMENT_KEYS:
+            if extra in segment:
+                record[extra] = segment[extra]
         segments.append(record)
 
     if evidence_available is None:
@@ -1498,8 +1594,132 @@ def attach_media_evidence(candidates, sections, timeline, profile, energy,
     return updated
 
 
+def fuse_4d_score(
+    *,
+    score_chat: float = 0.0,
+    score_audio: float = 0.0,
+    score_visual: float = 0.0,
+    score_text: float = 0.0,
+    hud_score: float = 0.0,
+    weights: dict[str, float] | None = None,
+) -> dict[str, float]:
+    """Combina sinais 4D (S_chat + S_audio + S_visao + S_texto) com bônus HUD/Killfeed."""
+    w = weights or {"chat": 0.30, "audio": 0.25, "visual": 0.25, "text": 0.20}
+    has_chat = float(score_chat) > 0.0
+    if not has_chat:
+        # Sem chat da live disponível, redistribui o peso entre áudio/visão/texto
+        base = 0.35 * float(score_audio) + 0.35 * float(score_visual) + 0.30 * float(score_text)
+    else:
+        total_w = sum(w.values()) or 1.0
+        base = (
+            w["chat"] * float(score_chat)
+            + w["audio"] * float(score_audio)
+            + w["visual"] * float(score_visual)
+            + w["text"] * float(score_text)
+        ) / total_w
+    hud_bonus = min(1.2, max(0.0, float(hud_score) * 0.12))
+    overall = round(min(10.0, max(0.0, base + hud_bonus)), 2)
+    return {
+        "overall": overall,
+        "score_chat": round(float(score_chat), 2),
+        "score_audio": round(float(score_audio), 2),
+        "score_visual": round(float(score_visual), 2),
+        "score_text": round(float(score_text), 2),
+        "score_hud": round(float(hud_score), 2),
+    }
+
+
+def apply_4d_and_snap(
+    candidates: list[dict],
+    *,
+    words: list[dict] | None = None,
+    silences: list[tuple[float, float]] | None = None,
+    duration_s: float | None = None,
+    chat_seismic: dict | None = None,
+    visual_scores: dict[tuple[float, float], dict[str, float]] | None = None,
+) -> list[dict]:
+    """Aplica snap de fronteiras (sem cortar palavras) e fusão 4D nos candidatos."""
+    from picorte.engine.chat_seismic import score_chat_window
+    from picorte.engine.snap_boundaries import snap_window_to_words_and_silences
+
+    out = []
+    for cand in candidates:
+        rec = dict(cand)
+        orig_s = float(rec["start"])
+        orig_e = float(rec["end"])
+        snapped_s, snapped_e = snap_window_to_words_and_silences(
+            orig_s,
+            orig_e,
+            words=words,
+            silences=silences,
+            duration_s=duration_s,
+        )
+        rec["start"] = snapped_s
+        rec["end"] = snapped_e
+        rec["duration"] = round(snapped_e - snapped_s, 2)
+
+        ev = dict(rec.get("evidence") or {})
+        s_chat = score_chat_window(chat_seismic, snapped_s, snapped_e) if chat_seismic else float(ev.get("chat") or 0.0)
+        vis_entry = (visual_scores or {}).get((orig_s, orig_e)) or (visual_scores or {}).get((snapped_s, snapped_e)) or {}
+        s_vis = float(vis_entry.get("visual_score", ev.get("visual") or rec.get("overall") or 0.0))
+        s_hud = float(vis_entry.get("hud_score", ev.get("hud") or 0.0))
+        s_aud = float(ev.get("audio") or rec.get("overall") or 0.0)
+        s_txt = float(rec.get("raw_score") or rec.get("overall") or 0.0)
+
+        fused = fuse_4d_score(
+            score_chat=s_chat,
+            score_audio=s_aud,
+            score_visual=s_vis,
+            score_text=s_txt,
+            hud_score=s_hud,
+        )
+        if chat_seismic or vis_entry:
+            rec["overall"] = max(float(rec.get("overall") or 0.0), fused["overall"])
+        ev.update({
+            "chat": fused["score_chat"],
+            "visual_games": s_vis,
+            "hud": s_hud,
+        })
+        rec["evidence"] = ev
+        out.append(rec)
+    return out
+
+
+def _load_optional_chat_seismic(workdir: Path, source: str | None, duration_s: float) -> dict | None:
+    """Procura log de chat da live ao lado do projeto/vídeo e calcula o Sismógrafo 1Hz."""
+    from picorte.engine.chat_seismic import analyze_chat_seismic, parse_chat_log
+
+    seismic_cache = workdir / "chat_seismic.json"
+    if seismic_cache.is_file():
+        try:
+            return json.loads(seismic_cache.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            pass
+
+    candidates = [
+        workdir / "chat.json",
+        workdir / "chat.jsonl",
+    ]
+    if source:
+        src_p = Path(source)
+        candidates.extend([
+            src_p.with_suffix(".chat.json"),
+            src_p.parent / f"{src_p.stem}_chat.json",
+        ])
+
+    for cand_path in candidates:
+        if cand_path.is_file():
+            msgs = parse_chat_log(cand_path)
+            if msgs:
+                seismic = analyze_chat_seismic(msgs, duration_s=duration_s)
+                _write_json(seismic_cache, seismic)
+                return seismic
+    return None
+
+
 def discover(workdir, min_len=15, max_len=300, preferred_len=None,
-             band=None, progress=None):
+             band=None, progress=None, vision_preset="auto",
+             visual_source=None):
     """Load the transcript, measure evidence, discover, write candidates.json."""
     workdir = Path(workdir)
     data = load_transcript(workdir)
@@ -1513,6 +1733,14 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
     usable_timeline = timeline if audio_usable else None
     source_duration = duration or float(getattr(timeline, "duration", 0) or 0)
     source = data.get("video")
+    visual_media = str(visual_source) if visual_source and Path(visual_source).is_file() else source
+    if not visual_source and (workdir / "discovery.mp4").is_file():
+        visual_media = str((workdir / "discovery.mp4").resolve())
+    elif not visual_source and any(workdir.glob("discovery.*")):
+        for cand_v in sorted(workdir.glob("discovery.*")):
+            if cand_v.suffix.lower() in {".mp4", ".mkv", ".webm", ".mov"} and cand_v.is_file():
+                visual_media = str(cand_v.resolve())
+                break
     if not sentences:
         if usable_timeline is None and baseline is None:
             raise ValueError(
@@ -1543,11 +1771,79 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 
     shortlist = visual_shortlist(candidates, profile, energy, audio_usable)
     visual_ranges = visual.merge_ranges(shortlist, source_duration)
-    sections = (visual.load_or_analyze(source, workdir, visual_ranges)
+    sections = (visual.load_or_analyze(visual_media, workdir, visual_ranges)
                 if visual_ranges else [])
     candidates = attach_media_evidence(
         candidates, sections, usable_timeline, profile, energy, audio_usable,
         min_len, max_len)
+
+    from picorte.config import resolve_vision_preset
+    resolved_vp = resolve_vision_preset(vision_preset)
+    chat_seismic = _load_optional_chat_seismic(workdir, source, source_duration)
+
+    # Se o Sismógrafo do Chat detectou picos em trechos sem candidato de fala (muito comum em lives de games),
+    # promove esses picos para janelas candidatas dentro de [min_len, max_len].
+    if chat_seismic and chat_seismic.get("peaks"):
+        for pk in chat_seismic["peaks"]:
+            ps = float(pk["start"])
+            pe = float(pk["end"])
+            center = (ps + pe) / 2.0
+            span = max(float(min_len), pe - ps)
+            span = min(float(max_len), span)
+            ws = max(0.0, center - span / 2.0)
+            we = min(source_duration if source_duration > 0 else ws + span, ws + span)
+            if (we - ws) < float(min_len) and source_duration >= float(min_len):
+                ws = max(0.0, source_duration - float(min_len))
+                we = source_duration
+            covered = any(
+                min(float(c["end"]), we) - max(float(c["start"]), ws) >= 0.4 * max(1.0, we - ws)
+                for c in candidates
+            )
+            if not covered and (we - ws) >= min(float(min_len), source_duration):
+                candidates.append({
+                    "start": round(ws, 2),
+                    "end": round(we, 2),
+                    "duration": round(we - ws, 2),
+                    "hook": f"Pico do chat em {int(pk.get('peak_second', ws))}s",
+                    "text": "",
+                    "overall": 7.5,
+                    "raw_score": 7.5,
+                    "seed_kind": "chat_peak",
+                    "score_parts": {"chat_vel_zscore": pk.get("vel_zscore", 0.0)},
+                    "evidence": {},
+                    "reason": f"Pico sísmico do chat (z={pk.get('vel_zscore')}, emotes={pk.get('emote_burst')})",
+                })
+
+    visual_scores: dict[tuple[float, float], dict[str, float]] = {}
+    if visual_media and Path(visual_media).is_file() and Path(visual_media).suffix.lower() in {".mp4", ".mkv", ".mov", ".avi", ".m4v", ".webm"} and candidates:
+        # Só roda análise visual de vídeo se o arquivo possuir stream de vídeo (evita audio.webm)
+        if Path(visual_media).name.startswith("audio.") is False:
+            from picorte.engine.hud_detector import detect_hud_events
+            from picorte.engine.visual_games import analyze_facecam_reactions
+
+            ranked = sorted(candidates, key=lambda c: float(c.get("overall") or 0.0), reverse=True)[:12]
+            for cand in ranked:
+                s_t, e_t = float(cand["start"]), float(cand["end"])
+                try:
+                    fg = analyze_facecam_reactions(visual_media, s_t, e_t, vision_preset=vision_preset)
+                    hd = detect_hud_events(visual_media, s_t, e_t, vision_preset=vision_preset)
+                    visual_scores[(s_t, e_t)] = {
+                        "visual_score": float(fg.get("score") or 0.0),
+                        "hud_score": float(hd.get("score") or 0.0),
+                    }
+                except Exception:
+                    pass
+
+    if chat_seismic is not None or visual_scores:
+        candidates = apply_4d_and_snap(
+            candidates,
+            words=data.get("words") or [],
+            silences=None,
+            duration_s=source_duration,
+            chat_seismic=chat_seismic,
+            visual_scores=visual_scores,
+        )
+
     warnings = []
     if visual_ranges and source and Path(source).is_file() and not sections:
         warnings.append(
@@ -1556,9 +1852,13 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
         "source_duration": source_duration or stats.get("source_duration"),
         "content_profile": profile,
         "source_energy": energy,
+        "vision_preset": resolved_vp["preset"],
+        "vision_models": resolved_vp["models"],
+        "chat_seismic_peaks": len((chat_seismic or {}).get("peaks") or []),
         "evidence_available": {
             "audio": audio_usable,
-            "visual": baseline is not None or bool(sections),
+            "visual": baseline is not None or bool(sections) or bool(visual_scores),
+            "chat": chat_seismic is not None,
         },
         "visual_baseline": None if baseline is None else {
             "value": round(baseline.value, 4),
@@ -1591,7 +1891,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         router = LLMRouter(ollama_host=host, ollama_model=llm or None)
         try:
             routed = router.rerank_candidates(
-                deduped[:50],
+                deduped,
                 ai_mode=ai_mode,
                 filter_provider=ai_filter,
                 companion_provider=ai_companion,

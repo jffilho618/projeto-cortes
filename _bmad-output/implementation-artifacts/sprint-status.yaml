@@ -21,12 +21,12 @@ development_status:
   2-4-servidor-mcp-picorte-mcp-e-skill-picorte-operador: done
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-sismografo-do-chat-da-live-chat-seismic-py: backlog
-  3-2-visao-computacional-de-games-micro-expressoes-mar-e-detector-de-hud-killfeed: backlog
-  3-3-enquadramento-9-16-de-games-layout-facecam-jogo-troca-dinamica-e-sniper-crop: backlog
-  3-4-engenharia-de-retencao-cold-open-reverso-1-5s-contexto-2s-seamless-loop-e-cross-streamer: backlog
-  3-5-par-short-isca-corte-longo-3-5-min-e-fabrica-automatica-de-thumbnail: backlog
+  epic-3: done
+  3-1-sismografo-do-chat-da-live-chat-seismic-py: done
+  3-2-visao-computacional-de-games-micro-expressoes-mar-e-detector-de-hud-killfeed: done
+  3-3-enquadramento-9-16-de-games-layout-facecam-jogo-troca-dinamica-e-sniper-crop: done
+  3-4-engenharia-de-retencao-cold-open-reverso-1-5s-contexto-2s-seamless-loop-e-cross-streamer: done
+  3-5-par-short-isca-corte-longo-3-5-min-e-fabrica-automatica-de-thumbnail: done
   epic-3-retrospective: optional
 
   epic-4: backlog

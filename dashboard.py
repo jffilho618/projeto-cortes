@@ -14,7 +14,7 @@ from urllib.parse import unquote, urlsplit
 import webbrowser
 
 import branding
-import picorte.config  # Garante .venv/bin ou .venv/Scripts no PATH automaticamente
+from picorte import config as picorte_config  # Garante .venv/bin ou .venv/Scripts no PATH automaticamente
 import projects
 import render_clips
 
@@ -110,7 +110,8 @@ class Studio:
 
     def _run(self, path, action, preview, pick):
         cmd = [sys.executable, str(HERE / "chopify.py"), "--project", str(path),
-               "--action", action, "--out", str(path / ("previews" if preview else "clips"))]
+               "--action", action, "--no-input",
+               "--out", str(path / ("previews" if preview else "clips"))]
         if preview:
             cmd.append("--preview")
         if pick:
@@ -120,7 +121,13 @@ class Studio:
                 with self.lock:
                     if self.closing:
                         return
-                    child = subprocess.Popen(cmd, cwd=HERE, stdout=log, stderr=subprocess.STDOUT)
+                    child = subprocess.Popen(
+                        cmd,
+                        cwd=HERE,
+                        stdin=subprocess.DEVNULL,
+                        stdout=log,
+                        stderr=subprocess.STDOUT,
+                    )
                     self.processes.add(child)
                 code = child.wait()
                 with self.lock:
@@ -211,7 +218,28 @@ class Handler(BaseHTTPRequestHandler):
                         {"id": "gemini", "label": "Só Gemini (assinatura/API)"},
                         {"id": "dupla", "label": "Dupla (Um filtra + Outro acompanha)"},
                     ],
+                    "vision_presets": [
+                        {"id": "auto", "label": "Automático (detectar GPU no boot)"},
+                        {
+                            "id": "low",
+                            "label": picorte_config.VISION_PRESETS["low"]["label"],
+                            "models": picorte_config.VISION_PRESETS["low"],
+                        },
+                        {
+                            "id": "high",
+                            "label": picorte_config.VISION_PRESETS["high"]["label"],
+                            "models": picorte_config.VISION_PRESETS["high"],
+                        },
+                    ],
+                    "detected_gpu": picorte_config.detect_gpu_profile(),
+                    "detected_vision_preset": picorte_config.resolve_vision_preset("auto"),
                 })
+            if parts == ["api", "db", "status"]:
+                from picorte.services.studio_service import StudioService
+                return self.send_json(StudioService().status_fila())
+            if parts == ["api", "db", "sources"]:
+                from picorte.services.studio_service import StudioService
+                return self.send_json({"sources": StudioService().list_sources()})
             if parts == ["api", "projects"]:
                 return self.send_json({"projects": self.app.list_projects()})
             if len(parts) == 3 and parts[:2] == ["api", "projects"]:

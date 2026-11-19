@@ -190,7 +190,7 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 
 ---
 
-### ÉPICO 3 · Upgrade Multimodal 4D (Chat + Áudio + Visão Computacional de Games) e Engenharia de Retenção ⏳ PRÓXIMO
+### ÉPICO 3 · Upgrade Multimodal 4D (Chat + Áudio + Visão Computacional de Games) e Engenharia de Retenção ✅ (2026-11-18)
 - **Objetivo:** transformar o cortador básico em um especialista em **Lives de Games**, capaz de enxergar o jogo e o streamer, ler a explosão do chat, gerar **cortes curtos (<60s)** e **cortes longos (3–5 min com Thumbnail automática)** e aplicar todas as travas de retenção dos primeiros 2 segundos e do loop final.
 - **De onde vem o código (transplantes + código próprio):**
   - Detecção de Facecam de canto e layout dividido: `referencias/FujiwaraChoki_supoclip/backend/src/media/reaction_layout.py` (`find_reactor_face`) e `face_detection.py` (YuNet).
@@ -222,7 +222,7 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 
 ---
 
-### ÉPICO 4 · Escudo Anti-Strike e Anti-Desmonetização (P1 Inegociável)
+### ÉPICO 4 · Escudo Anti-Strike e Anti-Desmonetização (P1 Inegociável) ⏳ PRÓXIMO
 - **Objetivo:** blindar 100% da operação antes que qualquer vídeo vá para a fila de publicação, garantindo que nenhuma fonte proibida, música com copyright, spoiler vedado, react cruzado ou abertura desmonetizável passe.
 - **Skills de apoio:** `cortes-pilares` (validação de regras P1) e `bmad-code-review` (revisão adversarial obrigatória neste épico).
 - **O que será feito (`risk_shield/`):**

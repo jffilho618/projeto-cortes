@@ -80,6 +80,30 @@ async function config() {
   updatePresets();
   updateBrands();
   renderCaptionGallery();
+  updateSystemBadges().catch(() => {});
+}
+async function updateSystemBadges() {
+  const hw = $("#hardware-badge");
+  const gpu = state.config?.detected_gpu;
+  const vp = state.config?.detected_vision_preset;
+  if (hw && vp) {
+    const gpuLabel = gpu?.gpu_name
+      ? `${gpu.gpu_name} (${gpu.vram_mib} MiB)`
+      : "CPU only";
+    hw.textContent = `GPU: ${gpuLabel} · Preset: ${String(vp.preset || "low").toUpperCase()}`;
+    hw.title = JSON.stringify(vp.models || {}, null, 2);
+  }
+  const dbEl = $("#db-badge");
+  if (dbEl) {
+    try {
+      const db = await api("/api/db/status");
+      const sources = db.total_sources ?? db.sources ?? 0;
+      const clips = db.total_clips ?? db.clips ?? 0;
+      dbEl.textContent = `DB: OK · ${sources} fontes · ${clips} cortes`;
+    } catch {
+      dbEl.textContent = "DB: offline";
+    }
+  }
 }
 function presetNames() {
   return Object.keys(state.config.caption_presets || {});
@@ -584,7 +608,19 @@ function renderDetail() {
           const i = start + offset;
           const rank = Number.isFinite(Number(c.rank)) ? Number(c.rank) : i + 1;
           const duration = Number(c.duration ?? c.end - c.start);
-          return `<article class="candidate" data-index="${i}"><input type="checkbox" aria-label="Select clip ${i + 1}" data-select="${i + 1}" ${state.selected.has(i + 1) ? "checked" : ""}><div><div class="candidate-title"><input aria-label="Clip ${i + 1} title" data-field="hook" value="${escapeHTML(c.hook)}"></div><div class="candidate-meta">#${rank} · ${Number(c.overall).toFixed(1)}/10 · ${formatDuration(duration)}${c.similarity !== undefined ? " · SEMANTIC " + Number(c.similarity).toFixed(2) : ""}</div><div class="candidate-time"><label>Start (seconds)<input data-field="start" type="number" min="0" step="0.01" value="${c.start}"></label><label>End (seconds)<input data-field="end" type="number" min="0" step="0.01" value="${c.end}"></label></div><details class="candidate-reason"><summary>Why this clip</summary><p>${escapeHTML(c.reason || "")}</p><pre>${escapeHTML(JSON.stringify(c.score_parts || {}, null, 2))}</pre>${c.evidence ? `<pre>${escapeHTML(JSON.stringify(c.evidence, null, 2))}</pre>` : ""}</details></div><button data-play="${i}">▶ Watch</button></article>`;
+          const aiTitle = c.proposed_title
+            ? `<div class="candidate-ai-line"><b>Título IA:</b> ${escapeHTML(c.proposed_title)}</div>`
+            : "";
+          const aiBanner = c.context_banner_2s
+            ? `<div class="candidate-ai-line"><b>Faixa 2s:</b> ${escapeHTML(c.context_banner_2s)}</div>`
+            : "";
+          const aiComment = c.pinned_comment_debate
+            ? `<div class="candidate-ai-line"><b>1º Comentário:</b> ${escapeHTML(c.pinned_comment_debate)}</div>`
+            : "";
+          const aiBadge = c.llm_mode_used
+            ? ` · IA: ${escapeHTML(String(c.llm_mode_used))}`
+            : "";
+          return `<article class="candidate" data-index="${i}"><input type="checkbox" aria-label="Select clip ${i + 1}" data-select="${i + 1}" ${state.selected.has(i + 1) ? "checked" : ""}><div><div class="candidate-title"><input aria-label="Clip ${i + 1} title" data-field="hook" value="${escapeHTML(c.hook)}"></div><div class="candidate-meta">#${rank} · ${Number(c.overall).toFixed(1)}/10 · ${formatDuration(duration)}${aiBadge}${c.similarity !== undefined ? " · SEMANTIC " + Number(c.similarity).toFixed(2) : ""}</div>${aiTitle}${aiBanner}${aiComment}<div class="candidate-time"><label>Start (seconds)<input data-field="start" type="number" min="0" step="0.01" value="${c.start}"></label><label>End (seconds)<input data-field="end" type="number" min="0" step="0.01" value="${c.end}"></label></div><details class="candidate-reason"><summary>Why this clip</summary><p>${escapeHTML(c.reason || "")}</p><pre>${escapeHTML(JSON.stringify(c.score_parts || {}, null, 2))}</pre>${c.evidence ? `<pre>${escapeHTML(JSON.stringify(c.evidence, null, 2))}</pre>` : ""}</details></div><button data-play="${i}">▶ Watch</button></article>`;
         })
         .join("")
     : '<p class="muted">Find clips to see candidates here. You can adjust selection and timing before export.</p>';
@@ -716,10 +752,15 @@ $("#create-form").addEventListener(
     const button = event.target.querySelector("button[type=submit]");
     button.disabled = true;
     try {
+      const chosenAspect = $("#new-aspect").value;
       const options = {
-        aspect: $("#new-aspect").value,
+        aspect: chosenAspect,
+        layout: $("#new-layout")?.value || "single",
+        max_len: chosenAspect === "9:16" ? 58 : 300,
         whisper_model: $("#new-model").value,
         style: $("#new-style").value,
+        ai_mode: $("#new-ai-mode")?.value || "heuristic",
+        vision_preset: $("#new-vision-preset")?.value || "auto",
       };
       const result = await api("/api/batch", { sources, options });
       await selectProject(result.projects[0].id);
@@ -750,6 +791,7 @@ $("#settings-form").addEventListener(
     delete values.center1;
     delete values.center2;
     values.llm = values.llm.trim() || null;
+    values.vision_preset = values.vision_preset || "auto";
     values.ai_mode = values.ai_mode || "heuristic";
     values.ai_filter = values.ai_filter || "ollama";
     values.ai_companion = values.ai_companion || "claude";

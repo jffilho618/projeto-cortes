@@ -1,0 +1,152 @@
+"""Detector de HUD e Killfeed (Story 3.2): Low (RapidOCR+optical_flow) vs High (YOLO11n+RapidOCR)."""
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from typing import Any, Callable
+
+import cv2
+import numpy as np
+
+from picorte.config import resolve_vision_preset
+from picorte.engine.vram_runner import VRAMRunner
+
+HUD_KEYWORDS_RE = re.compile(
+    r"\b(?:KILL|DOUBLE KILL|TRIPLE KILL|ACE|CLUTCH|VICTORY|WIN|WINNER|ELIMINATED|WASTED|HEADSHOT|KNOCKED|BOOYAH)\b",
+    re.IGNORECASE,
+)
+
+
+def _sample_hud_frames(video_path: str | Path, start: float, end: float, fps: float = 1.0) -> list[np.ndarray]:
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        return []
+    frames: list[np.ndarray] = []
+    try:
+        step = 1.0 / max(0.5, float(fps))
+        t = float(start)
+        while t <= float(end) + 1e-6:
+            cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000.0)
+            ok, frame = cap.read()
+            if not ok or frame is None:
+                break
+            frames.append(frame)
+            t += step
+    finally:
+        cap.release()
+    return frames
+
+
+def _default_ocr_runner_factory() -> Callable[[np.ndarray, int], list[str]]:
+    try:
+        from rapidocr_onnxruntime import RapidOCR  # type: ignore
+
+        ocr = RapidOCR()
+
+        def _run(frame: np.ndarray, _idx: int) -> list[str]:
+            result, _ = ocr(frame)
+            if not result:
+                return []
+            return [str(item[1]) for item in result if len(item) > 1]
+
+        return _run
+    except Exception:
+        return lambda _frame, _idx: []
+
+
+def _default_yolo_runner_factory() -> Callable[[np.ndarray], list[dict[str, Any]]]:
+    try:
+        from ultralytics import YOLO  # type: ignore
+
+        model = YOLO("yolo11n.pt")
+
+        def _run(frame: np.ndarray) -> list[dict[str, Any]]:
+            preds = model.predict(frame, verbose=False)
+            out: list[dict[str, Any]] = []
+            for r in preds:
+                names = getattr(r, "names", {})
+                boxes = getattr(r, "boxes", None)
+                if boxes is None:
+                    continue
+                for cls_id, conf in zip(boxes.cls.tolist(), boxes.conf.tolist()):
+                    out.append({"label": str(names.get(int(cls_id), cls_id)), "conf": float(conf)})
+            return out
+
+        return _run
+    except Exception:
+        return lambda _frame: []
+
+
+def detect_hud_events(
+    frames_or_video: list[np.ndarray] | str | Path,
+    start: float,
+    end: float,
+    *,
+    vision_preset: str = "auto",
+    vram_mib: int | None = None,
+    gpu_name: str | None = None,
+    ocr_runner: Callable[[np.ndarray, int], list[str]] | None = None,
+    yolo_runner: Callable[[np.ndarray], list[dict[str, Any]]] | None = None,
+    vram_runner: VRAMRunner | None = None,
+) -> dict[str, Any]:
+    """Detecta eventos de HUD/Killfeed usando RapidOCR+OpticalFlow (low) ou YOLO11n+RapidOCR (high)."""
+    resolved = resolve_vision_preset(vision_preset, vram_mib=vram_mib, gpu_name=gpu_name)
+    preset = resolved["preset"]
+    backend_used = resolved["models"]["hud"]
+
+    if isinstance(frames_or_video, (str, Path)):
+        frames = _sample_hud_frames(frames_or_video, start, end, fps=1.0)
+    else:
+        frames = list(frames_or_video or [])
+
+    if not frames:
+        return {"preset": preset, "backend_used": backend_used, "events": [], "score": 0.0}
+
+    runner = vram_runner or VRAMRunner()
+    ocr_fn = ocr_runner or _default_ocr_runner_factory()
+    use_yolo = preset == "high"
+    yolo_fn = (yolo_runner or _default_yolo_runner_factory()) if use_yolo else None
+
+    def _run_stage() -> dict[str, Any]:
+        events: list[dict[str, Any]] = []
+        yolo_hits = 0
+        flow_spikes = 0
+        prev_gray: np.ndarray | None = None
+        dur = max(1.0, float(end) - float(start))
+        dt = dur / max(1, len(frames))
+
+        for idx, frame in enumerate(frames):
+            ts = round(float(start) + idx * dt, 2)
+            # Região superior (killfeed/banner costuma ficar nos primeiros 30% do topo)
+            h = frame.shape[0]
+            top_roi = frame[: max(1, int(h * 0.35)), :]
+            gray = cv2.cvtColor(top_roi, cv2.COLOR_BGR2GRAY) if top_roi.ndim == 3 else top_roi
+            if prev_gray is not None and prev_gray.shape == gray.shape:
+                delta = float(np.mean(cv2.absdiff(gray, prev_gray)))
+                if delta >= 18.0:
+                    flow_spikes += 1
+            prev_gray = gray
+
+            texts = ocr_fn(top_roi, idx) or []
+            for txt in texts:
+                m = HUD_KEYWORDS_RE.search(txt)
+                if m:
+                    events.append({"t": ts, "keyword": m.group(0).upper(), "text": txt})
+
+            if yolo_fn is not None:
+                dets = yolo_fn(frame) or []
+                for det in dets:
+                    if float(det.get("conf", 0.0)) >= 0.45:
+                        yolo_hits += 1
+                        events.append({"t": ts, "keyword": str(det.get("label", "HUD")).upper(), "conf": float(det["conf"])})
+
+        ocr_hits = sum(1 for ev in events if "text" in ev)
+        raw = min(10.0, ocr_hits * 3.8 + flow_spikes * 1.2 + (yolo_hits * 0.9 if use_yolo else 0.0))
+        return {
+            "preset": preset,
+            "backend_used": backend_used,
+            "events": events,
+            "score": round(raw, 2),
+        }
+
+    return runner.run_stage(f"hud_{preset}", _run_stage)

@@ -43,16 +43,29 @@ def srt_time(seconds):
     return f"{hours:02}:{minutes:02}:{seconds:02},{ms:03}"
 
 
-def write_srt(words, start, end, path, group_size=8):
+def write_srt(words, start, end, path, group_size=8, silence_gap=0.70):
     if isinstance(group_size, bool) or not isinstance(group_size, int) or not 1 <= group_size <= 100:
         raise ValueError("Caption group size must be an integer from 1 to 100.")
     selected = [w for w in words
                 if not w.get("hidden") and w["end"] > start and w["start"] < end]
+    groups = []
+    cur = []
+    for w in selected:
+        if cur and (
+            len(cur) >= group_size
+            or (float(w["start"]) - float(cur[-1]["end"])) >= silence_gap
+        ):
+            groups.append(cur)
+            cur = []
+        cur.append(w)
+    if cur:
+        groups.append(cur)
+
     blocks = []
-    for i in range(0, len(selected), group_size):
-        group = selected[i:i + group_size]
-        a = max(start, group[0]["start"]) - start
-        b = min(end, group[-1]["end"]) - start
+    for group in groups:
+        a = max(start, float(group[0]["start"])) - start
+        raw_end = min(end, float(group[-1]["end"])) - start
+        b = max(a + 0.12, raw_end)
         text = " ".join(w["word"].strip() for w in group)
         blocks.append(f"{len(blocks) + 1}\n{srt_time(a)} --> {srt_time(b)}\n{text}\n")
     Path(path).write_text("\n".join(blocks), encoding="utf-8")

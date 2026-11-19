@@ -83,7 +83,9 @@ def transcribe(video, workdir, model_size, device, compute_type, duration=None,
             progress=progress, resume=resume)
 
     model = _load_model(model_size, device, compute_type)
-    seg_list, words, language, info_duration = _transcribe_media(model, video)
+    seg_list, words, language, info_duration = _transcribe_media(
+        model, video, model_size=model_size, device=device
+    )
     total = float(duration) if duration is not None else float(info_duration)
     transcript = {
         "video": str(video),
@@ -117,7 +119,7 @@ def _atomic_json(path, data):
 
 def _load_model(model_size, device, compute_type):
     from picorte.config import detect_gpu_profile
-    from picorte.engine.cuda import ensure_cuda_libraries
+    from picorte.engine.cuda import ensure_cuda_libraries, has_cuda_runtime_libraries
     from faster_whisper import WhisperModel
 
     ensure_cuda_libraries()
@@ -130,6 +132,15 @@ def _load_model(model_size, device, compute_type):
         if compute_type in (None, "", "auto"):
             compute_type = prof["compute_type"]
 
+    if device != "cpu" and not has_cuda_runtime_libraries():
+        print(
+            "  CUDA runtime (libcublas.so.12 / cublas64_12.dll) não encontrado -> "
+            "usando CPU int8 (para rodar na GPU instale nvidia-cublas-cu12 e nvidia-cudnn-cu12).",
+            flush=True,
+        )
+        device = "cpu"
+        compute_type = "int8"
+
     print(f"Loading faster-whisper model={model_size} device={device} "
           f"compute={compute_type} (first run downloads the model)...", flush=True)
     try:
@@ -141,27 +152,78 @@ def _load_model(model_size, device, compute_type):
         raise
 
 
-def _transcribe_media(model, media, offset=0.0):
-    segments, info = model.transcribe(
-        str(media), word_timestamps=True, vad_filter=True)
-    language = getattr(info, "language", "")
-    print(f"Detected language: {language} "
-          f"(p={getattr(info, 'language_probability', 0.0):.2f}), "
-          f"audio {getattr(info, 'duration', 0.0):.1f}s", flush=True)
-    seg_list, words = [], []
-    for seg in segments:
-        start = float(seg.start) + offset
-        end = float(seg.end) + offset
-        seg_list.append({"start": start, "end": end, "text": seg.text})
-        for w in (seg.words or []):
-            words.append({
-                "word": w.word,
-                "start": float(w.start) + offset,
-                "end": float(w.end) + offset,
-            })
-        print(f"[{start:7.2f} -> {end:7.2f}] {seg.text}", flush=True)
-    info_duration = float(getattr(info, "duration", 0.0) or 0.0)
-    return seg_list, words, language, info_duration
+def _decode_audio_ffmpeg(media, sampling_rate=16000):
+    """Decodifica áudio via FFmpeg para float32 mono 16kHz (evita incompatibilidade do PyAV 19 com faster-whisper)."""
+    import numpy as np
+    from picorte.config import resolve_cli_binary
+
+    ffmpeg_bin = resolve_cli_binary("ffmpeg") or "ffmpeg"
+    try:
+        res = subprocess.run(
+            [
+                ffmpeg_bin,
+                "-v", "error",
+                "-i", str(media),
+                "-vn",
+                "-acodec", "pcm_s16le",
+                "-ar", str(int(sampling_rate)),
+                "-ac", "1",
+                "-f", "s16le",
+                "pipe:1",
+            ],
+            capture_output=True,
+            check=False,
+        )
+        if res.returncode == 0 and res.stdout:
+            audio = np.frombuffer(res.stdout, dtype=np.int16).astype(np.float32) / 32768.0
+            if audio.size > 0:
+                return audio
+    except OSError:
+        pass
+    return None
+
+
+def _is_cuda_runtime_error(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return any(tok in msg for tok in ("cublas", "cudnn", "libcuda", "cuda"))
+
+
+def _transcribe_media(model, media, offset=0.0, *, model_size=None, device=None):
+    decoded = _decode_audio_ffmpeg(media)
+    audio_input = decoded if decoded is not None else str(media)
+
+    def _run_once(active_model):
+        segments, info = active_model.transcribe(
+            audio_input, word_timestamps=True, vad_filter=True)
+        language = getattr(info, "language", "")
+        print(f"Detected language: {language} "
+              f"(p={getattr(info, 'language_probability', 0.0):.2f}), "
+              f"audio {getattr(info, 'duration', 0.0):.1f}s", flush=True)
+        seg_list, words = [], []
+        for seg in segments:
+            start = float(seg.start) + offset
+            end = float(seg.end) + offset
+            seg_list.append({"start": start, "end": end, "text": seg.text})
+            for w in (seg.words or []):
+                words.append({
+                    "word": w.word,
+                    "start": float(w.start) + offset,
+                    "end": float(w.end) + offset,
+                })
+            print(f"[{start:7.2f} -> {end:7.2f}] {seg.text}", flush=True)
+        info_duration = float(getattr(info, "duration", 0.0) or 0.0)
+        return seg_list, words, language, info_duration
+
+    try:
+        return _run_once(model)
+    except RuntimeError as exc:
+        if device != "cpu" and _is_cuda_runtime_error(exc):
+            from faster_whisper import WhisperModel
+
+            print(f"  CUDA runtime error ({exc}) -> falling back to CPU int8", flush=True)
+            cpu_model = WhisperModel(model_size or "small", device="cpu", compute_type="int8")
+            return _run_once(cpu_model)
+        raise
 
 
 def _probe_duration(path):
@@ -291,7 +353,7 @@ def transcribe_chunked(video, workdir, model_size, device, compute_type,
             wav = part_dir / f"part{index:03d}.wav"
             _extract_chunk(source_path, start, end, wav)
             seg_list, words, language, _ = _transcribe_media(
-                model, wav, offset=start)
+                model, wav, offset=start, model_size=model_size, device=device)
             part = {
                 "version": TRANSCRIPT_VERSION,
                 "index": index,

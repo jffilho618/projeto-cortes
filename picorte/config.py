@@ -31,18 +31,63 @@ def ensure_venv_on_path(repo_root: Path | None = None) -> Path:
 
 
 def resolve_cli_binary(name: str) -> str | None:
-    """Resolve executáveis no Linux e no Windows (.exe, .cmd, .bat), incluindo .venv."""
+    """Resolve executáveis no Linux e no Windows (.exe, .cmd, .bat), incluindo .venv e pastas padrão."""
     ensure_venv_on_path()
     found = shutil.which(name)
     if found:
         return found
-    if sys.platform == "win32" and name == "nvidia-smi":
-        for win_candidate in (
-            r"C:\Windows\System32\nvidia-smi.exe",
-            r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe",
-        ):
-            if os.path.isfile(win_candidate):
-                return win_candidate
+
+    home = Path.home()
+    candidates: list[Path] = []
+    if sys.platform == "win32":
+        local_app = Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local"))
+        if name == "nvidia-smi":
+            candidates.extend([
+                Path(r"C:\Windows\System32\nvidia-smi.exe"),
+                Path(r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe"),
+            ])
+        elif name == "agy":
+            candidates.extend([
+                home / ".gemini" / "bin" / "agy.exe",
+                home / ".gemini" / "bin" / "agy.cmd",
+                home / ".gemini" / "antigravity" / "bin" / "agy.exe",
+                local_app / "Programs" / "Antigravity" / "agy.exe",
+            ])
+        elif name == "claude":
+            candidates.extend([
+                home / ".local" / "bin" / "claude.exe",
+                home / ".claude" / "local" / "claude.exe",
+                local_app / "Programs" / "claude" / "claude.exe",
+            ])
+        elif name == "ollama":
+            candidates.append(local_app / "Programs" / "Ollama" / "ollama.exe")
+    else:
+        if name == "agy":
+            candidates.extend([
+                home / ".gemini" / "bin" / "agy",
+                home / ".gemini" / "antigravity" / "bin" / "agy",
+                Path("/usr/local/bin/agy"),
+            ])
+        elif name == "claude":
+            candidates.extend([
+                home / ".local" / "bin" / "claude",
+                home / ".claude" / "local" / "claude",
+                Path("/usr/local/bin/claude"),
+            ])
+        elif name == "ollama":
+            candidates.extend([
+                Path("/usr/local/bin/ollama"),
+                Path("/usr/bin/ollama"),
+            ])
+
+    for cand in candidates:
+        if cand.is_file():
+            return str(cand)
+
+    if name == "agy":
+        env_exe = os.environ.get("ANTIGRAVITY_AGENTAPI_EXE", "").strip()
+        if env_exe and not env_exe.endswith(".old") and os.path.isfile(env_exe):
+            return env_exe
     return None
 
 
@@ -112,6 +157,64 @@ def detect_gpu_profile(vram_mib: int | None = None, gpu_name: str | None = None)
         "compute_type": "int8_float16",
         "vram_mib": vram_mib,
         "gpu_name": gpu_name,
+    }
+
+
+VISION_PRESET_CHOICES = ("auto", "low", "high")
+
+VISION_PRESETS: dict[str, dict[str, Any]] = {
+    "low": {
+        "id": "low",
+        "label": "Leve / Low (Notebook GTX 1650 4 GB ou CPU)",
+        "facecam": "YuNet+MediaPipe",
+        "hud": "RapidOCR+optical_flow",
+        "sniper_crop": "optical_flow",
+        "thumbnail_cutout": "u2netp",
+        "whisper_model": "small",
+        "compute_type": "int8",
+    },
+    "high": {
+        "id": "high",
+        "label": "Pesado / High (Desktop RTX 4060 Ti / 4070 Ti 8 GB+)",
+        "facecam": "YuNet+MediaPipe+HSEmotion",
+        "hud": "YOLO11n+RapidOCR",
+        "sniper_crop": "YOLO11n+tracking",
+        "thumbnail_cutout": "BiRefNet",
+        "whisper_model": "large-v3-turbo",
+        "compute_type": "int8_float16",
+    },
+}
+
+
+def resolve_vision_preset(
+    requested_preset: str = "auto",
+    *,
+    vram_mib: int | None = None,
+    gpu_name: str | None = None,
+) -> dict[str, Any]:
+    """Resolve o preset de Visão Computacional ('auto' | 'low' | 'high') combinando detector de GPU e override."""
+    choice = (requested_preset or "auto").strip().lower()
+    if choice not in VISION_PRESET_CHOICES:
+        raise ValueError(f"Preset de visao invalido: {requested_preset!r}. Use auto, low ou high.")
+
+    gpu_profile = detect_gpu_profile(vram_mib=vram_mib, gpu_name=gpu_name)
+    auto_detected = "high" if gpu_profile["tier"] == "desktop_8gb_plus" else "low"
+    resolved = auto_detected if choice == "auto" else choice
+    spec = VISION_PRESETS[resolved]
+    models = {
+        "facecam": spec["facecam"],
+        "hud": spec["hud"],
+        "sniper_crop": spec["sniper_crop"],
+        "thumbnail_cutout": spec["thumbnail_cutout"],
+        "whisper_model": spec["whisper_model"],
+        "compute_type": spec["compute_type"],
+    }
+    return {
+        "preset": resolved,
+        "requested_preset": choice,
+        "auto_detected": auto_detected,
+        "gpu_profile": gpu_profile,
+        "models": models,
     }
 
 
