@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS sources (
     channel_handle TEXT NOT NULL,
     permission_status TEXT NOT NULL DEFAULT 'desconhecida',
     permission_evidence_url TEXT DEFAULT '',
+    permission_basis TEXT NOT NULL DEFAULT 'explicita',
     credit_template TEXT DEFAULT 'Créditos: @{handle}',
     default_game_slug TEXT DEFAULT '',
     created_at TEXT NOT NULL,

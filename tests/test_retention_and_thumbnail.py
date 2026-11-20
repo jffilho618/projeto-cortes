@@ -71,7 +71,8 @@ def test_thumbnail_factory_1280x720_presets_and_safe_zones(tmp_path):
     from picorte.engine.thumbnail_factory import generate_thumbnail
 
     frame = np.zeros((720, 1280, 3), dtype=np.uint8)
-    frame[:, :] = (30, 30, 80)
+    # Fundo azul-escuro: vermelho saturado em tela cheia é (corretamente) tratado como sangue pelo Selo Verde.
+    frame[:, :] = (80, 30, 30)
     frame[150:680, 720:1150] = (200, 180, 150)  # sujeito simulado à direita
 
     cutout_calls = []

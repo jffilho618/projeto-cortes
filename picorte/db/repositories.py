@@ -96,14 +96,15 @@ class SourcesRepository:
         permission_evidence_url: str = "",
         credit_template: str = "Créditos: @{handle}",
         default_game_slug: str = "",
+        permission_basis: str = "explicita",
     ) -> dict[str, Any]:
         sid = _new_id()
         now = _now_iso()
         self.db.execute(
             """INSERT INTO sources
-               (id, name, platform, channel_handle, permission_status,
-                permission_evidence_url, credit_template, default_game_slug, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (id, name, platform, channel_handle, permission_status, permission_evidence_url,
+                permission_basis, credit_template, default_game_slug, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 sid,
                 name,
@@ -111,6 +112,7 @@ class SourcesRepository:
                 channel_handle,
                 permission_status,
                 permission_evidence_url,
+                permission_basis,
                 credit_template,
                 default_game_slug,
                 now,

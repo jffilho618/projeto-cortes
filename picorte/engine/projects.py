@@ -27,7 +27,8 @@ DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "search": None, "semantic": None, "query": None,
                    "hunt_mode": "fast",
                    "embed_model": "nomic-embed-text", "brand": None,
-                   "layout": "single", "centers": [0.25, 0.75], "caption": None}
+                   "layout": "single", "centers": [0.25, 0.75], "caption": None,
+                   "source_owner": None}
 
 
 def digest(value):
@@ -118,6 +119,9 @@ def validate_options(options):
             raise ValueError(f"{key} must be true or false.")
     if result["caption"] is not None:
         result["caption"] = branding.validate_caption(result["caption"])
+    if result["source_owner"] is not None and (
+            not isinstance(result["source_owner"], str) or len(result["source_owner"]) > 64):
+        raise ValueError("source_owner must be 'proprio' or a registered streamer slug.")
     return result
 
 
@@ -263,6 +267,14 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                 state["cache"]["source_meta"] = source_key
                 save_project(path, state)
             long = bool(meta.get("long", ingest.is_long_source(meta)))
+
+            # Hard Gate P1 Pre-Ingest (D1): nenhuma fonte desconhecida/pausada é baixada.
+            from picorte.db.connection import get_default_db
+            from picorte.risk_shield.source_resolver import gate_project_source
+            state["source_gate"] = gate_project_source(
+                get_default_db(), source_input=source_input, meta=meta,
+                owner=options.get("source_owner"))
+            save_project(path, state)
 
             source = Path(state.get("video", "__missing__"))
             media_kind = str(meta.get("media_kind") or "")
@@ -615,6 +627,26 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                             render_clips.write_meta(enriched_seg, Path(output), source_meta=sm_proj)
                     except Exception as thumb_exc:
                         print(f"Thumbnail warning: {thumb_exc}", flush=True)
+                    if not preview:
+                        # Thumbnail pode falhar (inclusive pelo Selo Verde): o .meta.json com crédito à fonte
+                        # é gravado mesmo assim, e todo corte final recebe o veredito P1 (RiskShield).
+                        if not enriched_seg.get("thumbnail_1280x720"):
+                            render_clips.write_meta(enriched_seg, Path(output),
+                                                    source_meta=state.get("source_meta") or {})
+                        from picorte.db.connection import get_default_db
+                        from picorte.risk_shield.pipeline import attach_risk_verdict, clean_music_in_render
+                        music_result = clean_music_in_render(output, cache_dir=path / "stems_cache")
+                        attach_risk_verdict(
+                            get_default_db(),
+                            meta_path=Path(output).with_suffix(".meta.json"),
+                            source_id=(state.get("source_gate") or {}).get("source_id"),
+                            seg=enriched_seg,
+                            words=data["words"],
+                            mp4_path=output,
+                            options=options,
+                            game_slug=str((state.get("source_meta") or {}).get("detected_game") or ""),
+                            music_result=music_result,
+                        )
                 except (Exception, SystemExit) as exc:
                     if not render_from_sections:
                         raise

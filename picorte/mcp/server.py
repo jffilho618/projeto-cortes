@@ -15,8 +15,8 @@ from picorte.services.studio_service import StudioService
 class PicorteMCPServer:
     """Expõe as operações de StudioService via ferramentas MCP padrão."""
 
-    def __init__(self, service: StudioService | None = None) -> None:
-        self.service = service or StudioService()
+    def __init__(self, service: StudioService | None = None, *, db: Any = None) -> None:
+        self.service = service or (StudioService(db=db) if db is not None else StudioService())
 
     def list_tools(self) -> list[dict[str, Any]]:
         return [
@@ -113,6 +113,49 @@ class PicorteMCPServer:
                     },
                 },
             },
+            {
+                "name": "picorte_auditar_risco",
+                "description": "Audita um corte nos portões P1 do Épico 4 (fonte, política do jogo, Selo Verde 15s, Copy Hygiene, Cadência, YPP/TikTok) retornando RiskVerdict por rede.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "source_id": {"type": "string"},
+                        "channel_handle": {"type": "string"},
+                        "clip_id": {"type": "string"},
+                        "game_slug": {"type": "string", "default": ""},
+                        "title": {"type": "string", "default": ""},
+                        "description": {"type": "string", "default": ""},
+                        "source_credit": {"type": "string", "default": ""},
+                    },
+                },
+            },
+            {
+                "name": "picorte_politicas_jogo",
+                "description": "Consulta as políticas de copyright/spoiler/rádio de uma publisher/jogo no catálogo e banco.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["game_slug"],
+                    "properties": {"game_slug": {"type": "string"}},
+                },
+            },
+            {
+                "name": "picorte_pausar_fonte",
+                "description": "Aciona o Disjuntor Global P1 (transação única): trava a fonte (pausada_por_claim ou pausada_emergencia), registra claim_event, pausa publicações pendentes em todas as redes e bloqueia vídeos na fila.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["source_id"],
+                    "properties": {
+                        "source_id": {"type": "string"},
+                        "claim_type": {
+                            "type": "string",
+                            "default": "copyright_claim",
+                            "description": "Use 'manual_emergency' para pausa manual (status pausada_emergencia).",
+                        },
+                        "details": {"type": "string", "default": ""},
+                        "reason": {"type": "string", "default": "", "description": "Motivo legível da pausa."},
+                    },
+                },
+            },
         ]
 
     def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
@@ -168,6 +211,25 @@ class PicorteMCPServer:
                 dossiers_dir=Path(args["dossiers_dir"]) if args.get("dossiers_dir") else None,
             )
             return {"slug": out_path.stem, "path": str(out_path)}
+        if name == "picorte_auditar_risco":
+            return self.service.risk_audit_clip(
+                source_id=args.get("source_id"),
+                channel_handle=args.get("channel_handle"),
+                clip_id=args.get("clip_id"),
+                game_slug=str(args.get("game_slug") or ""),
+                title=str(args.get("title") or ""),
+                description=str(args.get("description") or ""),
+                source_credit=str(args.get("source_credit") or ""),
+            )
+        if name == "picorte_politicas_jogo":
+            return self.service.risk_game_policy(str(args["game_slug"]))
+        if name == "picorte_pausar_fonte":
+            return self.service.risk_pause_source(
+                str(args["source_id"]),
+                claim_type=str(args.get("claim_type") or "copyright_claim"),
+                details=str(args.get("details") or ""),
+                reason=str(args.get("reason") or ""),
+            )
         raise ValueError(f"Ferramenta MCP desconhecida: {name}")
 
     def handle_jsonrpc(self, request: dict[str, Any]) -> dict[str, Any] | None:

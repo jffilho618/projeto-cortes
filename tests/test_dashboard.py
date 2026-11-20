@@ -152,3 +152,11 @@ def test_studio_ui_renders_thumb_png_for_outputs():
     app_js = (dashboard.STATIC / "app.js").read_text(encoding="utf-8")
     assert "_thumb.png" in app_js
     assert "poster=" in app_js
+
+
+def test_config_exposes_source_owner_choices_for_local_files(server):
+    """D1: o painel pergunta 'de quem é o vídeo' para arquivos locais (gameplay próprio ou streamer cadastrado)."""
+    httpd, base = server
+    owners = request(base, "/api/config")["source_owners"]
+    assert owners[0] == {"value": "proprio", "label": "Meu gameplay"}
+    assert {"value": "alanzoka", "label": "ALANZOKA"} in owners

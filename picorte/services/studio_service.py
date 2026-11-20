@@ -50,6 +50,57 @@ class StudioService:
             default_game_slug=default_game_slug,
         )
 
+    # ---- RiskShield (Épico 4): ponto único para painel web e MCP (AD-10) ----
+    RISK_PLATFORMS = ("youtube_shorts", "youtube_long", "tiktok", "instagram_reels", "facebook_reels")
+
+    def risk_cooldown_status(self, *, state_path: Any = None) -> dict[str, Any]:
+        from picorte.risk_shield.cadence_guard import get_cooldown_status
+
+        return get_cooldown_status(state_path=state_path)
+
+    def risk_set_cooldown(
+        self, platform: str, *, hours: Any = 48.0, reason: str = "Resfriamento anti-spam", state_path: Any = None
+    ) -> dict[str, Any]:
+        from picorte.risk_shield.cadence_guard import activate_cooldown
+
+        plat = str(platform or "").strip().lower()
+        if plat not in self.RISK_PLATFORMS:
+            raise ValueError("Provide a valid platform for cooldown.")
+        return activate_cooldown(plat, hours=48.0 if hours is None else hours, reason=reason, state_path=state_path)
+
+    def risk_clear_cooldown(self, platform: str, *, state_path: Any = None) -> dict[str, Any]:
+        from picorte.risk_shield.cadence_guard import clear_cooldown
+
+        plat = str(platform or "").strip().lower()
+        if plat not in self.RISK_PLATFORMS:
+            raise ValueError("Provide a valid platform for cooldown.")
+        return clear_cooldown(plat, state_path=state_path)
+
+    def risk_pause_source(
+        self, source_id: str, *, claim_type: str = "copyright_claim", details: str = "", reason: str = ""
+    ) -> dict[str, Any]:
+        from picorte.risk_shield.source_breaker import pause_source_globally
+
+        sid = str(source_id or "").strip()
+        if not sid:
+            raise ValueError("Provide source_id.")
+        return pause_source_globally(self.db, source_id=sid, claim_type=claim_type, details=details, reason=reason)
+
+    def risk_audit_clip(self, **kwargs: Any) -> dict[str, Any]:
+        from picorte.risk_shield.orchestrator import audit_clip_risk
+
+        return audit_clip_risk(self.db, **kwargs)
+
+    def risk_game_policy(self, game_slug: str) -> dict[str, Any]:
+        from picorte.risk_shield.policy_gate import sync_publisher_policies
+
+        slug = str(game_slug or "").strip().lower()
+        pol = self.repos.policies.get_by_game(slug)
+        if pol is None:
+            sync_publisher_policies(self.db)
+            pol = self.repos.policies.get_by_game(slug)
+        return {"game_slug": slug, "policy": pol}
+
     def update_source_permission(
         self, source_id: str, permission_status: str, evidence_url: str | None = None
     ) -> dict[str, Any]:

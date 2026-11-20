@@ -242,6 +242,8 @@ def main():
     ap.add_argument("--centers", type=float, nargs=2, default=[0.25, 0.75],
                     help="horizontal speaker centers from 0 to 1 for split-screen")
     ap.add_argument("--device", choices=["cpu", "cuda", "auto"], default="cpu")
+    ap.add_argument("--source-owner", default=None, metavar="DONO",
+                    help="P1: dono de arquivo local ('proprio' ou slug de streamer cadastrado)")
     render_clips.add_caption_arguments(ap)
     args = ap.parse_args()
     if args.list_styles:

@@ -58,6 +58,7 @@ def project_detail(root, project_id):
                 data["files"].append({"name": file.name, "kind": directory,
                                       "url": f"/media/{project_id}/{directory}/{file.name}"})
     publish_kits = {}
+    risk_verdicts = {}
     clips_dir = path / "clips"
     if clips_dir.is_dir():
         try:
@@ -67,6 +68,8 @@ def project_detail(root, project_id):
                 stem = mp4.stem
                 meta_file = clips_dir / f"{stem}.meta.json"
                 meta = projects.read_json(meta_file) if meta_file.is_file() else {"hook": stem}
+                risk_verdicts[stem] = meta.get("risk_verdict") or (
+                    {"overall_status": meta["risk_status"]} if meta.get("risk_status") else None)
                 kit = meta.get("publish_kit")
                 if not isinstance(kit, dict) or "platforms" not in kit:
                     thumb_f = clips_dir / f"{stem}_thumb.png"
@@ -80,11 +83,17 @@ def project_detail(root, project_id):
         except Exception:
             pass
     data["publish_kits"] = publish_kits
+    data["risk_verdicts"] = risk_verdicts
     try:
         from picorte.services.studio_service import StudioService
         data["publications"] = StudioService().list_project_publications(project_id)
     except Exception:
         data["publications"] = {}
+    try:
+        from picorte.services.studio_service import StudioService
+        data["cooldowns"] = StudioService().risk_cooldown_status()
+    except Exception:
+        data["cooldowns"] = {}
     if (path / "job.log").exists():
         with (path / "job.log").open("rb") as log:
             log.seek(max(0, (path / "job.log").stat().st_size - 12000))
@@ -242,8 +251,14 @@ class Handler(BaseHTTPRequestHandler):
                         key: brand[key] for key in branding.CAPTION_FIELDS
                         if brand[key] is not None
                     }
+                from picorte.engine.publish_kit import load_streamer_registry
+                source_owners = [{"value": "proprio", "label": "Meu gameplay"}] + [
+                    {"value": str(st.get("slug")), "label": str(st.get("display_name") or st.get("slug"))}
+                    for st in load_streamer_registry().get("streamers") or [] if st.get("slug")
+                ]
                 return self.send_json({
                     "token": self.app.token,
+                    "source_owners": source_owners,
                     "defaults": projects.DEFAULT_OPTIONS,
                     "brands": brands,
                     "caption_brands": caption_brands,
@@ -287,6 +302,9 @@ class Handler(BaseHTTPRequestHandler):
             if parts == ["api", "db", "sources"]:
                 from picorte.services.studio_service import StudioService
                 return self.send_json({"sources": StudioService().list_sources()})
+            if parts == ["api", "risk", "cooldown"]:
+                from picorte.services.studio_service import StudioService
+                return self.send_json({"cooldowns": StudioService().risk_cooldown_status()})
             if parts == ["api", "projects"]:
                 return self.send_json({"projects": self.app.list_projects()})
             if len(parts) == 3 and parts[:2] == ["api", "projects"]:
@@ -304,7 +322,8 @@ class Handler(BaseHTTPRequestHandler):
                 if file.parent != path / parts[2] or file.suffix not in {".mp4", ".srt", ".png", ".json"}:
                     raise ValueError("Invalid media path.")
                 return self.send_file(file)
-            static = {"": "index.html", "app.js": "app.js", "style.css": "style.css"}
+            static = {"": "index.html", "app.js": "app.js", "style.css": "style.css",
+                      "risk_seal.js": "risk_seal.js"}
             filename = "/".join(parts)
             if filename in static:
                 return self.send_file(STATIC / static[filename])
@@ -352,6 +371,27 @@ class Handler(BaseHTTPRequestHandler):
                     path = self.app.root / "brands" / f"{name}.json"
                     projects.atomic_json(path, brand)
                     return self.send_json({"name": name, "path": str(path)})
+                if parts == ["api", "risk", "cooldown"]:
+                    from picorte.services.studio_service import StudioService
+                    svc = StudioService()
+                    platform = str(body.get("platform") or "")
+                    if body.get("clear"):
+                        return self.send_json({"ok": True, "cooldown": svc.risk_clear_cooldown(platform)})
+                    cd = svc.risk_set_cooldown(
+                        platform,
+                        hours=body.get("hours"),
+                        reason=str(body.get("reason") or "Resfriamento anti-spam"),
+                    )
+                    return self.send_json({"ok": True, "cooldown": cd})
+                if parts == ["api", "risk", "pause-source"]:
+                    from picorte.services.studio_service import StudioService
+                    res = StudioService().risk_pause_source(
+                        str(body.get("source_id") or ""),
+                        claim_type=str(body.get("claim_type") or "copyright_claim"),
+                        details=str(body.get("details") or ""),
+                        reason=str(body.get("reason") or ""),
+                    )
+                    return self.send_json({"ok": True, **res})
                 if len(parts) == 4 and parts[:2] == ["api", "projects"]:
                     project_id, action = parts[2:]
                     path = projects.project_path(self.app.root, project_id)

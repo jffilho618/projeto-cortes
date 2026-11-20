@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "policies": [
+    {
+      "publisher": "Rockstar Games",
+      "game_slug": "gta6",
+      "release_date": "2026-11-19",
+      "spoiler_window_days": 21,
+      "forbidden_content_rules": [
+        "no_leaks_or_datamine",
+        "no_story_ending_spoiler",
+        "no_embargoed_cutscenes",
+        "no_licensed_radio_music"
+      ],
+      "has_licensed_radio_music": true,
+      "violence_check_strict": true,
+      "default_review_mode": "standard"
+    },
+    {
+      "publisher": "Nintendo",
+      "game_slug": "nintendo_general",
+      "release_date": null,
+      "spoiler_window_days": 30,
+      "forbidden_content_rules": [
+        "strict_copyright_review",
+        "no_emulation_or_rom",
+        "no_leaks_or_datamine",
+        "no_raw_ost_music"
+      ],
+      "has_licensed_radio_music": true,
+      "violence_check_strict": false,
+      "default_review_mode": "human_review"
+    },
+    {
+      "publisher": "Riot Games",
+      "game_slug": "valorant",
+      "release_date": "2020-06-02",
+      "spoiler_window_days": 0,
+      "forbidden_content_rules": [
+        "no_cheats_or_exploits"
+      ],
+      "has_licensed_radio_music": false,
+      "violence_check_strict": false,
+      "default_review_mode": "standard"
+    },
+    {
+      "publisher": "Valve",
+      "game_slug": "cs2",
+      "release_date": "2023-09-27",
+      "spoiler_window_days": 0,
+      "forbidden_content_rules": [
+        "no_gambling_skins_promo",
+        "no_cheats_or_exploits"
+      ],
+      "has_licensed_radio_music": false,
+      "violence_check_strict": false,
+      "default_review_mode": "standard"
+    },
+    {
+      "publisher": "Mojang / Microsoft",
+      "game_slug": "minecraft",
+      "release_date": "2011-11-18",
+      "spoiler_window_days": 0,
+      "forbidden_content_rules": [],
+      "has_licensed_radio_music": false,
+      "violence_check_strict": false,
+      "default_review_mode": "standard"
+    },
+    {
+      "publisher": "Epic Games",
+      "game_slug": "fortnite",
+      "release_date": "2017-07-21",
+      "spoiler_window_days": 7,
+      "forbidden_content_rules": [
+        "no_licensed_emote_music"
+      ],
+      "has_licensed_radio_music": true,
+      "violence_check_strict": false,
+      "default_review_mode": "standard"
+    },
+    {
+      "publisher": "Sony Interactive Entertainment",
+      "game_slug": "sony_story_games",
+      "release_date": null,
+      "spoiler_window_days": 14,
+      "forbidden_content_rules": [
+        "no_story_ending_spoiler",
+        "no_raw_long_cutscene"
+      ],
+      "has_licensed_radio_music": true,
+      "violence_check_strict": true,
+      "default_review_mode": "standard"
+    }
+  ]
+}

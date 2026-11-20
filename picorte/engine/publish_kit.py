@@ -259,16 +259,33 @@ def build_publish_kit(
     thumb_str = str(thumb_path) if thumb_path else ""
 
     def _entry(platform: str, desc: str, tags: list[str]) -> dict[str, Any]:
+        from picorte.risk_shield.copy_guard import audit_and_sanitize_copy
+
+        credit_val = streamer["handle"] or streamer_name_title
+        audit = audit_and_sanitize_copy(
+            platform=platform,
+            title=yt_title,
+            description=desc,
+            hashtags=tags,
+            context_banner_2s=str(seg.get("context_banner_2s") or ""),
+            pinned_comment=pinned_comment,
+            source_credit=credit_val,
+        )
         return {
             "platform": platform,
-            "title": yt_title,
-            "description": desc,
-            "hashtags": tags,
-            "pinned_comment": pinned_comment,
+            "title": audit["sanitized_title"],
+            "description": audit["sanitized_description"],
+            "hashtags": audit["sanitized_hashtags"],
+            "pinned_comment": audit["pinned_comment"],
             "upload_url": PLATFORM_UPLOAD_URLS[platform],
             "video_path": mp4_str,
             "thumb_path": thumb_str,
-            "source_credit": streamer["handle"] or streamer_name_title,
+            "source_credit": credit_val,
+            "copy_audit": {
+                "status": audit["status"],
+                "fixes": audit["fixes"],
+                "ad_friendly_warnings": audit["ad_friendly_warnings"],
+            },
         }
 
     return {
@@ -326,8 +343,22 @@ def export_daily_bundle(
     per_day: int = 3,
     slots: tuple[str, ...] = ("12h", "18h", "21h"),
     registry: dict[str, Any] | None = None,
+    db: Any = None,
+    cadence_state_path: Path | str | None = None,
 ) -> dict[str, Any]:
-    """Exporta um Pacote do Dia organizado nos horários seguros (3/dia) com 1 mp4 + 1 thumb + 1 _COPIAR.txt por clipe."""
+    """Exporta um Pacote do Dia organizado nos horários seguros (3/dia) com 1 mp4 + 1 thumb + 1 _COPIAR.txt por clipe.
+
+    Portão P1 Pre-Export: revalida a permissão da fonte agora, exporta só cortes auditados (sem `hard_block`),
+    marca `human_review` com prefixo REVISAR_ e avisa redes em Cool-Down/teto de cadência no _COPIAR.txt.
+    """
+    from picorte.risk_shield.cadence_guard import check_cadence
+    from picorte.risk_shield.pipeline import EXPORTABLE_STATUSES
+    from picorte.risk_shield.policy_gate import PolicyViolationError, assert_can_export
+
+    if db is None:
+        from picorte.db.connection import get_default_db
+
+        db = get_default_db()
     pdir = Path(project_dir).resolve()
     clips_dir = pdir / "clips"
     if not clips_dir.is_dir():
@@ -338,6 +369,20 @@ def export_daily_bundle(
     if proj_json.is_file():
         proj_state = json.loads(proj_json.read_text(encoding="utf-8"))
     source_meta = proj_state.get("source_meta") or {}
+
+    source_id = (proj_state.get("source_gate") or {}).get("source_id")
+    if not source_id:
+        raise PolicyViolationError(
+            "[P1:pre_export] Projeto sem fonte vinculada (portão Pre-Ingest não registrado). Nada foi exportado.",
+            code="source_unlinked",
+        )
+    assert_can_export(db, source_id=source_id)
+
+    cadence_blocked: dict[str, str] = {}
+    for plat in ("youtube_shorts", "tiktok", "instagram_reels", "facebook_reels"):
+        cad = check_cadence(db, platform=plat, state_path=cadence_state_path)
+        if cad.get("status") == "block":
+            cadence_blocked[plat] = str(cad.get("reason") or "limite de cadência")
 
     all_mp4s = sorted(clips_dir.glob("*.mp4"))
     if clip_stems:
@@ -354,11 +399,20 @@ def export_daily_bundle(
     per_day = max(1, int(per_day))
     slot_list = list(slots) if slots else ["12h", "18h", "21h"]
     exported_files: list[dict[str, Any]] = []
+    skipped_blocked: list[str] = []
 
-    for idx, mp4 in enumerate(all_mp4s):
+    export_idx = 0
+    for mp4 in all_mp4s:
         stem = mp4.stem
         meta_file = clips_dir / f"{stem}.meta.json"
         meta = json.loads(meta_file.read_text(encoding="utf-8")) if meta_file.is_file() else {"hook": stem}
+        risk_st = str(meta.get("risk_status") or (meta.get("risk_verdict") or {}).get("overall_status") or "").lower()
+        if risk_st not in EXPORTABLE_STATUSES:  # sem veredito, erro de auditoria ou bloqueado: não sai
+            skipped_blocked.append(stem)
+            continue
+        needs_review = risk_st == "human_review"
+        idx = export_idx
+        export_idx += 1
         thumb_src = clips_dir / f"{stem}_thumb.png"
         if not thumb_src.is_file():
             fallback_png = clips_dir / f"{stem}.png"
@@ -379,6 +433,8 @@ def export_daily_bundle(
         streamer_slug = kit["streamer"].get("slug") or "games"
         short_slug = _slugify(meta.get("proposed_title") or stem, fallback=stem)[:36]
         prefix = f"{idx + 1:02d}_D{day_num}_{slot}_{streamer_slug}_{short_slug}"
+        if needs_review:
+            prefix = f"REVISAR_{prefix}"
 
         dst_mp4 = bundle_dir / f"{prefix}.mp4"
         shutil.copy2(mp4, dst_mp4)
@@ -389,7 +445,13 @@ def export_daily_bundle(
             shutil.copy2(thumb_src, dst_thumb)
 
         dst_txt = bundle_dir / f"{prefix}_COPIAR.txt"
-        dst_txt.write_text(_format_copy_txt(kit, f"Dia {day_num} · {slot}"), encoding="utf-8")
+        warn_lines = [
+            f"⛔ NÃO POSTAR em {plat.replace('_', ' ').upper()} agora: {why}" for plat, why in cadence_blocked.items()
+        ]
+        if needs_review:
+            warn_lines.insert(0, "🟠 REVISAR antes de postar: o escudo P1 pediu olho humano neste corte.")
+        header = ("\n".join(warn_lines) + "\n\n") if warn_lines else ""
+        dst_txt.write_text(header + _format_copy_txt(kit, f"Dia {day_num} · {slot}"), encoding="utf-8")
 
         exported_files.append({
             "stem": stem,
@@ -397,6 +459,8 @@ def export_daily_bundle(
             "mp4": str(dst_mp4),
             "thumb": str(dst_thumb) if dst_thumb else None,
             "copy_txt": str(dst_txt),
+            "risk_status": risk_st,
+            "needs_review": needs_review,
         })
 
     manifest = {
@@ -404,6 +468,8 @@ def export_daily_bundle(
         "project_id": pdir.name,
         "count": len(exported_files),
         "per_day": per_day,
+        "skipped_blocked": skipped_blocked,
+        "cadence_blocked": cadence_blocked,
         "files": exported_files,
     }
     (bundle_dir / "AGENDA.json").write_text(
@@ -412,5 +478,7 @@ def export_daily_bundle(
     return {
         "bundle_dir": str(bundle_dir),
         "count": len(exported_files),
+        "skipped_blocked": skipped_blocked,
+        "cadence_blocked": cadence_blocked,
         "files": exported_files,
     }

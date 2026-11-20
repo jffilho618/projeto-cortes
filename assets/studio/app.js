@@ -76,6 +76,15 @@ function safe(handler) {
 }
 async function config() {
   state.config = await api("/api/config");
+  const ownerSelect = $("#new-source-owner");
+  if (ownerSelect) {
+    for (const owner of state.config.source_owners || []) {
+      const opt = document.createElement("option");
+      opt.value = owner.value;
+      opt.textContent = owner.label;
+      ownerSelect.append(opt);
+    }
+  }
   state.token = state.config.token;
   updatePresets();
   updateBrands();
@@ -705,15 +714,23 @@ async function copyToClipboard(text, label) {
   }
 }
 
-function renderPublishBox(stem, kit, postedMap) {
+function renderPublishBox(stem, kit, postedMap, cooldowns, verdict) {
   if (!kit || !kit.platforms) return "";
   const activePlat = outputPlatformState.get(stem) || "youtube_shorts";
   const platData = kit.platforms[activePlat] || kit.platforms.youtube_shorts;
   const isPosted = !!(postedMap && postedMap[activePlat]);
   const streamerLabel = kit.streamer?.display_name || "";
+  const cdInfo = cooldowns && cooldowns[activePlat];
+  // Selo P1 vem SÓ do veredito do RiskShield (risk_seal.js): sem veredito, nunca aparece como blindado.
+  const seal = riskSeal(verdict, activePlat, cdInfo);
+  const auditBadge = `<span class="risk-pill ${seal.cls}" title="${escapeHTML(seal.title || "")}">${escapeHTML(seal.label)}</span>`;
+  const cooldownBtn = cdInfo
+    ? `<button type="button" class="pub-btn" data-cooldown-clear="${activePlat}">▶ Encerrar Cool-Down</button>`
+    : `<button type="button" class="pub-btn" data-cooldown="${activePlat}" title="Trava novas postagens nesta rede por 48h">⏸ Cool-Down 48h</button>`;
   const tabsHtml = PUBLISH_PLATFORMS.map((p) => {
     const done = !!(postedMap && postedMap[p.id]);
-    return `<button type="button" class="pub-tab ${p.id === activePlat ? "active" : ""} ${done ? "is-posted" : ""}" data-pub-tab="${p.id}" data-stem="${escapeHTML(stem)}">${p.short}${done ? " ✓" : ""}</button>`;
+    const inCd = !!(cooldowns && cooldowns[p.id]);
+    return `<button type="button" class="pub-tab ${p.id === activePlat ? "active" : ""} ${done ? "is-posted" : ""}" data-pub-tab="${p.id}" data-stem="${escapeHTML(stem)}">${p.short}${done ? " ✓" : inCd ? " ⏸" : ""}</button>`;
   }).join("");
   const titleBtn =
     activePlat === "youtube_shorts"
@@ -729,7 +746,7 @@ function renderPublishBox(stem, kit, postedMap) {
     : `<button type="button" class="pub-btn pub-btn-done" data-mark-posted="${activePlat}" data-stem="${escapeHTML(stem)}">✅ Marcar postado</button>`;
   return `<div class="publish-kit" data-pub-stem="${escapeHTML(stem)}">
     <div class="pub-head">
-      ${streamerLabel ? `<span class="pub-streamer">${escapeHTML(streamerLabel)}</span>` : ""}
+      <div class="pub-badges">${streamerLabel ? `<span class="pub-streamer">${escapeHTML(streamerLabel)}</span>` : ""}${auditBadge}</div>
       <div class="pub-tabs">${tabsHtml}</div>
     </div>
     <div class="pub-actions">
@@ -738,7 +755,9 @@ function renderPublishBox(stem, kit, postedMap) {
       ${commentBtn}
       <a class="pub-btn pub-link" href="${escapeHTML(platData?.upload_url || "#")}" target="_blank" rel="noopener">↗ Abrir upload</a>
       ${postedBadge}
+      ${cooldownBtn}
     </div>
+    ${riskXray(verdict)}
   </div>`;
 }
 
@@ -781,7 +800,8 @@ function renderOutputs(detail) {
             folderBtn = `<button type="button" class="link-btn" data-open-folder="${escapeHTML(file.name)}" data-kind="${escapeHTML(file.kind)}">📂 PASTA</button>`,
             pubHtml =
               file.kind === "clips"
-                ? renderPublishBox(stem, kits[stem], pubs[stem])
+                ? renderPublishBox(stem, kits[stem], pubs[stem], detail.cooldowns || {},
+                    (detail.risk_verdicts || {})[stem] || null)
                 : '<p class="draft-pub-hint">Rascunho 480p · Clique em <strong>Export selected ↗</strong> para liberar os botões YT/TT/IG/FB e o Pacote do Dia.</p>';
           return `<article class="output-card"><video controls preload="none"${posterAttr} src="${encodeURI(file.url)}"></video><div class="output-info"><p>${escapeHTML(file.kind === "previews" ? "DRAFT · " : "EXPORT · ")}${escapeHTML(stem)}</p><div class="output-links"><a href="${encodeURI(file.url)}" download>MP4 ↓</a>${viewThumbLink}${related.map((f) => `<a href="${encodeURI(f.url)}" download>${f.name.endsWith(".srt") ? "SRT" : f.name.endsWith(".png") ? "THUMB" : "META"} ↓</a>`).join("")}${folderBtn}</div>${pubHtml}</div></article>`;
         })
@@ -856,6 +876,8 @@ $("#create-form").addEventListener(
         ai_mode: $("#new-ai-mode")?.value || "heuristic",
         vision_preset: $("#new-vision-preset")?.value || "auto",
       };
+      const owner = $("#new-source-owner")?.value;
+      if (owner) options.source_owner = owner;
       const result = await api("/api/batch", { sources, options });
       await selectProject(result.projects[0].id);
       notice(
@@ -1227,6 +1249,18 @@ $("#outputs").addEventListener(
         kind: folderBtn.dataset.kind || "clips",
       });
       notice("Pasta aberta no explorador de arquivos.");
+      return;
+    }
+    const cdBtn = event.target.closest("[data-cooldown], [data-cooldown-clear]");
+    if (cdBtn && state.id && state.detail) {
+      const clear = cdBtn.hasAttribute("data-cooldown-clear");
+      const platform = clear ? cdBtn.dataset.cooldownClear : cdBtn.dataset.cooldown;
+      if (!clear && !window.confirm(`Ativar Cool-Down de 48h em ${platform}? Novas postagens nessa rede ficam travadas.`)) return;
+      await api("/api/risk/cooldown", clear ? { platform, clear: true } : { platform, hours: 48 });
+      const status = await api("/api/risk/cooldown");
+      state.detail.cooldowns = status.cooldowns || {};
+      renderOutputs(state.detail);
+      notice(clear ? `Cool-Down encerrado em ${platform}.` : `Cool-Down de 48h ativo em ${platform}.`);
       return;
     }
     const markBtn = event.target.closest("[data-mark-posted]");

@@ -11,6 +11,8 @@ import pytest
 
 from picorte.config import resolve_cli_binary
 
+pytestmark = pytest.mark.usefixtures("allow_p1_source_gate")
+
 
 def _ffmpeg_bin() -> str:
     return resolve_cli_binary("ffmpeg") or "ffmpeg"
@@ -163,6 +165,10 @@ def test_e3_practical_end_to_end_real_video_ffmpeg_chat_cv_thumbnail_dashboard_d
     assert meta["pinned_comment_debate"] == "Voce teria arriscado essa play?"
     assert meta["cold_open"]["teaser_duration"] >= 1.2
     assert Path(meta["thumbnail_1280x720"]).is_file()
+    # P2 (Épico 4): todo corte final sai com veredito P1. Aqui o portão de ingestão foi liberado por fixture
+    # sem fonte vinculada, então o escudo precisa barrar a exportação (fonte sem vínculo = hard_block).
+    assert meta["risk_status"] == "hard_block"
+    assert meta["risk_verdict"]["gates"]["source_permission"]["code"] == "source_unlinked"
 
     # Verifica DB + MCP + Dashboard HTTP
     mcp = PicorteMCPServer()

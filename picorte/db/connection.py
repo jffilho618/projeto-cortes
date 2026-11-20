@@ -57,6 +57,24 @@ class Database:
                 conn.execute(sql)
             else:
                 conn.executescript(sql)
+        self._migrate()
+
+    # Colunas adicionadas depois da criação original do schema (bancos antigos não recebem via IF NOT EXISTS).
+    _ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
+        ("sources", "permission_basis", "TEXT NOT NULL DEFAULT 'explicita'"),
+    )
+
+    def _migrate(self) -> None:
+        for table, column, ddl in self._ADDED_COLUMNS:
+            if column in self.list_columns(table):
+                continue
+            self.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+
+    @contextmanager
+    def transaction(self) -> Iterator["_Tx"]:
+        """Agrupa várias escritas numa única transação: ou todas entram, ou nenhuma (rollback na exceção)."""
+        with self.connect() as conn:
+            yield _Tx(conn, self.is_postgres)
 
     def execute(self, query: str, params: tuple[Any, ...] = ()) -> None:
         q = query.replace("?", "%s") if self.is_postgres else query
@@ -97,6 +115,25 @@ class Database:
         with self.connect() as conn:
             cur = conn.execute(f"PRAGMA table_info({table_name})")
             return [row["name"] for row in cur.fetchall()]
+
+
+class _Tx:
+    """Executor ligado a uma conexão aberta (usado por Database.transaction)."""
+
+    def __init__(self, conn: Any, is_postgres: bool) -> None:
+        self.conn = conn
+        self.is_postgres = is_postgres
+
+    def _q(self, query: str) -> str:
+        return query.replace("?", "%s") if self.is_postgres else query
+
+    def execute(self, query: str, params: tuple[Any, ...] = ()) -> int:
+        cur = self.conn.execute(self._q(query), params)
+        return int(getattr(cur, "rowcount", 0) or 0)
+
+    def fetch_all(self, query: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
+        cur = self.conn.execute(self._q(query), params)
+        return [dict(r) for r in cur.fetchall()]
 
 
 _DEFAULT_DB: Database | None = None

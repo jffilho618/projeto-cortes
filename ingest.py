@@ -259,6 +259,7 @@ def _probe_url(url, run=None):
     title = str(data.get("title") or url)
     channel = data.get("channel") or data.get("uploader") or None
     channel = str(channel).strip() if channel else None
+    channel_url = data.get("channel_url") or data.get("uploader_url") or None
     chapters = _normalize_chapters(data.get("chapters"))
     heatmap = _normalize_heatmap(data.get("heatmap"))
 
@@ -267,6 +268,7 @@ def _probe_url(url, run=None):
         "url": True,
         "title": title,
         "channel": channel,
+        "channel_url": channel_url,
         "duration": duration,
         "size": None,
         "estimated_size": estimated or None,

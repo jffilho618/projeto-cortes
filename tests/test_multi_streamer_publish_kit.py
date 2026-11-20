@@ -149,13 +149,21 @@ def test_select_best_thumbnail_frame_avoids_blurred_menu_or_flat_sky_when_crisp_
 
 
 def test_export_daily_bundle_creates_scheduled_pack_with_single_thumb_and_copy_file(tmp_path: Path):
+    from picorte.db.connection import Database
+    from picorte.db.repositories import PicorteRepositories
     from picorte.engine.publish_kit import export_daily_bundle
+
+    db = Database(f"sqlite:///{(tmp_path / 'bundle.db').as_posix()}")
+    db.init_schema()
+    src = PicorteRepositories(db).sources.create_source(
+        name="ALANZOKA", platform="twitch", channel_handle="@alanzoka", permission_status="liberada")
 
     pdir = tmp_path / "proj1"
     clips_dir = pdir / "clips"
     clips_dir.mkdir(parents=True)
     (pdir / "project.json").write_text(
-        json.dumps({"id": "proj1", "source_meta": {"channel": "alanzoka", "title": "GTA 6 Parte 1", "detected_game": "gta6"}}),
+        json.dumps({"id": "proj1", "source_meta": {"channel": "alanzoka", "title": "GTA 6 Parte 1", "detected_game": "gta6"},
+                    "source_gate": {"source_id": src["id"]}}),
         encoding="utf-8",
     )
 
@@ -169,12 +177,14 @@ def test_export_daily_bundle_creates_scheduled_pack_with_single_thumb_and_copy_f
                 "proposed_title": f"Corte {idx} do Alanzoka no GTA 6",
                 "pinned_comment_debate": f"Pergunta {idx}?",
                 "score": 10.0 - idx * 0.1,
+                "risk_status": "pass",
             }),
             encoding="utf-8",
         )
 
     bundle_root = tmp_path / "prontos_para_postar"
-    result = export_daily_bundle(pdir, out_root=bundle_root, per_day=3)
+    result = export_daily_bundle(pdir, out_root=bundle_root, per_day=3, db=db,
+                                 cadence_state_path=tmp_path / "cadence.json")
 
     assert result["count"] == 4
     out_dir = Path(result["bundle_dir"])
@@ -213,6 +223,12 @@ def test_dashboard_publish_kit_mark_posted_and_export_bundle_endpoints(tmp_path:
     monkeypatch.setattr("picorte.db.connection.get_default_db", lambda: test_db)
     monkeypatch.setattr("picorte.services.studio_service.get_default_db", lambda: test_db)
 
+    from picorte.db.repositories import PicorteRepositories
+
+    src = PicorteRepositories(test_db).sources.create_source(
+        name="ALANZOKA", platform="twitch", channel_handle="@alanzoka", permission_status="liberada")
+    monkeypatch.setattr("picorte.risk_shield.cadence_guard.DEFAULT_CADENCE_STATE_PATH", tmp_path / "cadence.json")
+
     root = tmp_path / "projects"
     pdir = root / "abc123456789"
     clips_dir = pdir / "clips"
@@ -226,6 +242,7 @@ def test_dashboard_publish_kit_mark_posted_and_export_bundle_endpoints(tmp_path:
             "stage": "complete",
             "options": {"aspect": "9:16", "layout": "games"},
             "source_meta": {"channel": "alanzoka", "title": "GTA 6 Parte 1", "detected_game": "gta6"},
+            "source_gate": {"source_id": src["id"]},
         }),
         encoding="utf-8",
     )
@@ -236,6 +253,7 @@ def test_dashboard_publish_kit_mark_posted_and_export_bundle_endpoints(tmp_path:
         json.dumps({
             "proposed_title": "Alanzoka sobre 30 FPS no GTA 6",
             "pinned_comment_debate": "30 ou 60 FPS?",
+            "risk_status": "pass",
         }),
         encoding="utf-8",
     )

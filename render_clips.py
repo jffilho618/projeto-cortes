@@ -944,6 +944,51 @@ def expand_facecam_box(detected, frame_w: int, frame_h: int, frame=None) -> tupl
     return int(x1), int(y1), int(w), int(h)
 
 
+GREEN_SEAL_MUTE_GAIN = 0.016  # -36 dB
+GREEN_SEAL_FADE_S = 0.015
+
+
+def _apply_green_seal(seg, cap_words, start, dur):
+    """Selo Verde 15s no render: censura legenda, registra bleeps (sempre recalculados) e barra a Camada 3."""
+    from picorte.risk_shield.green_seal_15s import plan_green_seal_audio_and_captions
+    from picorte.risk_shield.policy_gate import PolicyViolationError
+
+    gs_plan = plan_green_seal_audio_and_captions(
+        cap_words, clip_start=start, clip_end=start + dur, cold_open_plan=seg.get("cold_open"))
+    seg["_green_seal_bleeps"] = list(gs_plan["bleep_intervals"])
+    seg["_green_seal_status"] = gs_plan["status"]
+    if gs_plan["status"] == "hard_block":
+        raise PolicyViolationError(
+            "[P1:selo_verde] Conteúdo de Camada 3 no corte "
+            f"({', '.join(gs_plan['hard_block_hits'])}). Render abortado.",
+            code="green_seal_hard_block",
+            details={"hits": gs_plan["hard_block_hits"]},
+        )
+    return gs_plan["censored_words"]
+
+
+def _green_seal_audio_filter(bleeps, dur):
+    """Filtro ffmpeg de soft-mute (-36 dB) com rampa de 15 ms nas bordas (sem estalo/corte seco).
+
+    `asetnsamples=64` faz o `volume` (eval=frame) reavaliar a cada ~1,3 ms, o que permite a rampa.
+    """
+    terms = []
+    f = GREEN_SEAL_FADE_S
+    for iv in bleeps:
+        bs = max(0.0, float(iv["start"]))
+        be = min(float(dur), float(iv["end"]))
+        if be <= bs + 0.02:
+            continue
+        terms.append(
+            f"if(between(t,{bs:.3f},{be:.3f}),"
+            f"max({GREEN_SEAL_MUTE_GAIN},max(1-(t-{bs:.3f})/{f},1-({be:.3f}-t)/{f})),1)"
+        )
+    if not terms:
+        return ""
+    expr = "*".join(f"min(1,{t})" for t in terms)
+    return f"asetnsamples=n=64:p=0,volume='{expr}':eval=frame"
+
+
 def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAULT_STYLE,
            do_tighten=False, loudnorm=False, preview=False, brand=None,
            layout="single", centers=(0.25, 0.75), caption=None,
@@ -1021,6 +1066,9 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         badge_path = out_dir / "_title_badge.png"
         create_torn_paper_badge(badge_path, width=badge_w, height=badge_h)
         badge_seam_top = max(0, int(games_facecam_h) - badge_h // 2)
+
+    # Selo Verde 15s (P1): '***' na legenda + bleeps; Camada 3 aborta o render (nunca falha em silêncio).
+    cap_words = _apply_green_seal(seg, cap_words, start, dur)
 
     build_ass(cap_words, start, start + dur, out_dir / "_caption.ass",
               tw, th, font_size, margin_v, style, brand, caption,
@@ -1134,9 +1182,14 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         cmd[cmd.index("-c:v"):cmd.index("-c:v")] = ["-filter_complex", vf + "[v]", "-map", "[v]", "-map", "0:a?"]
     else:
         cmd[cmd.index("-c:v"):cmd.index("-c:v")] = ["-vf", vf]
+    af_parts = []
+    gs_filter = _green_seal_audio_filter(seg.get("_green_seal_bleeps") or [], dur)
+    if gs_filter:
+        af_parts.append(gs_filter)
     if loudnorm:
-        cmd[cmd.index("-c:v"):cmd.index("-c:v")] = [
-            "-af", "loudnorm=I=-14:TP=-1.5:LRA=11"]
+        af_parts.append("loudnorm=I=-14:TP=-1.5:LRA=11")
+    if af_parts:
+        cmd[cmd.index("-c:v"):cmd.index("-c:v")] = ["-af", ",".join(af_parts)]
     print(">", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True, cwd=str(out_dir))
     write_srt(cap_words, start, start + dur, out.with_suffix(".srt"),

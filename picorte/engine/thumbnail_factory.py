@@ -69,6 +69,16 @@ def _extract_frame(frame_or_video: np.ndarray | str | Path, timestamp_s: float =
     return np.asarray(frame_or_video, dtype=np.uint8)
 
 
+class ThumbnailUnsafeError(RuntimeError):
+    """Selo Verde (P1): nenhum frame candidato é seguro para virar thumbnail (gore/nudez)."""
+
+
+def _frame_is_safe(fr: np.ndarray, exclude_box=None) -> bool:
+    from picorte.risk_shield.green_seal_15s import score_frame_visual_safety
+
+    return bool(score_frame_visual_safety(fr, exclude_box=exclude_box)["safe"])
+
+
 def _select_best_thumbnail_frame(
     frame_or_video: np.ndarray | str | Path,
     *,
@@ -80,6 +90,8 @@ def _select_best_thumbnail_frame(
     """Escolhe o frame mais nítido e com rosto visível dentro do clipe (evita 1 frame isolado de cabeça baixa)."""
     if not isinstance(frame_or_video, (str, Path)):
         arr = np.asarray(frame_or_video, dtype=np.uint8)
+        if not _frame_is_safe(arr, facecam_box):
+            raise ThumbnailUnsafeError("Frame da thumbnail reprovado no Selo Verde (gore/nudez).")
         return arr, facecam_box
 
     if clip_start_s is not None and clip_end_s is not None and clip_end_s > clip_start_s + 0.5:
@@ -101,10 +113,20 @@ def _select_best_thumbnail_frame(
         cap.release()
 
     if not frames:
-        return _extract_frame(frame_or_video, timestamp_s=timestamp_s), facecam_box
+        single = _extract_frame(frame_or_video, timestamp_s=timestamp_s)
+        if not _frame_is_safe(single, facecam_box):
+            raise ThumbnailUnsafeError("Frame da thumbnail reprovado no Selo Verde (gore/nudez).")
+        return single, facecam_box
 
-    best_frame = frames[0]
-    best_score = -1.0
+    return _rank_thumbnail_frames(frames, facecam_box=facecam_box)
+
+
+def _rank_thumbnail_frames(
+    frames: list[np.ndarray], *, facecam_box: tuple[int, int, int, int] | None = None
+) -> tuple[np.ndarray, tuple[int, int, int, int] | None]:
+    """Ranqueia candidatos; frame reprovado no Selo Verde é DESCARTADO (nenhum bônus compensa gore/nudez)."""
+    best_frame: np.ndarray | None = None
+    best_score = float("-inf")
     resolved_box = facecam_box
 
     for fr in frames:
@@ -135,7 +157,11 @@ def _select_best_thumbnail_frame(
         game_luma = float(game_gray.mean())
         low_detail_penalty = -450.0 if (game_sharp < 18.0 or game_std < 22.0 or game_luma < 14.0) else 0.0
 
-        # Penaliza frames quase pretos/transições e bonifica forte quem tem rosto visível + gameplay nítido
+        # Selo Verde Visual na Thumbnail: frame com sangue/gore ou nudez nunca é candidato.
+        if not _frame_is_safe(fr, resolved_box):
+            continue
+
+        # Penaliza frames quase pretos/transições/NSFW e bonifica forte quem tem rosto visível + gameplay nítido
         score = (
             (1000.0 if has_corner else 0.0)
             + min(sharpness, 300.0)
@@ -148,6 +174,8 @@ def _select_best_thumbnail_frame(
             best_score = score
             best_frame = fr
 
+    if best_frame is None:
+        raise ThumbnailUnsafeError("Todos os frames candidatos da thumbnail reprovaram no Selo Verde.")
     return best_frame, resolved_box
 
 

@@ -7,6 +7,7 @@
     <title>Chopify Studio · Local video workspace</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/style.css" />
+    <script src="/risk_seal.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
   <body>
@@ -65,6 +66,15 @@
           <p class="hint">
             One source per line. Local files stay in place. URLs download to
             their project folder.
+          </p>
+          <label for="new-source-owner"
+            >Arquivo local: esse vídeo é de quem?<select id="new-source-owner">
+              <option value="">— Link: identificado pelo canal —</option>
+            </select></label
+          >
+          <p class="hint">
+            Portão P1: links só passam se o canal for de um streamer cadastrado.
+            Arquivos locais precisam declarar o dono.
           </p>
           <div class="form-grid">
             <label

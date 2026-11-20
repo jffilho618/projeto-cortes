@@ -5,6 +5,8 @@ import pytest
 
 import projects
 
+pytestmark = pytest.mark.usefixtures("allow_p1_source_gate")
+
 
 def long_meta(source="https://example.com/long", **overrides):
     meta = {"source": source, "url": True, "duration": 9000, "width": 1920,
