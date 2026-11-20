@@ -95,6 +95,84 @@ def _default_bitrate(height):
     return 1_500_000
 
 
+def _normalize_chapters(raw_chapters):
+    out = []
+    for item in raw_chapters or []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            start = float(item.get("start_time"))
+            end = float(item.get("end_time"))
+        except (TypeError, ValueError):
+            continue
+        if end <= start:
+            continue
+        out.append({
+            "title": str(item.get("title") or "").strip(),
+            "start_time": round(start, 2),
+            "end_time": round(end, 2),
+        })
+    return out
+
+
+def _normalize_heatmap(raw_heatmap):
+    out = []
+    for item in raw_heatmap or []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            start = float(item.get("start_time"))
+            end = float(item.get("end_time"))
+            value = float(item.get("value"))
+        except (TypeError, ValueError):
+            continue
+        if end <= start:
+            continue
+        out.append({
+            "start_time": round(start, 2),
+            "end_time": round(end, 2),
+            "value": round(max(0.0, min(1.0, value)), 4),
+        })
+    return out
+
+
+def _safe_detect_game_slug(title, chapters=None):
+    try:
+        from picorte.ai.game_dossiers.loader import detect_game_slug
+        return detect_game_slug(title, chapters=chapters)
+    except Exception:
+        return None
+
+
+def extract_heatmap_peaks(heatmap, *, min_value=0.65, min_gap_sec=30.0):
+    """Retorna máximos locais do heatmap Most Replayed espaçados por min_gap_sec."""
+    bins = _normalize_heatmap(heatmap)
+    if not bins:
+        return []
+    candidates = []
+    n = len(bins)
+    for idx, item in enumerate(bins):
+        val = item["value"]
+        if val < float(min_value):
+            continue
+        left_val = bins[idx - 1]["value"] if idx > 0 else -1.0
+        right_val = bins[idx + 1]["value"] if idx + 1 < n else -1.0
+        if val >= left_val and val >= right_val:
+            center = round((item["start_time"] + item["end_time"]) / 2.0, 2)
+            candidates.append({
+                "start": item["start_time"],
+                "end": item["end_time"],
+                "center": center,
+                "value": val,
+            })
+    candidates.sort(key=lambda item: (-item["value"], item["start"]))
+    kept = []
+    for cand in candidates:
+        if all(abs(cand["center"] - prev["center"]) >= float(min_gap_sec) for prev in kept):
+            kept.append(cand)
+    return kept
+
+
 def _probe_local(path, run=None):
     run = run or _run
     path = Path(path).expanduser().resolve()
@@ -115,6 +193,7 @@ def _probe_local(path, run=None):
         "source": str(path),
         "url": False,
         "title": path.name,
+        "channel": None,
         "duration": float(duration) if duration is not None else None,
         "size": size,
         "estimated_size": size,
@@ -122,15 +201,19 @@ def _probe_local(path, run=None):
         "height": int(video.get("height") or 0),
         "has_audio": any(item.get("codec_type") == "audio" for item in streams),
         "has_video": bool(video),
+        "chapters": [],
+        "heatmap": [],
+        "detected_game": _safe_detect_game_slug(path.stem),
     }
 
 
 def _probe_url(url, run=None):
     run = run or _run
     fallback = {
-        "source": url, "url": True, "title": url, "duration": None,
+        "source": url, "url": True, "title": url, "channel": None, "duration": None,
         "size": None, "estimated_size": None, "width": 0, "height": 0,
         "has_audio": None, "has_video": None, "formats": [],
+        "chapters": [], "heatmap": [], "detected_game": None,
     }
     try:
         result = run([
@@ -173,10 +256,17 @@ def _probe_url(url, run=None):
     elif duration:
         estimated = int(_default_bitrate(0) * duration / 8)
 
+    title = str(data.get("title") or url)
+    channel = data.get("channel") or data.get("uploader") or None
+    channel = str(channel).strip() if channel else None
+    chapters = _normalize_chapters(data.get("chapters"))
+    heatmap = _normalize_heatmap(data.get("heatmap"))
+
     return {
         "source": url,
         "url": True,
-        "title": str(data.get("title") or url),
+        "title": title,
+        "channel": channel,
         "duration": duration,
         "size": None,
         "estimated_size": estimated or None,
@@ -186,6 +276,9 @@ def _probe_url(url, run=None):
             item.get("acodec") not in (None, "none") for item in formats),
         "has_video": bool(videos),
         "formats": formats,
+        "chapters": chapters,
+        "heatmap": heatmap,
+        "detected_game": _safe_detect_game_slug(title, chapters=chapters),
     }
 
 

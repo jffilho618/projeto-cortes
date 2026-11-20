@@ -152,11 +152,11 @@ def test_e3_practical_end_to_end_real_video_ffmpeg_chat_cv_thumbnail_dashboard_d
     rw, rh = _ffprobe_dims(mp4_out)
     assert (rw, rh) == (1080, 1920)
 
-    # Verifica thumbnail automática 1280x720 + .meta.json enriquecido + .ass com ContextBanner
+    # Verifica thumbnail automática 9:16 (1080x1920 para Shorts/Reels) + .meta.json enriquecido + .ass com ContextBanner
     thumb_out = mp4_out.with_name(mp4_out.stem + "_thumb.png")
     assert thumb_out.is_file() and thumb_out.stat().st_size <= 2 * 1024 * 1024
     thumb_img = cv2.imread(str(thumb_out))
-    assert thumb_img.shape == (720, 1280, 3)
+    assert thumb_img.shape == (1920, 1080, 3)
 
     meta = json.loads(mp4_out.with_suffix(".meta.json").read_text(encoding="utf-8"))
     assert meta["context_banner_2s"] == "CLUTCH IMPOSSIVEL NO FINAL!"

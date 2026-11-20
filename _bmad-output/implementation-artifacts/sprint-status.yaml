@@ -2,7 +2,7 @@
 # Gerado em conformidade com sprint-status-template.yaml do BMAD v6.12.4
 
 generated: 11-18-2026 03:36
-last_updated: 11-18-2026 03:36
+last_updated: 11-19-2026 02:55
 project: projeto-cortes
 project_key: PICORTE
 tracking_system: file-system
@@ -29,6 +29,14 @@ development_status:
   3-5-par-short-isca-corte-longo-3-5-min-e-fabrica-automatica-de-thumbnail: done
   epic-3-retrospective: optional
 
+  epic-3-5: done
+  3-5-1-correcoes-precisao-heatmap-youtube-nms-pre-visao-e-hud-limpo: done
+  3-5-2-recall-multi-pista-payoff-rewind-e-full-vod-narrative-scout: done
+  3-5-3-editor-chefe-v2-10-arquetipos-golden-examples-dossiers-e-mmr: done
+  3-5-4-visao-seletiva-comentarios-prosodia-avancada-e-facecam-rica: done
+  3-5-5-arcos-2-atos-compilacao-por-arquetipo-query-driven-deep-hunt-e-estilo-adaptado: done
+  epic-3-5-retrospective: optional
+
   epic-4: backlog
   4-1-portao-de-status-da-fonte-e-politicas-por-publisher-jogo-policy-gate-py: backlog
   4-2-cirurgia-seletiva-de-musica-com-demucs-na-gpu-music-surgeon-py: backlog
@@ -39,6 +47,7 @@ development_status:
   5-1-radar-de-tendencias-calendario-de-eventos-campanhas-cpm-e-limpeza-de-30-dias: backlog
   5-2-monitor-de-lives-ao-vivo-e-feeds-de-vods-live-monitor-py: backlog
   5-3-cacador-de-clipes-de-terceiros-clip-hunter-py-e-detector-de-treta-storyline-detector-py: backlog
+  5-4-perfis-adaptativos-e-memoria-de-piadas-internas-streamer-profiles-py: backlog
   epic-5-retrospective: optional
 
   epic-6: backlog

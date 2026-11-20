@@ -232,6 +232,10 @@ def main():
     ap.add_argument("--action", choices=["all", "prepare", "render"], default="all",
                     help="prepare candidates for review, render saved edits, or run all stages")
     ap.add_argument("--semantic", help="find clips by meaning with local embeddings")
+    ap.add_argument("--query", default=None, metavar="QUESTION",
+                    help="query-driven clipping: ask in natural language what moments to hunt")
+    ap.add_argument("--hunt-mode", choices=["fast", "deep"], default="fast",
+                    help="discovery speed/depth: fast (Fast Radar) or deep (Deep Hunt)")
     ap.add_argument("--embed-model", default="nomic-embed-text")
     ap.add_argument("--brand", help="JSON brand preset path")
     ap.add_argument("--layout", choices=["single", "split", "games"], default="single")

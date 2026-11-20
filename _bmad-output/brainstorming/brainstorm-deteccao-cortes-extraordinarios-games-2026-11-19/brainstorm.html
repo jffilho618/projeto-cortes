@@ -1,0 +1,2244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PICORTE // Radar de Cortes Extraordinários — Brainstorm Keepsake</title>
+<style>
+  :root {
+    --bg-0: #07080B;
+    --bg-1: #0D0F14;
+    --bg-2: #131720;
+    --bg-3: #1B212E;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.16);
+    --text-0: #F4F6FA;
+    --text-1: #B8C0D2;
+    --text-2: #7A849A;
+    --ember: #FF4D1C;
+    --ember-soft: rgba(255, 77, 28, 0.14);
+    --ember-glow: rgba(255, 77, 28, 0.35);
+    --amber: #F59E0B;
+    --amber-soft: rgba(245, 158, 11, 0.14);
+    --amber-glow: rgba(245, 158, 11, 0.32);
+    --signal: #10B981;
+    --signal-soft: rgba(16, 185, 129, 0.14);
+    --cyan: #06B6D4;
+    --cyan-soft: rgba(6, 182, 212, 0.14);
+    --crimson: #EF4444;
+    --crimson-soft: rgba(239, 68, 68, 0.14);
+    --violet: #A855F7;
+    --violet-soft: rgba(168, 85, 247, 0.14);
+    --font-display: "Bahnschrift", "DIN Condensed", "Arial Narrow", "Roboto Condensed", Impact, system-ui, sans-serif;
+    --font-sans: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+    --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", Consolas, ui-monospace, monospace;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; background: var(--bg-0); color: var(--text-0); }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background:
+      radial-gradient(1100px 520px at 82% -10%, rgba(255, 77, 28, 0.13), transparent 62%),
+      radial-gradient(900px 480px at 10% 8%, rgba(245, 158, 11, 0.08), transparent 58%),
+      linear-gradient(180deg, #07080B 0%, #0A0C10 45%, #07080B 100%);
+    color: var(--text-0);
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+
+  /* Subtle tactical scanline + grid overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(circle at 50% 25%, black 35%, transparent 90%);
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1380px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ================= HERO / BROADCAST DECK ================= */
+  .hero {
+    padding: 36px 0 32px;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+  }
+
+  .top-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 10px 14px;
+    background: rgba(13, 15, 20, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    color: var(--text-1);
+  }
+
+  .rec-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ember);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .rec-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--ember);
+    box-shadow: 0 0 12px var(--ember);
+    animation: pulseRec 1.8s infinite ease-in-out;
+  }
+  @keyframes pulseRec {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(0.8); }
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.95fr);
+    gap: 28px;
+    align-items: stretch;
+  }
+
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+  .kicker::before {
+    content: "";
+    width: 18px;
+    height: 2px;
+    background: var(--ember);
+  }
+
+  h1.hero-title {
+    margin: 0 0 14px;
+    font-family: var(--font-display);
+    font-size: clamp(34px, 4.8vw, 60px);
+    line-height: 0.98;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: var(--text-0);
+  }
+  h1.hero-title .accent {
+    background: linear-gradient(90deg, var(--ember), var(--amber));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hero-goal {
+    margin: 0 0 22px;
+    color: var(--text-1);
+    font-size: 15px;
+    max-width: 70ch;
+  }
+
+  .telemetry-strip {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .tele-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--ember);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .tele-card.amber { border-top-color: var(--amber); }
+  .tele-card.signal { border-top-color: var(--signal); }
+  .tele-val {
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 800;
+    color: var(--text-0);
+  }
+  .tele-lbl {
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-2);
+  }
+
+  /* Hero Radar Scope Visual */
+  .scope-panel {
+    background: linear-gradient(160deg, rgba(19, 23, 32, 0.96), rgba(10, 12, 16, 0.98));
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .scope-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 75% 25%, rgba(255,77,28,0.12), transparent 55%);
+  }
+  .scope-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .scope-header strong { color: var(--amber); }
+  .scope-svg {
+    width: 100%;
+    height: 170px;
+    display: block;
+    background: rgba(7, 8, 11, 0.72);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .playhead {
+    animation: scanPlayhead 7s linear infinite;
+  }
+  @keyframes scanPlayhead {
+    0% { transform: translateX(0px); }
+    100% { transform: translateX(380px); }
+  }
+  .scope-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-1);
+  }
+  .dot-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot-tag i {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  /* ================= STICKY COMMAND BAR ================= */
+  .command-bar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(7, 8, 11, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line-strong);
+    padding: 12px 0;
+  }
+  .cmd-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .search-box {
+    flex: 1 1 320px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search-box svg {
+    position: absolute;
+    left: 12px;
+    width: 16px;
+    height: 16px;
+    color: var(--text-2);
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--line-strong);
+    color: var(--text-0);
+    border-radius: 8px;
+    padding: 9px 72px 9px 36px;
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .search-input:focus {
+    border-color: var(--ember);
+    box-shadow: 0 0 0 3px var(--ember-soft);
+  }
+  .clear-btn {
+    position: absolute;
+    right: 8px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: none;
+  }
+  .clear-btn.visible { display: inline-block; }
+  .clear-btn:hover { color: var(--text-0); border-color: var(--ember); }
+
+  .cmd-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-1);
+  }
+  .match-counter {
+    padding: 5px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .match-counter strong { color: var(--amber); }
+
+  .jump-climax {
+    text-decoration: none;
+    background: linear-gradient(90deg, var(--ember), #E03A0E);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.16);
+    transition: transform .12s, box-shadow .15s;
+  }
+  .jump-climax:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px var(--ember-glow);
+  }
+
+  .filter-pills {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+  .pill {
+    flex: 0 0 auto;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .pill:hover { border-color: var(--amber); color: var(--text-0); }
+  .pill.active {
+    background: var(--ember-soft);
+    border-color: var(--ember);
+    color: var(--text-0);
+    box-shadow: inset 0 0 0 1px rgba(255, 77, 28, 0.25);
+  }
+  .pill .cnt {
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.07);
+    color: var(--amber);
+  }
+
+  /* ================= SECTION HEADERS ================= */
+  main { padding: 34px 0 80px; }
+
+  .tech-section {
+    margin-bottom: 54px;
+    scroll-margin-top: 132px;
+  }
+  .tech-section.hidden-section { display: none; }
+
+  .sec-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sec-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ember);
+    margin-bottom: 6px;
+  }
+  .sec-mode {
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--amber-soft);
+    color: var(--amber);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    font-size: 10px;
+  }
+  .sec-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(24px, 3vw, 34px);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    line-height: 1.05;
+  }
+  .sec-sub {
+    margin: 4px 0 0;
+    color: var(--text-1);
+    font-size: 14px;
+  }
+  .sec-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .mini-btn {
+    background: var(--bg-2);
+    border: 1px solid var(--line-strong);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .mini-btn:hover, .mini-btn.active {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: var(--amber-soft);
+  }
+
+  .idea-card.hidden-card { display: none !important; }
+  mark.hl {
+    background: rgba(245, 158, 11, 0.35);
+    color: #FFF7E0;
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+
+  /* ================= T1: LOTUS BLOSSOM (MATRIZ 4x4 + VISOR) ================= */
+  .lotus-layout {
+    display: grid;
+    grid-template-columns: 310px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .lotus-core {
+    position: sticky;
+    top: 130px;
+    background: radial-gradient(circle at 50% 0%, rgba(255,77,28,0.18), var(--bg-1) 68%);
+    border: 1px solid rgba(255,77,28,0.45);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+  }
+  .lotus-ring {
+    width: 100%;
+    height: 148px;
+    display: block;
+    margin-bottom: 12px;
+  }
+  .core-tag {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    color: var(--amber);
+    text-transform: uppercase;
+  }
+  .core-title {
+    margin: 6px 0 8px;
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.1;
+    color: var(--text-0);
+    text-transform: uppercase;
+  }
+  .core-desc {
+    margin: 0 0 12px;
+    font-size: 13.5px;
+    color: var(--text-1);
+  }
+  .core-meters {
+    display: grid;
+    gap: 7px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .meter-row {
+    display: grid;
+    grid-template-columns: 78px 1fr 30px;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-2);
+  }
+  .meter-track {
+    height: 6px;
+    background: var(--bg-3);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .meter-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--ember), var(--amber));
+    transition: width .35s ease;
+  }
+
+  .lotus-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 11px;
+  }
+  .petal-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 13px;
+    cursor: pointer;
+    transition: transform .14s, border-color .14s, background .14s;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+  }
+  .petal-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--amber);
+    background: var(--bg-2);
+  }
+  .petal-card.selected {
+    border-color: var(--ember);
+    background: linear-gradient(180deg, rgba(255,77,28,0.14), var(--bg-2));
+    box-shadow: 0 0 0 1px rgba(255,77,28,0.35);
+  }
+  .petal-num {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--amber);
+    letter-spacing: 0.08em;
+  }
+  .petal-pill {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-2);
+    font-size: 9.5px;
+  }
+  .petal-title {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-0);
+    line-height: 1.25;
+  }
+  .petal-body {
+    margin: 0;
+    font-size: 12.2px;
+    color: var(--text-1);
+    line-height: 1.45;
+  }
+
+  /* ================= T2: ASSUMPTION REVERSAL (CARTÕES INVERTIDOS) ================= */
+  .reversal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 13px;
+  }
+  .rev-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color .18s, transform .15s;
+  }
+  .rev-card:hover { border-color: var(--ember); transform: translateY(-2px); }
+  .rev-old {
+    padding: 9px 13px;
+    background: rgba(239, 68, 68, 0.08);
+    border-bottom: 1px dashed rgba(239, 68, 68, 0.28);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #FCA5A5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .rev-old span.struck { text-decoration: line-through; opacity: 0.82; }
+  .rev-card.show-premise .rev-old {
+    background: rgba(239, 68, 68, 0.2);
+    color: #FFE4E6;
+  }
+  .rev-card.show-premise .rev-old span.struck { text-decoration: none; opacity: 1; font-weight: 700; }
+  .rev-card.show-premise .rev-new { opacity: 0.42; filter: grayscale(0.5); }
+
+  .rev-new {
+    padding: 13px 14px 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: opacity .2s, filter .2s;
+  }
+  .rev-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ember);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .rev-title { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-0); }
+  .rev-desc { margin: 0; font-size: 13px; color: var(--text-1); }
+  .flip-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.16);
+    color: var(--amber);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .flip-btn:hover { background: var(--amber-soft); }
+
+  /* ================= T3: EMOTION ORCHESTRA (MESA DE MIXAGEM) ================= */
+  .mixer-console {
+    background: linear-gradient(180deg, #11151E, #0A0C11);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .mixer-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-2);
+  }
+  .mixer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(295px, 1fr));
+    gap: 12px;
+  }
+  .channel-strip {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    transition: border-color .16s, opacity .18s, box-shadow .16s;
+  }
+  .channel-strip.soloed {
+    border-color: var(--amber);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.18);
+  }
+  .channel-strip.dimmed { opacity: 0.32; }
+  .ch-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .ch-id {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ember);
+    font-weight: 700;
+  }
+  .solo-btn {
+    background: var(--bg-3);
+    border: 1px solid var(--line-strong);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .channel-strip.soloed .solo-btn {
+    background: var(--amber);
+    color: #090A0D;
+    border-color: var(--amber);
+    font-weight: 700;
+  }
+  .ch-title { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-0); }
+  .ch-desc { margin: 0; font-size: 12.8px; color: var(--text-1); }
+
+  .fader-bank {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+  }
+  .fader-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .fader-track {
+    width: 10px;
+    height: 36px;
+    background: #07080B;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .fader-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(0deg, var(--ember), var(--amber));
+    border-radius: 2px;
+  }
+  .fader-lbl {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-2);
+    text-transform: uppercase;
+  }
+
+  /* ================= T4: KILL THE CROWN JEWEL (SENSORES DESLIGADOS / DISJUNTORES) ================= */
+  .breaker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(315px, 1fr));
+    gap: 13px;
+  }
+  .breaker-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+  }
+  .breaker-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 9px;
+    border-bottom: 1px dashed var(--line-strong);
+  }
+  .killed-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: var(--crimson-soft);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #FCA5A5;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .killed-chip::before {
+    content: "×";
+    font-size: 13px;
+    line-height: 1;
+    color: var(--crimson);
+  }
+  .breaker-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--signal);
+    background: var(--signal-soft);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    padding: 3px 8px;
+    border-radius: 99px;
+    cursor: pointer;
+  }
+  .breaker-card.simulated-off .breaker-switch {
+    color: var(--amber);
+    background: var(--amber-soft);
+    border-color: var(--amber);
+  }
+  .breaker-card.simulated-off {
+    border-color: var(--signal);
+    box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.2);
+  }
+  .breaker-title { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-0); }
+  .breaker-desc { margin: 0; font-size: 13px; color: var(--text-1); }
+
+  /* ================= T5: TRIZ CONTRADICTION (PONTE DE CONTRADIÇÕES) ================= */
+  .triz-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 14px;
+  }
+  .triz-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .triz-bridge {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+  }
+  .triz-pole {
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--text-1);
+    text-align: center;
+  }
+  .triz-spark {
+    padding: 3px 7px;
+    border-radius: 99px;
+    background: var(--amber-soft);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: var(--amber);
+    font-weight: 700;
+  }
+  .triz-res {
+    border-left: 3px solid var(--ember);
+    padding-left: 11px;
+  }
+  .triz-title { margin: 0 0 4px; font-size: 14.5px; font-weight: 700; color: var(--text-0); }
+  .triz-desc { margin: 0; font-size: 13px; color: var(--text-1); }
+
+  /* ================= T6: ECOSYSTEM THINKING (CONSELHO & NICHO) ================= */
+  .eco-banner {
+    background: var(--bg-1);
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+  }
+  .eco-rings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .eco-role-btn {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .eco-role-btn:hover, .eco-role-btn.active {
+    border-color: var(--cyan);
+    background: var(--cyan-soft);
+    color: var(--text-0);
+  }
+  .eco-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 13px;
+  }
+  .eco-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    transition: opacity .18s, border-color .18s;
+  }
+  .eco-card.eco-dim { opacity: 0.28; }
+  .eco-card.eco-focus { border-color: var(--cyan); }
+  .eco-badge {
+    align-self: flex-start;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: var(--cyan-soft);
+    color: #67E8F9;
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    text-transform: uppercase;
+  }
+  .eco-title { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-0); }
+  .eco-desc { margin: 0; font-size: 13px; color: var(--text-1); }
+
+  /* ================= T7: TRICKSTER'S GAMBIT (CARTAS TÁTICAS / ATALHOS) ================= */
+  .trick-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(305px, 1fr));
+    gap: 13px;
+  }
+  .trick-card {
+    background: linear-gradient(155deg, var(--bg-2), var(--bg-1));
+    border: 1px solid rgba(245, 158, 11, 0.24);
+    border-radius: 10px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .trick-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(225deg, rgba(245,158,11,0.38) 0%, rgba(245,158,11,0.38) 49%, transparent 51%);
+  }
+  .trick-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .trick-gain {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--ember-soft);
+    color: #FF8C6B;
+    border: 1px solid rgba(255,77,28,0.35);
+  }
+  .trick-title { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-0); padding-right: 20px; }
+  .trick-desc { margin: 0; font-size: 13px; color: var(--text-1); }
+
+  /* ================= T8: FAILURE ANALYSIS (AUTÓPSIA FORENSE) ================= */
+  .forensic-diagram {
+    background: var(--bg-1);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .diag-box {
+    background: var(--bg-0);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .diag-lbl {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .slot-bar {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 4px;
+    height: 22px;
+  }
+  .slot-cell {
+    border-radius: 3px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+  }
+  .slot-cell.bug { background: var(--crimson); opacity: 0.85; }
+  .slot-cell.ok { background: linear-gradient(180deg, var(--signal), #059669); }
+
+  .autopsy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 12px;
+  }
+  .autopsy-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--crimson);
+    border-radius: 8px;
+    padding: 13px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .autopsy-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+  }
+  .case-id { color: #FCA5A5; font-weight: 700; letter-spacing: 0.06em; }
+  .code-ref {
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    color: var(--amber);
+    font-size: 10px;
+  }
+  .autopsy-title { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-0); }
+  .autopsy-desc { margin: 0; font-size: 13px; color: var(--text-1); }
+
+  /* ================= T9: 1000X -> SHIP IN 60 MIN (RUNWAY DE ENTREGAS) ================= */
+  .vision-1000x {
+    background: linear-gradient(125deg, rgba(255, 77, 28, 0.16), rgba(245, 158, 11, 0.12) 55%, var(--bg-1));
+    border: 1px solid rgba(255, 77, 28, 0.5);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .v1000-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--amber);
+    margin-bottom: 4px;
+  }
+  .v1000-title {
+    margin: 0 0 6px;
+    font-family: var(--font-display);
+    font-size: 26px;
+    text-transform: uppercase;
+    color: var(--text-0);
+  }
+  .v1000-desc { margin: 0; color: var(--text-1); font-size: 14px; max-width: 78ch; }
+
+  .ship-progress-wrap {
+    min-width: 220px;
+    background: rgba(7, 8, 11, 0.72);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+  }
+  .ship-progress-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-1);
+    margin-bottom: 8px;
+  }
+  .ship-bar {
+    height: 8px;
+    background: var(--bg-3);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .ship-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--ember), var(--amber), var(--signal));
+    transition: width .25s ease;
+  }
+
+  .runway-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 12px;
+  }
+  .ship-item {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 13px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .ship-item:hover { border-color: var(--amber); }
+  .ship-item.checked {
+    border-color: rgba(16, 185, 129, 0.55);
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.09), var(--bg-1));
+  }
+  .ship-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 1.5px solid var(--line-strong);
+    background: var(--bg-0);
+    flex: 0 0 20px;
+    margin-top: 2px;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: transparent;
+    transition: all .15s;
+  }
+  .ship-item.checked .ship-check {
+    background: var(--signal);
+    border-color: var(--signal);
+    color: #05130E;
+    font-weight: 800;
+  }
+  .ship-num {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--amber);
+    margin-bottom: 3px;
+  }
+  .ship-title { margin: 0 0 4px; font-size: 14.5px; font-weight: 700; color: var(--text-0); }
+  .ship-desc { margin: 0; font-size: 12.8px; color: var(--text-1); }
+
+  /* ================= CLIMAX: SÍNTESE FINAL ================= */
+  .climax {
+    margin-top: 64px;
+    scroll-margin-top: 120px;
+    position: relative;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(135deg, var(--ember), var(--amber) 48%, rgba(255,77,28,0.45));
+    box-shadow: 0 24px 70px rgba(255, 77, 28, 0.14);
+  }
+  .climax-inner {
+    background:
+      radial-gradient(800px 360px at 85% 0%, rgba(255, 77, 28, 0.16), transparent 60%),
+      radial-gradient(600px 320px at 10% 100%, rgba(245, 158, 11, 0.12), transparent 60%),
+      #0B0D12;
+    border-radius: 14px;
+    padding: 30px;
+  }
+  .climax-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .climax-title {
+    margin: 4px 0 0;
+    font-family: var(--font-display);
+    font-size: clamp(28px, 3.8vw, 44px);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    line-height: 1;
+  }
+  .synth-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .synth-card {
+    background: rgba(19, 23, 32, 0.85);
+    border: 1px solid var(--line-strong);
+    border-top: 3px solid var(--ember);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .synth-card.s2 { border-top-color: var(--amber); }
+  .synth-card.s3 { border-top-color: var(--signal); }
+  .synth-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--amber);
+    display: flex;
+    justify-content: space-between;
+  }
+  .synth-heading {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 22px;
+    text-transform: uppercase;
+    line-height: 1.1;
+    color: var(--text-0);
+  }
+  .synth-text {
+    margin: 0;
+    font-size: 13.8px;
+    color: var(--text-1);
+    line-height: 1.6;
+  }
+  .pill-matrix {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .tax-chip {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: var(--bg-0);
+    border: 1px solid var(--line-strong);
+    color: var(--text-0);
+  }
+  .tax-chip.tier-ouro { border-color: var(--amber); color: var(--amber); background: var(--amber-soft); }
+  .tax-chip.tier-forte { border-color: var(--ember); color: #FF8C6B; background: var(--ember-soft); }
+  .tax-chip.tier-exp { border-color: var(--cyan); color: #67E8F9; background: var(--cyan-soft); }
+
+  .pillars-mini {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .pillar-box {
+    background: var(--bg-0);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 9px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-1);
+  }
+  .pillar-box strong { color: var(--amber); display: block; margin-bottom: 2px; }
+
+  .empty-state {
+    display: none;
+    text-align: center;
+    padding: 56px 20px;
+    background: var(--bg-1);
+    border: 1px dashed var(--line-strong);
+    border-radius: 12px;
+    margin: 24px 0;
+  }
+  .empty-state.visible { display: block; }
+  .empty-state h3 { margin: 0 0 8px; font-family: var(--font-display); font-size: 24px; text-transform: uppercase; }
+  .empty-state p { margin: 0 0 16px; color: var(--text-2); }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 24px 0 42px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-2);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  @media (max-width: 1120px) {
+    .hero-grid, .lotus-layout, .synth-grid, .eco-banner { grid-template-columns: 1fr; }
+    .lotus-core { position: static; }
+    .lotus-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .telemetry-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 720px) {
+    .lotus-grid, .forensic-diagram, .triz-grid, .runway-list { grid-template-columns: 1fr; }
+    .telemetry-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .climax-inner { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="top-bar">
+      <span class="rec-badge"><span class="rec-dot"></span> ON AIR // PICORTE RADAR DE CORTES</span>
+      <span>MODO: AUTONOMOUS · STATUS: COMPLETE · ATUALIZADO: 2026-11-19 02:04</span>
+      <span>FONTE: .memlog.md · 112 IDEIAS VERIFICADAS</span>
+    </div>
+
+    <div class="hero-grid">
+      <div>
+        <div class="kicker">Sala de Controle Tática · Caça a Cortes Extraordinários</div>
+        <h1 class="hero-title">Taxonomia 360° &amp; <span class="accent">Radar de Sinais Ocultos</span> no Picorte</h1>
+        <p class="hero-goal">
+          Mapear todos os arquétipos de momentos virais e sutis no nicho gamer (incluindo callbacks ocultos como geladeira do GTA 6, caos coop, momentos sérios, polêmicas e rage) e projetar sinais, scripts e melhorias técnicas no motor do Picorte para não perder nenhum material ouro.
+        </p>
+
+        <div class="telemetry-strip">
+          <div class="tele-card">
+            <div class="tele-val">09</div>
+            <div class="tele-lbl">Técnicas</div>
+          </div>
+          <div class="tele-card amber">
+            <div class="tele-val">112</div>
+            <div class="tele-lbl">Ideias Totais</div>
+          </div>
+          <div class="tele-card">
+            <div class="tele-val">16</div>
+            <div class="tele-lbl">Arquétipos</div>
+          </div>
+          <div class="tele-card amber">
+            <div class="tele-val">11</div>
+            <div class="tele-lbl">Autópsias</div>
+          </div>
+          <div class="tele-card signal">
+            <div class="tele-val">11</div>
+            <div class="tele-lbl">Entregas 60m</div>
+          </div>
+          <div class="tele-card signal">
+            <div class="tele-val">03</div>
+            <div class="tele-lbl">Sínteses</div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="scope-panel" aria-label="Osciloscópio comparativo de detecção">
+        <div class="scope-header">
+          <span>ESPECTRO DE DETECÇÃO // LIVE VOD</span>
+          <strong>CASO GELADEIRA GTA 6</strong>
+        </div>
+        <svg class="scope-svg" viewBox="0 0 420 170" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="gNoise" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#FF4D1C" stop-opacity="0.45"/>
+              <stop offset="100%" stop-color="#FF4D1C" stop-opacity="0.02"/>
+            </linearGradient>
+            <linearGradient id="gOuro" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.55"/>
+              <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.03"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid -->
+          <g stroke="rgba(255,255,255,0.06)" stroke-width="1">
+            <line x1="0" y1="42" x2="420" y2="42"/>
+            <line x1="0" y1="85" x2="420" y2="85"/>
+            <line x1="0" y1="128" x2="420" y2="128"/>
+            <line x1="105" y1="0" x2="105" y2="170"/>
+            <line x1="210" y1="0" x2="210" y2="170"/>
+            <line x1="315" y1="0" x2="315" y2="170"/>
+          </g>
+          <!-- Linha de corte da heurística antiga deduped[:30] -->
+          <line x1="0" y1="68" x2="420" y2="68" stroke="#EF4444" stroke-dasharray="4 4" stroke-width="1.2"/>
+          <text x="8" y="62" fill="#FCA5A5" font-family="monospace" font-size="9">LIMIAR ANTIGO (deduped[:30] · VOLUME ALTO)</text>
+          <!-- Curva de energia acústica (volume) -->
+          <path d="M0,145 L28,140 L48,92 L65,134 L95,126 L122,42 L138,128 L168,136 L205,132 L240,138 L272,54 L292,130 L330,138 L368,122 L396,86 L420,140 L420,170 L0,170 Z" fill="url(#gNoise)"/>
+          <path d="M0,145 L28,140 L48,92 L65,134 L95,126 L122,42 L138,128 L168,136 L205,132 L240,138 L272,54 L292,130 L330,138 L368,122 L396,86 L420,140" fill="none" stroke="#FF4D1C" stroke-width="1.8"/>
+          <!-- Curva de carga cultural/visual (sinal oculto) -->
+          <path d="M0,152 L145,148 L182,132 L208,22 L236,128 L280,146 L340,142 L365,46 L392,140 L420,150 L420,170 L0,170 Z" fill="url(#gOuro)"/>
+          <path d="M0,152 L145,148 L182,132 L208,22 L236,128 L280,146 L340,142 L365,46 L392,140 L420,150" fill="none" stroke="#F59E0B" stroke-width="2.2"/>
+          <!-- Marcador Diamante -->
+          <circle cx="208" cy="22" r="5" fill="#F59E0B"/>
+          <circle cx="208" cy="22" r="10" fill="none" stroke="#F59E0B" stroke-opacity="0.5"/>
+          <text x="220" y="25" fill="#FDE68A" font-family="monospace" font-size="9.5" font-weight="bold">OURO: BAIXO dB / ALTA CULTURA</text>
+          <!-- Playhead -->
+          <g class="playhead">
+            <line x1="20" y1="0" x2="20" y2="170" stroke="#10B981" stroke-width="1.5" stroke-opacity="0.75"/>
+            <polygon points="15,0 25,0 20,7" fill="#10B981"/>
+          </g>
+        </svg>
+        <div class="scope-legend">
+          <span class="dot-tag"><i style="background:#FF4D1C"></i>Energia Acústica / Caos</span>
+          <span class="dot-tag"><i style="background:#F59E0B"></i>Carga Cultural / Detetive / Real Talk</span>
+          <span class="dot-tag"><i style="background:#10B981"></i>Full-VOD Scout</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</header>
+
+<nav class="command-bar" aria-label="Filtros e busca global">
+  <div class="wrap">
+    <div class="cmd-top">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="searchInput" class="search-input" type="search" placeholder="Filtrar nas 112 ideias e 3 sínteses (ex: geladeira, NMS, heatmap, deadpan, Bandit, YOLO, Alanzoka)..." autocomplete="off">
+        <button id="clearSearch" class="clear-btn" type="button">LIMPAR</button>
+      </div>
+      <div class="cmd-meta">
+        <span class="match-counter">Mostrando <strong id="matchCount">112</strong> / 112 ideias</span>
+        <a class="jump-climax" href="#sintese-final">↓ Síntese Final</a>
+      </div>
+    </div>
+    <div id="filterPills" class="filter-pills" role="tablist"></div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div id="emptyState" class="empty-state">
+    <h3>Nenhum sinal encontrado nesse filtro</h3>
+    <p>Nenhuma das 112 ideias corresponde à busca atual. Tente outro termo ou limpe os filtros.</p>
+    <button id="resetAllBtn" class="mini-btn" type="button">Resetar Busca e Filtros</button>
+  </div>
+
+  <!-- As 9 técnicas são montadas dinamicamente a partir dos dados 100% fiéis ao .memlog.md -->
+  <div id="techniquesRoot"></div>
+
+  <!-- CLÍMAX VISUAL: SÍNTESE FINAL -->
+  <section id="sintese-final" class="climax" aria-labelledby="climax-heading">
+    <div class="climax-inner">
+      <div class="climax-head">
+        <div>
+          <div class="sec-eyebrow">CLÍMAX ESTRATÉGICO · VEREDITO DO MOTOR PICORTE <span class="sec-mode">3 SÍNTESES CENTRAIS</span></div>
+          <h2 id="climax-heading" class="climax-title">Síntese Final da Sessão</h2>
+        </div>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--amber);">CONSOLIDAÇÃO INTEGRAL · ÉPICO 3 → ÉPICO 7</span>
+      </div>
+
+      <div id="synthesesGrid" class="synth-grid"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>PICORTE // IMAGINATIVE HTML KEEPSAKE · 100% AUTOCONTIDO (ZERO DEPENDÊNCIAS EXTERNAS)</span>
+  <span>FONTE ÚNICA: brainstorm-deteccao-cortes-extraordinarios-games-2026-11-19/.memlog.md</span>
+</footer>
+
+<script>
+(function() {
+  "use strict";
+
+  const TECHNIQUES = [
+    {
+      id: "t1",
+      code: "T01",
+      short: "Lotus Blossom",
+      mode: "structured",
+      title: "Lotus Blossom — Taxonomia 360° dos Arquétipos de Cortes Gamers",
+      subtitle: "Matriz interativa dos 16 arquétipos de ouro: clique em qualquer pétala para inspecionar o perfil de sinal no visor central.",
+      ideas: [
+        { title: "Arquétipo 1 — Callback Cultural & Piada Oculta (Caso Geladeira do Alanzoka)", desc: "streamer testa ou referencia meme de trailer, bug icônico ou promessa de estúdio; volume baixo, humor inteligente, compartilhamento altíssimo", tag: "CULTURA", meters: [18, 98, 94, 88] },
+        { title: "Arquétipo 2 — Caos Cooperativo & Efeito Dominó", desc: "grupo de amigos no Discord cujo plano sério colapsa em segundos por erro idiota de um membro", tag: "COOP", meters: [96, 55, 86, 92] },
+        { title: "Arquétipo 3 — Rage, Tilt & Espiral de Frustração", desc: "escada do tilt (falhas seguidas → silêncio mortal → risada coringada → explosão ou Alt+F4)", tag: "TILT", meters: [92, 42, 78, 95] },
+        { title: "Arquétipo 4 — Sério, Vulnerável & Real Talk", desc: "streamer baixa o tom, pausa o jogo e dá conselho sincero, fala de bastidores ou emociona; ouro de retenção e fidelização", tag: "REAL TALK", meters: [22, 82, 95, 74] },
+        { title: "Arquétipo 5 — Polêmica, Opinião Impopular & Hot Take da Indústria", desc: "crítica ácida a preço, microtransação, nerf, estúdio ou comunidade; explode comentários", tag: "DEBATE", meters: [54, 92, 96, 60] },
+        { title: "Arquétipo 6 — Descoberta, Easter Egg, Segredo & Física Insana", desc: "teste obsessivo de detalhe gráfico, NPC inesperado ou mecânica escondida em lançamentos", tag: "DETALHE", meters: [38, 90, 92, 82] },
+        { title: "Arquétipo 7 — Clutch, Jogada Impossível & Fail Cinematográfico", desc: "1v5 impossível, tiro sem mirar ou erro humilhante no último segundo antes da vitória", tag: "CLUTCH", meters: [88, 60, 84, 96] },
+        { title: "Arquétipo 8 — Pânico, Susto & Tensão Silenciosa", desc: "terror/stealth com silêncio tenso quebrado por susto seco, cara travada na facecam e alívio cômico", tag: "TERROR", meters: [95, 48, 82, 98] },
+        { title: "Arquétipo 9 — Interação Genial com Chat, Donate ou TTS", desc: "resposta afiada a mensagem do chat ou TTS entrando no timing perfeito do jogo", tag: "CHAT/TTS", meters: [66, 76, 88, 90] },
+        { title: "Arquétipo 10 — Ironia Seca, Deadpan & Timing Cômico", desc: "streamer não ri nem grita, apenas olha fixo para a câmera em silêncio após um absurdo no jogo", tag: "DEADPAN", meters: [14, 72, 90, 96] },
+        { title: "Arquétipo 11 — Previsão Profética & Instant Karma", desc: "fala confiante ('relaxa, tá seguro', 'agora eu passo fácil') desmentida violentamente 2 segundos depois", tag: "KARMA", meters: [74, 65, 92, 98] },
+        { title: "Arquétipo 12 — Storytelling & Causos de Vida no Meio do Farm", desc: "história pessoal absurda contada com início, meio e virada durante tarefa repetitiva", tag: "STORY", meters: [36, 70, 92, 72] },
+        { title: "Arquétipo 13 — Drama, Traição & Política de Grupo (RP/Dedução)", desc: "aliança quebrada, julgamento improvisado ou manipulação em jogos sociais/RP", tag: "DRAMA/RP", meters: [72, 68, 90, 85] },
+        { title: "Arquétipo 14 — Nostalgia & Comparação de Eras", desc: "música, cena ou mecânica antiga desbloqueando memória afetiva coletiva do público gamer", tag: "NOSTALGIA", meters: [34, 94, 88, 70] },
+        { title: "Arquétipo 15 — Glitch Quebrando Imersão em Cena Séria", desc: "cutscene dramática arruinada por T-pose, física maluca ou dublagem bugada", tag: "GLITCH", meters: [58, 78, 89, 94] },
+        { title: "Arquétipo 16 — Meta-Momento & Bastidores Ao Vivo", desc: "pet invadindo câmera, entrega na hora do boss, microfone caindo ou problema técnico que vira comédia", tag: "META", meters: [62, 64, 85, 89] }
+      ]
+    },
+    {
+      id: "t2",
+      code: "T02",
+      short: "Assumption Reversal",
+      mode: "deep",
+      title: "Assumption Reversal — Invertendo Premissas do score_clips.py",
+      subtitle: "Cartões invertidos: contraste direto entre a premissa limitada do detector tradicional e a regra invertida do Picorte.",
+      ideas: [
+        { old: "Premissa velha: Só volume alto merece corte", title: "Detector de Silêncio Magnético", desc: "inverter o viés de volume alto premiando quedas súbitas de energia + pausa longa + cadência lenta (captura Real Talk, deadpan e tensão)" },
+        { old: "Premissa velha: Detectar primeiro o início (setup)", title: "Descoberta Payoff-First (De Trás pra Frente)", desc: "detectar primeiro o payoff (riso, grito, 'arrumaram!', tela de morte, pausa de choque) e rebobinar 15-50s para capturar o setup" },
+        { old: "Premissa velha: Setup e payoff precisam ser contíguos", title: "Arco de 2 Atos (Setup e Payoff Distantes)", desc: "emendar promessa do minuto 04:10 + corte seco + desfecho no minuto 19:40 quando o arco não é contíguo" },
+        { old: "Premissa velha: Fala e vídeo apontam na mesma direção", title: "Detector de Contradição Fala × Tela", desc: "capturar Instant Karma e Deadpan medindo divergência entre fala calma/confiante e evento caótico na tela 1-3s depois" },
+        { old: "Premissa velha: Listas fixas de palavras-chave bastam", title: "Anomalia de Vocabulário Local (TF-IDF por Live)", desc: "palavras raras naquela live ('geladeira', 'trailer', 'Rockstar', 'corrigiram') marcam tópicos únicos e easter eggs melhor que listas fixas" },
+        { old: "Premissa velha: Heurística filtra 95% antes do LLM ver", title: "Full-VOD Narrative Map para o LLM", desc: "em vez de a heurística matar 95% do vídeo antes do LLM ver, comprimir a live inteira em mapa de eventos para Gemini/Claude escolher globalmente" },
+        { old: "Premissa velha: Uma média única overall ranqueia tudo", title: "Pontuação por Arquétipo (max em vez de média)", desc: "trocar média única overall por nota especializada por arquétipo para cortes sérios/sutis não perderem por terem 0 de caos" },
+        { old: "Premissa velha: Olhar pro jogo é sempre o ponto focal", title: "Detector de Gaze-to-Camera (Olhar na Lente)", desc: "detectar rosto virando do monitor direto para a webcam por >1.2s — assinatura de deadpan, ironia e desabafo sincero" },
+        { old: "Premissa velha: Repetição de palavras é ruído de fala", title: "Detector de Eco Coletivo / Burst de Repetição", desc: "2+ repetições rápidas da mesma palavra ('freia freia', 'grava grava', 'peida peida') como assinatura forte de caos e desespero" },
+        { old: "Premissa velha: Só exclamações sinalizam clímax", title: "Detector de Perguntas de Incredulidade + Pausa", desc: "sequências de perguntas retóricas seguidas de silêncio curto sinalizam descoberta ou absurdo" },
+        { old: "Premissa velha: Só palavras transcritas carregam emoção", title: "Classificador Acústico de Eventos Não-Verbais", desc: "detectar risada sufocada, suspiro, grito abafado, batida na mesa e aplauso via modelo leve de áudio (YAMNet/PANNs) na RTX 4060 Ti" },
+        { old: "Premissa velha: Todo corte precisa caber em 15-58s", title: "Duração Natural do Arco (Multi-Formato)", desc: "deixar o motor escolher entre Micro (8-14s), Short (15-59s), Vertical Estendido (60-120s) e Longo 16:9 (2-5 min) conforme o arquétipo" },
+        { old: "Premissa velha: Cada live é julgada isoladamente", title: "Consenso Cross-Streamer do Mesmo Dia", desc: "se 3 streamers param no mesmo ponto ou comentam o mesmo detalhe no dia do lançamento, sinaliza momento cultural obrigatório" }
+      ]
+    },
+    {
+      id: "t3",
+      code: "T03",
+      short: "Emotion Orchestra",
+      mode: "theatrical",
+      title: "Emotion Orchestra — Assinaturas Multimodais por Emoção",
+      subtitle: "Mesa de mixagem emocional: cada canal combina faders de Áudio, Facecam, Semântica e Timing. Clique em SOLO para isolar um maestro.",
+      ideas: [
+        { title: "Maestro Ira — Escada do Tilt", desc: "rastrear falhas repetidas + aumento de pitch + palavrões ao longo de 3-5 min para cortar a espiral inteira até a explosão ou Alt+F4", faders: [95, 72, 78, 88] },
+        { title: "Maestro Ironia — Prosódia Plana + Elogio Extremo", desc: "elogio exagerado ('que jogo maravilhoso') com entonação monotônica logo após falha/bug sinaliza sarcasmo", faders: [32, 68, 94, 92] },
+        { title: "Maestro Curiosidade — Modo Detetive (Padrão Geladeira)", desc: "verbos de teste ('deixa eu ver', 'será que', 'testar', 'no trailer', 'arrumaram', 'corrigiram') + avatar parado inspecionando objeto", faders: [26, 48, 96, 86] },
+        { title: "Maestro Pânico — Assinatura Susto", desc: "silêncio seguido de spike vocal >18dB em <300ms sincronizado com recuo brusco de cabeça e MAR/olhos na facecam", faders: [98, 96, 30, 98] },
+        { title: "Maestro Vulnerabilidade — Modo Confissão", desc: "tela de menu/jogo parado + fala contínua em 1ª pessoa ('sendo sincero', 'na real', 'papo reto') + zero riso + voz estável", faders: [38, 82, 95, 70] },
+        { title: "Maestro Cringe — Facepalm e Fuga do Quadro", desc: "detectar mão cobrindo o rosto ou streamer levantando e saindo da webcam via MediaPipe/face disappearance", faders: [44, 98, 52, 85] },
+        { title: "Maestro Euforia Coletiva — Coro Caótico", desc: "sobreposição vocal intensa no Discord/coop com risos e gritos simultâneos por >2.5s", faders: [98, 60, 62, 88] },
+        { title: "Maestro Indignação — Estrutura Tese + Contraponto", desc: "detectar frases opinativas fortes ('não dá pra defender', 'passam pano', 'vou tomar hate') com altíssimo potencial de debate", faders: [64, 58, 98, 72] },
+        { title: "Maestro Nostalgia — Reconhecimento Súbito", desc: "exclamação de memória afetiva ('essa música!', 'lembra disso?', 'eu jogava') seguida de silêncio para ouvir a trilha/cena do jogo", faders: [56, 70, 92, 84] },
+        { title: "Maestro Trolagem — Risadinha Cúmplice Pré-Caos", desc: "riso contido do streamer segundos antes da explosão de gritos dos amigos sabotados no Discord", faders: [84, 78, 64, 96] },
+        { title: "Maestro Ego Ferido — Gabarolice → Silêncio Constrangido", desc: "frase de excesso de confiança ('deixa comigo', 'fácil demais') seguida em <10s por silêncio súbito ou som de derrota", faders: [68, 74, 90, 98] },
+        { title: "Maestro Incredulidade — Congelamento Motor + Negação", desc: "personagem parado 2-4s enquanto streamer repete incrédulo ('não... não... como assim?')", faders: [52, 84, 88, 92] }
+      ]
+    },
+    {
+      id: "t4",
+      code: "T04",
+      short: "Kill the Crown Jewel",
+      mode: "constraint",
+      title: "Kill the Crown Jewel — Sinais Ortogonais Quando Cada Canal Falha",
+      subtitle: "Rack de disjuntores: quando um canal principal é abatido, o sinal ortogonal de backup assume a captura.",
+      ideas: [
+        { killed: "Sem Microfone", title: "Detetive de Inspeção Visual", desc: "jogador para de correr e aproxima a câmera de um detalhe (fluxo óptico cai a quase zero exceto em pequena região central)" },
+        { killed: "Sem Microfone", title: "Quebra de Expectativa Física", desc: "mudança brusca de entropia visual/explosão/tela de derrota imediatamente após segundos de calma" },
+        { killed: "Sem Transcrição", title: "Curva Prosódica F0 e Taxa de Fala", desc: "variação abrupta de palavras/segundo (2x rápido no pânico ou 2x lento na ênfase séria) e voz quebrando em falsete" },
+        { killed: "Sem Facecam", title: "Sentimento Granular do Chat", desc: "separar bursts de emotes por categoria (humor KEKW/LUL, tensão MonkaS, opinião BASED/TRUE, imperdível CLIP, fail F, clutch POG)" },
+        { killed: "Sem Chat Ao Vivo", title: "Curva Most Replayed e Comentários com Timestamp do YouTube", desc: "minerar heatmap oficial e comentários mm:ss em VODs já publicados" },
+        { killed: "Sem Chat/Áudio Alto", title: "Detector de Quebra Semântica entre Janelas", desc: "queda de similaridade por embeddings locais marca mudança brusca de assunto (ex: início de desabafo ou curiosidade)" },
+        { killed: "Sem Viés em Inglês", title: "Léxico Vivo Gamer PT-BR por Arquétipo", desc: "dicionário nativo ('tankou', 'coringou', 'fui de base', 'passar pano', 'nerfaram', 'papo reto', 'clipa isso', 'escola Rockstar')" },
+        { killed: "Sem LLM Pago", title: "Pré-Classificador Local de 8 Arquétipos", desc: "modelo leve treinado em dataset_rotulado/ que estima 8 probabilidades por janela antes do rerank" },
+        { killed: "Sem Contexto de Trailer no Texto", title: "Keyframes Multimodais sob Demanda", desc: "enviar 3 frames (início/meio/fim) ao Gemini/Claude Vision apenas nos candidatos suspeitos visuais" },
+        { killed: "Sem Saber o Jogo", title: "Auto-Identificação de Jogo e Cena", desc: "ler título/metadado/OCR inicial para carregar automaticamente o contexto específico daquele jogo" },
+        { killed: "Sem Depender de 1 Falante", title: "Ritmo de Turnos de Fala", desc: "diferenciar diálogo frenético multi-falante (caos coop) de monólogo contínuo (real talk/storytelling)" },
+        { killed: "Sem Cortar Piada no Meio", title: "Expansão Dinâmica por Fronteira de Cena", desc: "expandir início até o começo do assunto/silêncio e fim até terminar a reação + 1.5s de respiro" }
+      ]
+    },
+    {
+      id: "t5",
+      code: "T05",
+      short: "TRIZ Contradiction",
+      mode: "deep",
+      title: "TRIZ Contradiction — Resolvendo Contradições do Motor de Busca",
+      subtitle: "Pontes de engenharia que conciliam exigências aparentemente opostas sem inflar custo nem sacrificar precisão.",
+      ideas: [
+        { pA: "Live de 4h+", pB: "Janela única do LLM", title: "Map-Reduce Narrativo para Lives de 4h+", desc: "resumir blocos de 5-8 min em micro-eventos cronológicos e passar o mapa inteiro (~3k tokens) numa única chamada global do Editor-Chefe" },
+        { pA: "Corte Barulhento", pB: "Diamante Silencioso", title: "Funil Multi-Pista com Cotas Reservadas (Multi-Track Recall)", desc: "reservar vagas obrigatórias pro LLM em 5 pistas (Áudio/Caos, Heatmap/Chat, Detetive/Callback, Sério/Polêmica, Visão/Deadpan)" },
+        { pA: "LLM Sem Contexto", pB: "Lançamento da Semana", title: "Dossiê Cultural por Jogo (game_dossiers/<jogo>.json)", desc: "ficha leve com memes de trailer, bugs icônicos, personagens e polêmicas da semana injetada no prompt do LLM" },
+        { pA: "Cultura Muda Rápido", pB: "Manutenção Manual", title: "Auto-Atualizador de Dossiê Cultural", desc: "script que gera ou atualiza o dossiê do jogo buscando os 15 detalhes/memes mais falados da semana antes de cortar lives de lançamentos" },
+        { pA: "Precisão de Corte", pB: "Alucinação de Segundos", title: "LLM Retorna sentence_id em vez de Segundos", desc: "numerar blocos/frases [S142] para o LLM escolher início e fim exatos sem alucinar timestamps" },
+        { pA: "Custo de Vision", pB: "Piada Só na Tela", title: "Visão Multimodal Gatilhada por Dêiticos Visuais", desc: "acionar leitura de keyframes apenas quando o texto tem ponteiros visuais ('olha isso', 'olha a mão', 'repara', 'tá vendo', 'aqui ó')" },
+        { pA: "Texto Vazio", pB: "Sinal de Descoberta", title: "Detector de Dêiticos Visuais", desc: "frases aparentemente vazias no texto ('olha isso', 'olha a mão dele', 'arrumaram') ganham bônus de descoberta e inspeção visual obrigatória" },
+        { pA: "Pico Concentrado", pB: "Cobertura da Live", title: "Diversidade Temporal e de Arquétipo (MMR)", desc: "impedir que 10 candidatos sobrepostos do mesmo minuto ocupem o topo, garantindo cobertura da live inteira e mix de arquétipos" },
+        { pA: "Piada de Bolha", pB: "Sem Spoiler", title: "Prólogo Sintético ou Context Banner Explicativo para Referências Externas", desc: "explicar a piada em 1 linha sem dar spoiler da punchline ('No trailer o item spawnava na mão — ele foi testar')" },
+        { pA: "Motor Único", pB: "Estilos de Criadores", title: "Perfil Adaptativo por Streamer (streamer_profiles)", desc: "calibrar pesos conforme a assinatura base de cada criador (Alanzoka observacional/deadpan vs Coringa caos coop vs BRKsEDU análise)" },
+        { pA: "Volume de Candidatos", pB: "Foco em Diamantes", title: "Classificação em 3 Tiers na UI (Ouro / Forte / Experimental) + Etiqueta de Arquétipo", desc: "destacar visualmente diamantes raros para nunca se perderem entre clipes comuns" },
+        { pA: "Preview Imediato", pB: "Caça Profunda", title: "Busca em 2 Velocidades (Fast Radar vs Deep Hunt)", desc: "modo rápido para preview imediato e modo Caça Profunda (Full-VOD + Dossiê + Keyframes) ideal pro Modo Madrugada" }
+      ]
+    },
+    {
+      id: "t6",
+      code: "T06",
+      short: "Ecosystem Thinking",
+      mode: "biomimetic",
+      title: "Ecosystem Thinking — Ecossistema da Live e Conselho de Caçadores",
+      subtitle: "Arquitetura ecológica com caçadores especializados, sinais do ambiente externo, decompositores de ruído e ciclo de aprendizado.",
+      ideas: [
+        { role: "Conselho", title: "Conselho de 4 Caçadores Especialistas no Prompt", desc: "avaliar cada candidato sob 4 lentes independentes (Comédia/Caos, Rage/Clutch, Cultura/Lore/Detalhes, Opinião/Polêmica/Real Talk)" },
+        { role: "Comunidade", title: "Dicionário de Gatilhos de Clipe no Chat", desc: "detectar explicitamente 'CLIPA', 'CLIP', 'CORTA ESSA', 'VAI PRO SHORTS', 'ESSE VAI VIRALIZAR' como candidatos prioritários" },
+        { role: "Ambiente Externo", title: "Cruzamento com Tendências Externas das Últimas 48h", desc: "pegar termos virais do jogo no dia (ex: geladeira GTA 6) e rodar busca semântica automática na transcrição da live" },
+        { role: "Memória", title: "Memória de Piadas Internas (Running Gags)", desc: "registrar bordões e piadas recorrentes de cada streamer no banco para o LLM reconhecer e traduzir para quem vem de fora" },
+        { role: "Ambiente Externo", title: "Detector de Momentos Históricos Day-1 (First-Time Reactions)", desc: "priorizar todas as primeiras vezes em lançamentos (primeira tela, primeiro boss, primeiro bug, primeiro mapa) nas primeiras 72h" },
+        { role: "Memória", title: "Detector de Comparativos (Trailer vs Final / Jogo Antigo vs Novo)", desc: "quando detectar menções a 'trailer', 'prometeram', 'antes', 'GTA 5', sugerir formato comparativo com badge contextual" },
+        { role: "Conselho", title: "Compilação Automática por Arquétipo da Mesma Live", desc: "juntar 4-5 micro-momentos do mesmo tema espalhados na live (ex: todos os detalhes testados ou todos os rages na mesma fase) num vídeo 2-4 min" },
+        { role: "Sensores", title: "Contraste Voz × Áudio do Jogo", desc: "detectar tanto voz explodindo acima do jogo quanto voz calando completamente para deixar cena/música épica do jogo brilhar" },
+        { role: "Decompositores", title: "Filtro Anti-Lixo de Alta Precisão (Decompositores)", desc: "matar explicitamente leitura longa de subs, ad breaks, sponsor, ajuste de configuração/microfone e pausas de intervalo" },
+        { role: "Comunidade", title: "Mineração Semântica de Comentários do VOD no YouTube", desc: "usar o texto dos comentários com timestamp ('14:22 ele testando a geladeira kkk') como resumo humano já pronto do momento" },
+        { role: "Sensores", title: "Segmentação de Capítulos de Atividade em Lives Longas", desc: "separar Just Chatting, Jogo A, React e Jogo B primeiro, aplicando detectores adequados a cada bloco" },
+        { role: "Evolução", title: "Tag de Arquétipo Conectada ao Bandit (Épico 7)", desc: "gravar archetype e tier em clips no banco para o Bandit aprender qual tipo de corte gera mais views e retenção em cada rede" }
+      ]
+    },
+    {
+      id: "t7",
+      code: "T07",
+      short: "Trickster's Gambit",
+      mode: "cultural",
+      title: "Trickster's Gambit — Atalhos Espertos e Roubando o Jogo",
+      subtitle: "Cartas táticas de alto retorno imediato que exploram sinais gratuitos, CPU leve e formatos de retenção acima de 100%.",
+      ideas: [
+        { gain: "<2s · GRÁTIS", title: "Atalho do Heatmap Oficial do YouTube (Most Replayed)", desc: "extrair campo heatmap do yt-dlp --dump-json em <2s e promover todos os picos locais direto como candidatos" },
+        { gain: "CONTEXTO ZERO CUSTO", title: "Atalho dos Capítulos do YouTube", desc: "injetar chapters do yt-dlp como contexto gratuito do que está acontecendo em cada trecho da live" },
+        { gain: "ON-DEMAND UI", title: "Busca por Pergunta Livre na UI (Query-Driven Clipping)", desc: "operador digita o que quer achar (ex: 'comparações com trailer', 'melhores rages', 'opiniões sobre Rockstar') e o LLM varre o VOD" },
+        { gain: "CPU-ONLY · 3-6 Hz", title: "Detector Barato de Riso Contagiante em CPU", desc: "identificar padrão pulsado rítmico de risada (3-6 Hz de envelope vocal) no áudio sem precisar de GPU" },
+        { gain: "SEM SPOILER", title: "Tradutor de Piada Oculta sem Spoiler", desc: "gerar context_banner_2s que contextualiza a referência externa para leigos sem estragar a punchline, multiplicando alcance fora da bolha" },
+        { gain: "8-14s · >100% RET", title: "Pista de Micro-Cortes Virais (8-14s)", desc: "destravar duração mínima abaixo de 15s para piadas secas, sustos instantâneos e bugs com loop perfeito (>100% retenção)" },
+        { gain: "REWATCH + SHARE", title: "Score Explícito de Rewatchability e Compartilhabilidade", desc: "perguntar ao LLM se o espectador vai assistir 2x para confirmar o detalhe ou mandar para um amigo" },
+        { gain: "TÍTULO PRONTO", title: "Detector de Frase de Ouro (Quote Viral)", desc: "identificar sentenças curtas, lapidares e autocontidas que já funcionam sozinhas como título e gancho" },
+        { gain: "DELTA EMOCIONAL", title: "Detector de Contraste Emocional Início × Fim", desc: "premiar janelas com maior mudança de estado emocional entre os primeiros 5s e os últimos 5s (calma→caos, confiança→derrota)" },
+        { gain: "HIPÓTESE → PROVA", title: "Detector de Formato Mythbusters Gamer (Testando Hipóteses)", desc: "detectar sempre que o streamer testa uma hipótese no jogo ('vamos ver se dá pra', 'será que quebra?') — retenção altíssima até o resultado" },
+        { gain: "COOP INFALÍVEL", title: "Detector de Blame Game no Coop", desc: "detectar acusações cruzadas entre amigos ('foi você!', 'eu não fiz nada!', 'culpa sua') como assinatura infalível de corte cômico cooperativo" },
+        { gain: "FEW-SHOT VIVO", title: "Biblioteca Editável de Exemplos-Ouro (golden_examples.json)", desc: "arquivo vivo com cortes reais favoritos do dono (incluindo geladeira do Alanzoka) injetado como few-shot no prompt do Editor-Chefe" }
+      ]
+    },
+    {
+      id: "t8",
+      code: "T08",
+      short: "Failure Analysis",
+      mode: "deep",
+      title: "Failure Analysis — Autópsia do Pipeline Atual do Picorte",
+      subtitle: "Prontuário forense dos 11 pontos de perda observados no motor atual — do gargalo deduped[:30] ao bug [vision 1/12].",
+      ideas: [
+        { code: "deduped[:30]", title: "Autópsia 1 — Fim da Porta Estreita (deduped[:30])", desc: "hoje um diamante silencioso em #45 na heurística morre antes do LLM ver; adicionar Full-VOD LLM Scout antes do rerank" },
+        { code: "ANAPHORIC_OPENERS", title: "Autópsia 2 — Corrigir Penalização de ANAPHORIC_OPENERS", desc: "parar de punir inícios naturais de live ('olha isso', 'espera', 'ele vai') e resolver contexto via expansão de setup + context_banner_2s" },
+        { code: "COMPANION_SYSTEM_PROMPT", title: "Autópsia 3 — Upgrade do COMPANION_SYSTEM_PROMPT", desc: "substituir as 4 linhas genéricas atuais pela taxonomia de 10 arquétipos + rubric de notas + few-shots de golden_examples.json" },
+        { code: "pre/post_context", title: "Autópsia 4 — Injetar pre_context (20s antes) e post_context (15s depois)", desc: "hoje o LLM vê o candidato isolado sem o setup nem o payoff adjacente; passar contexto vizinho + permitir ajuste fino de bordas" },
+        { code: "8-300s", title: "Autópsia 5 — Flexibilizar Faixas de Duração", desc: "sair da camisa de força 15-58s suportando micro (8-14s), short (15-59s), vertical estendido (60-120s) e longo 16:9 (120-300s)" },
+        { code: "19059a3dc07d · [vision 1/12]", title: "Autópsia 6 — Deduplicação Temporal (NMS) ANTES do Loop Visual [vision 1/12]", desc: "corrigir bug observado no projeto 19059a3dc07d onde 11 de 12 análises visuais foram gastas no mesmo minuto 1609-1649s" },
+        { code: "hud_detector.py · PERSON=10.0", title: "Autópsia 7 — Corrigir Saturação do hud_detector.py (PERSON=10.0)", desc: "ignorar classes genéricas de pessoa/facecam no YOLO do HUD para o score visual voltar a discriminar eventos reais de jogo" },
+        { code: "source_meta → LLM", title: "Autópsia 8 — Passar Título, Canal, Jogo e Capítulos ao LLM", desc: "hoje o LLM nem sabe qual jogo ou vídeo está analisando; injetar metadados da fonte desbloqueia reconhecimento cultural instantâneo" },
+        { code: "ingest.py · probe_source()", title: "Autópsia 9 — Persistir heatmap e chapters no probe_source() do ingest.py", desc: "aproveitar dados que o yt-dlp já traz de graça em vez de descartá-los" },
+        { code: "segments.json", title: "Autópsia 10 — Estilo Visual Adaptado ao Arquétipo", desc: "devolver archetype e tone no segments.json para que Real Talk sério não receba o mesmo badge gritante de Caos Coop" },
+        { code: "Multi-Modal Merge", title: "Autópsia 11 — Mesclar Candidatos Não-Textuais em Lives Faladas", desc: "unir picos de heatmap, chat, áudio não-verbal e facecam aos candidatos de texto para nunca perder reações mudas" }
+      ]
+    },
+    {
+      id: "t9",
+      code: "T09",
+      short: "1000x → Ship 60m",
+      mode: "constraint",
+      title: "1000x Budget to Ship in 60 Minutes — Do Sonho ao Plano Executável Agora",
+      subtitle: "Estrela-guia 1000x no topo + checklist tático interativo das 11 entregas executáveis imediatamente no código do Picorte.",
+      vision: {
+        title: "Visão 1000x — Diretor Criativo Multimodal 24/7",
+        desc: "modelo nativo assistindo 100% da live com memória viva de trailers, memes do TikTok e histórico de cada streamer"
+      },
+      ideas: [
+        { title: "Entrega Rápida 1 — Full-VOD Narrative Scout (llm_scout.py)", desc: "compactar transcrição inteira em blocos numerados + título + dossiê do jogo e pedir ao Gemini/Claude até 15 momentos extraordinários direto da timeline completa" },
+        { title: "Entrega Rápida 2 — NMS Temporal Antes da Visão em score_clips.py", desc: "garantir que os 12 slots visuais analisem 12 momentos distintos da live e não 11 clones do mesmo minuto" },
+        { title: "Entrega Rápida 3 — Ingestão de YouTube Heatmap (Most Replayed) + Capítulos", desc: "salvar no source_meta e promover picos do heatmap como sementes obrigatórias no discover" },
+        { title: "Entrega Rápida 4 — Multi-Track Recall com Cotas por Pista", desc: "reservar slots garantidos antes do LLM para Caos/Rage, Modo Detetive/Callback, Sério/Polêmica, Heatmap/Chat e Visão" },
+        { title: "Entrega Rápida 5 — Editor-Chefe v2 + golden_examples.json", desc: "prompt com taxonomia de 10 arquétipos, exemplos reais (incluindo geladeira do Alanzoka), tier (ouro/forte/experimental) e ajuste fino de bordas" },
+        { title: "Entrega Rápida 6 — Pasta picorte/ai/game_dossiers/ com gta6.json inicial", desc: "injetar memes/detalhes conhecidos do jogo automaticamente pelo título do vídeo" },
+        { title: "Entrega Rápida 7 — Keyframes Multimodais Seletivos", desc: "extrair 3 frames para candidatos com dêiticos visuais ('olha isso', 'olha a mão') ou nota limítrofe e validar visualmente no Gemini/Claude" },
+        { title: "Entrega Rápida 8 — Payoff-First Rewind no discover", desc: "detectar riso coletivo, repetições de desespero e exclamações de conclusão e gerar janela olhando 20-45s para trás" },
+        { title: "Entrega Rápida 9 — Mineração Opcional de Comentários com Timestamp em VODs do YouTube", desc: "alimentar o scout com os timestamps e descrições que a própria audiência marcou" },
+        { title: "Entrega Rápida 10 — Limpeza do hud_detector.py", desc: "filtrar falsos positivos COCO (person) para destravar discriminação real de eventos de jogo no preset high" },
+        { title: "Entrega Rápida 11 — Multi-Formato & Contexto Vizinho no LLM", desc: "Suporte a Micro-Cortes (8-14s), Verticais Estendidos (60-120s) e pre_context/post_context no LLM para nunca cortar setup ou payoff" }
+      ]
+    }
+  ];
+
+  const SYNTHESES = [
+    {
+      num: "SÍNTESE CENTRAL 01",
+      tag: "DIAGNÓSTICO RAIZ",
+      heading: "A Falácia da Régua Única de Energia",
+      cls: "s1",
+      text: "O erro raiz da detecção comum (e do nosso motor atual) é tratar todos os cortes gamers com uma única régua de energia/volume; diamantes como o Alanzoka testando a geladeira do GTA 6 são de BAIXA energia acústica e ALTA carga cultural/visual, morrendo na porta estreita (deduped[:30]) antes do LLM sequer enxergar.",
+      extra: "diag"
+    },
+    {
+      num: "SÍNTESE CENTRAL 02",
+      tag: "ARQUITETURA ÉPICO 3 · CUSTO ZERO EXTRA",
+      heading: "4 Pilares Unificados no Motor",
+      cls: "s2",
+      text: "A solução arquitetural unifica 4 pilares já possíveis no Épico 3 sem custo extra: (1) Full-VOD Narrative Scout (LLM lendo o mapa comprimido da live inteira + título/capítulos), (2) Multi-Track Recall com cotas por arquétipo (Caos/Rage, Detetive/Callback, Sério/Polêmica, Heatmap/Chat, Visão) + Payoff-First Rewind, (3) Inteligência de Mundo Externo (game_dossiers/<jogo>.json + YouTube Most Replayed heatmap + comentários com timestamp + golden_examples.json), e (4) Correção de 2 gargalos reais já observados no código (NMS temporal antes de [vision 1/12] e filtro de PERSON no hud_detector.py).",
+      extra: "pillars"
+    },
+    {
+      num: "SÍNTESE CENTRAL 03",
+      tag: "TAXONOMIA OPERACIONAL · BANDIT ÉPICO 7",
+      heading: "10 Arquétipos · 3 Tiers · Retroalimentação",
+      cls: "s3",
+      text: "Taxonomia operacional recomendada para o Picorte: 10 arquétipos nomeados (callback_oculto, caos_coop, rage_tilt, serio_realtalk, polemica_hottake, descoberta_detalhe, clutch_fail, susto_tensao, deadpan_karma, chat_trolagem) + 3 tiers (ouro, forte, experimental) + tom visual adaptável e retroalimentação direta pro Bandit do Épico 7.",
+      extra: "taxonomy"
+    }
+  ];
+
+  // State
+  let activeTech = "all";
+  let searchQuery = "";
+  let selectedPetalIdx = 0;
+  let allPremisesShown = false;
+  let soloedChannel = null;
+  let activeEcoRole = "all";
+  const checkedShips = new Set();
+
+  const escHtml = (s) => String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+  const highlightText = (text, q) => {
+    const safe = escHtml(text);
+    if (!q) return safe;
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return safe.replace(new RegExp("(" + escapedQ + ")", "gi"), '<mark class="hl">$1</mark>');
+  };
+
+  const countIdeasInTech = (t) => t.ideas.length + (t.vision ? 1 : 0);
+
+  // Render Filter Pills
+  function renderFilterPills() {
+    const container = document.getElementById("filterPills");
+    let html = `<button class="pill ${activeTech === 'all' ? 'active' : ''}" data-tech="all" type="button">Todas as Técnicas <span class="cnt">112</span></button>`;
+    TECHNIQUES.forEach((t) => {
+      html += `<button class="pill ${activeTech === t.id ? 'active' : ''}" data-tech="${t.id}" type="button">${t.code} · ${escHtml(t.short)} <span class="cnt">${countIdeasInTech(t)}</span></button>`;
+    });
+    container.innerHTML = html;
+    container.querySelectorAll(".pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeTech = btn.dataset.tech;
+        renderFilterPills();
+        applyFilters();
+        if (activeTech !== "all") {
+          const sec = document.getElementById("sec-" + activeTech);
+          if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+  }
+
+  // Render T1: Lotus Blossom
+  function renderLotus(t) {
+    const first = t.ideas[selectedPetalIdx] || t.ideas[0];
+    const petalsHtml = t.ideas.map((idea, idx) => `
+      <article class="idea-card petal-card ${idx === selectedPetalIdx ? 'selected' : ''}" data-tech="${t.id}" data-idx="${idx}" data-search="${escHtml((idea.title + ' ' + idea.desc + ' ' + idea.tag).toLowerCase())}">
+        <div class="petal-num"><span>ARQ-${String(idx + 1).padStart(2, '0')}</span><span class="petal-pill">${escHtml(idea.tag)}</span></div>
+        <h3 class="petal-title">${highlightText(idea.title, searchQuery)}</h3>
+        <p class="petal-body">${highlightText(idea.desc, searchQuery)}</p>
+      </article>
+    `).join("");
+
+    return `
+      <div class="lotus-layout">
+        <aside class="lotus-core" id="lotusInspector">
+          <svg class="lotus-ring" viewBox="0 0 260 148">
+            <circle cx="130" cy="74" r="62" fill="none" stroke="rgba(255,77,28,0.22)" stroke-dasharray="4 4"/>
+            <circle cx="130" cy="74" r="42" fill="none" stroke="rgba(245,158,11,0.35)"/>
+            <circle cx="130" cy="74" r="20" fill="rgba(255,77,28,0.18)" stroke="#FF4D1C" stroke-width="1.5"/>
+            ${Array.from({ length: 16 }).map((_, i) => {
+              const ang = (i * 22.5 - 90) * Math.PI / 180;
+              const x1 = 130 + Math.cos(ang) * 24;
+              const y1 = 74 + Math.sin(ang) * 24;
+              const x2 = 130 + Math.cos(ang) * 58;
+              const y2 = 74 + Math.sin(ang) * 58;
+              const active = i === selectedPetalIdx;
+              return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${active ? '#F59E0B' : 'rgba(255,255,255,0.18)'}" stroke-width="${active ? '2.4' : '1'}"/>
+                <circle cx="${x2.toFixed(1)}" cy="${y2.toFixed(1)}" r="${active ? '5' : '3'}" fill="${active ? '#FF4D1C' : '#525B70'}"/>`;
+            }).join("")}
+            <text x="130" y="78" text-anchor="middle" fill="#F4F6FA" font-family="monospace" font-size="11" font-weight="bold">16/16</text>
+          </svg>
+          <div class="core-tag">VISOR DE ARQUÉTIPO · #${String(selectedPetalIdx + 1).padStart(2, '0')} · ${escHtml(first.tag)}</div>
+          <h3 class="core-title">${escHtml(first.title)}</h3>
+          <p class="core-desc">${escHtml(first.desc)}</p>
+          <div class="core-meters">
+            <div class="meter-row"><span>VOLUME dB</span><div class="meter-track"><div class="meter-fill" style="width:${first.meters[0]}%"></div></div><span>${first.meters[0]}</span></div>
+            <div class="meter-row"><span>CULTURA</span><div class="meter-track"><div class="meter-fill" style="width:${first.meters[1]}%"></div></div><span>${first.meters[1]}</span></div>
+            <div class="meter-row"><span>RETENÇÃO</span><div class="meter-track"><div class="meter-fill" style="width:${first.meters[2]}%"></div></div><span>${first.meters[2]}</span></div>
+            <div class="meter-row"><span>TIMING</span><div class="meter-track"><div class="meter-fill" style="width:${first.meters[3]}%"></div></div><span>${first.meters[3]}</span></div>
+          </div>
+        </aside>
+        <div class="lotus-grid">${petalsHtml}</div>
+      </div>
+    `;
+  }
+
+  // Render T2: Assumption Reversal
+  function renderReversal(t) {
+    return `<div class="reversal-grid">` + t.ideas.map((idea, idx) => `
+      <article class="idea-card rev-card ${allPremisesShown ? 'show-premise' : ''}" data-tech="${t.id}" data-search="${escHtml((idea.old + ' ' + idea.title + ' ' + idea.desc).toLowerCase())}">
+        <div class="rev-old">
+          <span class="struck">${escHtml(idea.old)}</span>
+          <button class="flip-btn" type="button" data-flip="${idx}">⇄</button>
+        </div>
+        <div class="rev-new">
+          <span class="rev-tag">INVERSÃO #${String(idx + 1).padStart(2, '0')}</span>
+          <h3 class="rev-title">${highlightText(idea.title, searchQuery)}</h3>
+          <p class="rev-desc">${highlightText(idea.desc, searchQuery)}</p>
+        </div>
+      </article>
+    `).join("") + `</div>`;
+  }
+
+  // Render T3: Emotion Orchestra
+  function renderOrchestra(t) {
+    const labels = ["AUD", "CAM", "SEM", "TIM"];
+    return `
+      <div class="mixer-console">
+        <div class="mixer-header">
+          <span>CONSOLE MULTIMODAL · 12 CANAIS DE EMOÇÃO</span>
+          <span>FADERS: AUD (ÁUDIO) · CAM (FACECAM) · SEM (SEMÂNTICA) · TIM (TIMING)</span>
+        </div>
+        <div class="mixer-grid">
+          ${t.ideas.map((idea, idx) => {
+            const isSolo = soloedChannel === idx;
+            const isDim = soloedChannel !== null && !isSolo;
+            return `
+              <article class="idea-card channel-strip ${isSolo ? 'soloed' : ''} ${isDim ? 'dimmed' : ''}" data-tech="${t.id}" data-search="${escHtml((idea.title + ' ' + idea.desc).toLowerCase())}">
+                <div class="ch-top">
+                  <span class="ch-id">CH-${String(idx + 1).padStart(2, '0')}</span>
+                  <button class="solo-btn" type="button" data-solo="${idx}">${isSolo ? 'SOLO ON' : 'SOLO'}</button>
+                </div>
+                <h3 class="ch-title">${highlightText(idea.title, searchQuery)}</h3>
+                <p class="ch-desc">${highlightText(idea.desc, searchQuery)}</p>
+                <div class="fader-bank">
+                  ${idea.faders.map((v, fi) => `
+                    <div class="fader-col">
+                      <div class="fader-track"><div class="fader-bar" style="height:${v}%"></div></div>
+                      <span class="fader-lbl">${labels[fi]}</span>
+                    </div>
+                  `).join("")}
+                </div>
+              </article>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  // Render T4: Kill the Crown Jewel
+  function renderBreaker(t) {
+    return `<div class="breaker-grid">` + t.ideas.map((idea, idx) => `
+      <article class="idea-card breaker-card" data-tech="${t.id}" data-search="${escHtml((idea.killed + ' ' + idea.title + ' ' + idea.desc).toLowerCase())}">
+        <div class="breaker-top">
+          <span class="killed-chip">${highlightText(idea.killed, searchQuery)}</span>
+          <button class="breaker-switch" type="button" data-breaker="${idx}">● FAILOVER ATIVO</button>
+        </div>
+        <h3 class="breaker-title">${highlightText(idea.title, searchQuery)}</h3>
+        <p class="breaker-desc">${highlightText(idea.desc, searchQuery)}</p>
+      </article>
+    `).join("") + `</div>`;
+  }
+
+  // Render T5: TRIZ Contradiction
+  function renderTriz(t) {
+    return `<div class="triz-grid">` + t.ideas.map((idea) => `
+      <article class="idea-card triz-card" data-tech="${t.id}" data-search="${escHtml((idea.pA + ' ' + idea.pB + ' ' + idea.title + ' ' + idea.desc).toLowerCase())}">
+        <div class="triz-bridge">
+          <span class="triz-pole">${escHtml(idea.pA)}</span>
+          <span class="triz-spark">⚡ TRIZ</span>
+          <span class="triz-pole">${escHtml(idea.pB)}</span>
+        </div>
+        <div class="triz-res">
+          <h3 class="triz-title">${highlightText(idea.title, searchQuery)}</h3>
+          <p class="triz-desc">${highlightText(idea.desc, searchQuery)}</p>
+        </div>
+      </article>
+    `).join("") + `</div>`;
+  }
+
+  // Render T6: Ecosystem Thinking
+  function renderEcosystem(t) {
+    const roles = ["all", "Conselho", "Comunidade", "Ambiente Externo", "Memória", "Sensores", "Decompositores", "Evolução"];
+    return `
+      <div class="eco-banner">
+        <svg viewBox="0 0 260 110" style="width:100%;height:110px;background:#07080B;border:1px solid var(--line);border-radius:8px;">
+          <line x1="50" y1="55" x2="130" y2="25" stroke="rgba(6,182,212,0.4)"/>
+          <line x1="50" y1="55" x2="130" y2="85" stroke="rgba(6,182,212,0.4)"/>
+          <line x1="130" y1="25" x2="210" y2="55" stroke="rgba(245,158,11,0.5)"/>
+          <line x1="130" y1="85" x2="210" y2="55" stroke="rgba(245,158,11,0.5)"/>
+          <line x1="130" y1="25" x2="130" y2="85" stroke="rgba(255,77,28,0.4)" stroke-dasharray="3 3"/>
+          <circle cx="50" cy="55" r="14" fill="#131720" stroke="#06B6D4" stroke-width="1.5"/>
+          <text x="50" y="58" text-anchor="middle" fill="#67E8F9" font-family="monospace" font-size="8">LIVE</text>
+          <circle cx="130" cy="25" r="14" fill="#131720" stroke="#FF4D1C" stroke-width="1.5"/>
+          <text x="130" y="28" text-anchor="middle" fill="#FF8C6B" font-family="monospace" font-size="7.5">4 CAÇ</text>
+          <circle cx="130" cy="85" r="14" fill="#131720" stroke="#F59E0B" stroke-width="1.5"/>
+          <text x="130" y="88" text-anchor="middle" fill="#FDE68A" font-family="monospace" font-size="7.5">MUNDO</text>
+          <circle cx="210" cy="55" r="15" fill="#131720" stroke="#10B981" stroke-width="1.5"/>
+          <text x="210" y="58" text-anchor="middle" fill="#6EE7B7" font-family="monospace" font-size="7.5">BANDIT</text>
+        </svg>
+        <div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--cyan);margin-bottom:8px;text-transform:uppercase;">Filtrar por Camada Ecológica</div>
+          <div class="eco-rings">
+            ${roles.map((r) => `<button class="eco-role-btn ${activeEcoRole === r ? 'active' : ''}" type="button" data-eco="${r}">${r === 'all' ? 'Todos os Nós (12)' : r}</button>`).join("")}
+          </div>
+        </div>
+      </div>
+      <div class="eco-grid">
+        ${t.ideas.map((idea) => {
+          const focus = activeEcoRole !== "all" && idea.role === activeEcoRole;
+          const dim = activeEcoRole !== "all" && idea.role !== activeEcoRole;
+          return `
+            <article class="idea-card eco-card ${focus ? 'eco-focus' : ''} ${dim ? 'eco-dim' : ''}" data-tech="${t.id}" data-search="${escHtml((idea.role + ' ' + idea.title + ' ' + idea.desc).toLowerCase())}">
+              <span class="eco-badge">${escHtml(idea.role)}</span>
+              <h3 class="eco-title">${highlightText(idea.title, searchQuery)}</h3>
+              <p class="eco-desc">${highlightText(idea.desc, searchQuery)}</p>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  // Render T7: Trickster's Gambit
+  function renderTrickster(t) {
+    return `<div class="trick-grid">` + t.ideas.map((idea, idx) => `
+      <article class="idea-card trick-card" data-tech="${t.id}" data-search="${escHtml((idea.gain + ' ' + idea.title + ' ' + idea.desc).toLowerCase())}">
+        <div class="trick-meta">
+          <span>GAMBIT #${String(idx + 1).padStart(2, '0')}</span>
+          <span class="trick-gain">${escHtml(idea.gain)}</span>
+        </div>
+        <h3 class="trick-title">${highlightText(idea.title, searchQuery)}</h3>
+        <p class="trick-desc">${highlightText(idea.desc, searchQuery)}</p>
+      </article>
+    `).join("") + `</div>`;
+  }
+
+  // Render T8: Failure Analysis
+  function renderAutopsy(t) {
+    const bugSlots = Array.from({ length: 12 }).map((_, i) => `<div class="slot-cell ${i < 11 ? 'bug' : ''}" title="Slot visual ${i + 1}/12"></div>`).join("");
+    const okSlots = Array.from({ length: 12 }).map((_, i) => `<div class="slot-cell ok" title="Momento distinto ${i + 1}/12"></div>`).join("");
+    return `
+      <div class="forensic-diagram">
+        <div class="diag-box">
+          <div class="diag-lbl"><span style="color:#FCA5A5;">EVIDÊNCIA BUG 19059a3dc07d ([vision 1/12])</span><span style="color:var(--text-2);">11/12 NO MIN 1609-1649s</span></div>
+          <div class="slot-bar">${bugSlots}</div>
+        </div>
+        <div class="diag-box">
+          <div class="diag-lbl"><span style="color:#6EE7B7;">PÓS-CORREÇÃO (NMS TEMPORAL ANTES DA VISÃO)</span><span style="color:var(--text-2);">12 MOMENTOS DISTINTOS</span></div>
+          <div class="slot-bar">${okSlots}</div>
+        </div>
+      </div>
+      <div class="autopsy-grid">
+        ${t.ideas.map((idea, idx) => `
+          <article class="idea-card autopsy-card" data-tech="${t.id}" data-search="${escHtml((idea.code + ' ' + idea.title + ' ' + idea.desc).toLowerCase())}">
+            <div class="autopsy-top">
+              <span class="case-id">EXAME #${String(idx + 1).padStart(2, '0')}</span>
+              <span class="code-ref">${escHtml(idea.code)}</span>
+            </div>
+            <h3 class="autopsy-title">${highlightText(idea.title, searchQuery)}</h3>
+            <p class="autopsy-desc">${highlightText(idea.desc, searchQuery)}</p>
+          </article>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  // Render T9: 1000x -> Ship in 60 min
+  function renderShip60(t) {
+    const pct = Math.round((checkedShips.size / t.ideas.length) * 100);
+    return `
+      <article class="idea-card vision-1000x" data-tech="${t.id}" data-search="${escHtml((t.vision.title + ' ' + t.vision.desc).toLowerCase())}">
+        <div>
+          <div class="v1000-badge">HORIZONTE NORTE · ORÇAMENTO 1000X</div>
+          <h3 class="v1000-title">${highlightText(t.vision.title, searchQuery)}</h3>
+          <p class="v1000-desc">${highlightText(t.vision.desc, searchQuery)}</p>
+        </div>
+        <div class="ship-progress-wrap">
+          <div class="ship-progress-head"><span>RUNWAY 60 MIN</span><strong id="shipCountLabel">${checkedShips.size}/${t.ideas.length} (${pct}%)</strong></div>
+          <div class="ship-bar"><div id="shipBarFill" class="ship-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+      </article>
+      <div class="runway-list">
+        ${t.ideas.map((idea, idx) => {
+          const isChecked = checkedShips.has(idx);
+          return `
+            <article class="idea-card ship-item ${isChecked ? 'checked' : ''}" data-tech="${t.id}" data-ship="${idx}" data-search="${escHtml((idea.title + ' ' + idea.desc).toLowerCase())}">
+              <div class="ship-check" aria-hidden="true">✓</div>
+              <div>
+                <div class="ship-num">SPRINT ITEM #${String(idx + 1).padStart(2, '0')} · SHIP NOW</div>
+                <h3 class="ship-title">${highlightText(idea.title, searchQuery)}</h3>
+                <p class="ship-desc">${highlightText(idea.desc, searchQuery)}</p>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function renderAllTechniques() {
+    const root = document.getElementById("techniquesRoot");
+    root.innerHTML = TECHNIQUES.map((t) => {
+      let body = "";
+      let extraActions = "";
+      if (t.id === "t1") body = renderLotus(t);
+      if (t.id === "t2") {
+        body = renderReversal(t);
+        extraActions = `<button class="mini-btn ${allPremisesShown ? 'active' : ''}" id="toggleAllPremises" type="button">${allPremisesShown ? 'Mostrar Inversões' : 'Comparar Premissas Velhas'}</button>`;
+      }
+      if (t.id === "t3") {
+        body = renderOrchestra(t);
+        extraActions = soloedChannel !== null ? `<button class="mini-btn active" id="clearSoloBtn" type="button">Liberar SOLO</button>` : "";
+      }
+      if (t.id === "t4") body = renderBreaker(t);
+      if (t.id === "t5") body = renderTriz(t);
+      if (t.id === "t6") body = renderEcosystem(t);
+      if (t.id === "t7") body = renderTrickster(t);
+      if (t.id === "t8") body = renderAutopsy(t);
+      if (t.id === "t9") body = renderShip60(t);
+
+      return `
+        <section class="tech-section" id="sec-${t.id}" data-sec-tech="${t.id}">
+          <div class="sec-head">
+            <div>
+              <div class="sec-eyebrow">${t.code} <span class="sec-mode">${escHtml(t.mode)}</span> <span>· ${countIdeasInTech(t)} IDEIAS</span></div>
+              <h2 class="sec-title">${escHtml(t.title)}</h2>
+              <p class="sec-sub">${escHtml(t.subtitle)}</p>
+            </div>
+            <div class="sec-actions">${extraActions}</div>
+          </div>
+          ${body}
+        </section>
+      `;
+    }).join("");
+
+    bindTechniqueInteractions();
+    applyFilters();
+  }
+
+  function bindTechniqueInteractions() {
+    // T1: Petal select
+    document.querySelectorAll(".petal-card").forEach((el) => {
+      el.addEventListener("click", () => {
+        selectedPetalIdx = Number(el.dataset.idx);
+        renderAllTechniques();
+      });
+    });
+
+    // T2: Flip single & all
+    document.querySelectorAll("[data-flip]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        btn.closest(".rev-card").classList.toggle("show-premise");
+      });
+    });
+    const toggleAll = document.getElementById("toggleAllPremises");
+    if (toggleAll) {
+      toggleAll.addEventListener("click", () => {
+        allPremisesShown = !allPremisesShown;
+        renderAllTechniques();
+      });
+    }
+
+    // T3: Mixer Solo
+    document.querySelectorAll("[data-solo]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.solo);
+        soloedChannel = soloedChannel === idx ? null : idx;
+        renderAllTechniques();
+      });
+    });
+    const clearSolo = document.getElementById("clearSoloBtn");
+    if (clearSolo) {
+      clearSolo.addEventListener("click", () => {
+        soloedChannel = null;
+        renderAllTechniques();
+      });
+    }
+
+    // T4: Breaker toggle visual
+    document.querySelectorAll("[data-breaker]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const card = btn.closest(".breaker-card");
+        const off = card.classList.toggle("simulated-off");
+        btn.textContent = off ? "⚡ BACKUP VALIDADO" : "● FAILOVER ATIVO";
+      });
+    });
+
+    // T6: Eco role filter
+    document.querySelectorAll("[data-eco]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeEcoRole = btn.dataset.eco;
+        renderAllTechniques();
+      });
+    });
+
+    // T9: Ship checklist
+    document.querySelectorAll("[data-ship]").forEach((item) => {
+      item.addEventListener("click", () => {
+        const idx = Number(item.dataset.ship);
+        if (checkedShips.has(idx)) checkedShips.delete(idx);
+        else checkedShips.add(idx);
+        renderAllTechniques();
+      });
+    });
+  }
+
+  function renderSyntheses() {
+    const grid = document.getElementById("synthesesGrid");
+    const archetypes = [
+      "callback_oculto", "caos_coop", "rage_tilt", "serio_realtalk", "polemica_hottake",
+      "descoberta_detalhe", "clutch_fail", "susto_tensao", "deadpan_karma", "chat_trolagem"
+    ];
+    grid.innerHTML = SYNTHESES.map((s) => {
+      let extraHtml = "";
+      if (s.extra === "diag") {
+        extraHtml = `
+          <div class="pill-matrix">
+            <span class="tax-chip tier-forte">BAIXA ENERGIA ACÚSTICA</span>
+            <span class="tax-chip tier-ouro">ALTA CARGA CULTURAL/VISUAL</span>
+            <span class="tax-chip">GARGALO: deduped[:30]</span>
+          </div>
+        `;
+      } else if (s.extra === "pillars") {
+        extraHtml = `
+          <div class="pillars-mini">
+            <div class="pillar-box"><strong>PILAR 1</strong>Full-VOD Narrative Scout</div>
+            <div class="pillar-box"><strong>PILAR 2</strong>Multi-Track Recall + Rewind</div>
+            <div class="pillar-box"><strong>PILAR 3</strong>Mundo Externo + Heatmap</div>
+            <div class="pillar-box"><strong>PILAR 4</strong>NMS Visão + Fix PERSON</div>
+          </div>
+        `;
+      } else if (s.extra === "taxonomy") {
+        extraHtml = `
+          <div class="pill-matrix">
+            ${archetypes.map((a) => `<span class="tax-chip">${a}</span>`).join("")}
+            <span class="tax-chip tier-ouro">tier: ouro</span>
+            <span class="tax-chip tier-forte">tier: forte</span>
+            <span class="tax-chip tier-exp">tier: experimental</span>
+          </div>
+        `;
+      }
+      return `
+        <article class="synth-card ${s.cls}">
+          <div class="synth-num"><span>${s.num}</span><span>${s.tag}</span></div>
+          <h3 class="synth-heading">${s.heading}</h3>
+          <p class="synth-text">${highlightText(s.text, searchQuery)}</p>
+          ${extraHtml}
+        </article>
+      `;
+    }).join("");
+  }
+
+  function applyFilters() {
+    const q = searchQuery.trim().toLowerCase();
+    let visibleCount = 0;
+
+    document.querySelectorAll(".tech-section").forEach((sec) => {
+      const secId = sec.dataset.secTech;
+      const techAllowed = activeTech === "all" || activeTech === secId;
+      let secVisible = 0;
+
+      sec.querySelectorAll(".idea-card").forEach((card) => {
+        const hay = card.dataset.search || "";
+        const match = techAllowed && (!q || hay.includes(q));
+        card.classList.toggle("hidden-card", !match);
+        if (match) {
+          visibleCount++;
+          secVisible++;
+        }
+      });
+
+      sec.classList.toggle("hidden-section", !techAllowed || secVisible === 0);
+    });
+
+    document.getElementById("matchCount").textContent = String(visibleCount);
+    document.getElementById("emptyState").classList.toggle("visible", visibleCount === 0);
+    document.getElementById("clearSearch").classList.toggle("visible", searchQuery.length > 0);
+  }
+
+  // Search events
+  const searchInput = document.getElementById("searchInput");
+  searchInput.addEventListener("input", () => {
+    searchQuery = searchInput.value;
+    renderAllTechniques();
+    renderSyntheses();
+  });
+
+  document.getElementById("clearSearch").addEventListener("click", () => {
+    searchQuery = "";
+    searchInput.value = "";
+    renderAllTechniques();
+    renderSyntheses();
+    searchInput.focus();
+  });
+
+  document.getElementById("resetAllBtn").addEventListener("click", () => {
+    activeTech = "all";
+    searchQuery = "";
+    searchInput.value = "";
+    renderFilterPills();
+    renderAllTechniques();
+    renderSyntheses();
+  });
+
+  // Boot
+  renderFilterPills();
+  renderAllTechniques();
+  renderSyntheses();
+})();
+</script>
+</body>
+</html>

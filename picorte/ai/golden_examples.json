@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "examples": [
+    {
+      "id": "alanzoka-gta6-geladeira",
+      "archetype": "callback_oculto",
+      "tier": "ouro",
+      "game": "gta6",
+      "source_url": "https://www.youtube.com/shorts/E_x5lh7uPCA",
+      "summary": "Streamer entra calmamente numa cozinha e testa se a Rockstar corrigiu a animação do trailer onde o item spawnava direto na mão do Jason ao abrir a geladeira.",
+      "why_gold": "Baixíssimo volume e zero grito, mas altíssimo valor cultural, curiosidade imediata e compartilhamento fora da bolha. Prova que não se mede ouro só por decibéis.",
+      "ideal_context_banner": "No trailer o item spawnava na mão — ele foi testar",
+      "ideal_duration_bucket": "short"
+    },
+    {
+      "id": "caos-coop-efeito-domino",
+      "archetype": "caos_coop",
+      "tier": "ouro",
+      "game": "coop",
+      "summary": "Plano sério no Discord desmorona em 10 segundos por erro bobo de um amigo, virando gritaria sincronizada e jogo de culpa ('foi você!').",
+      "why_gold": "Contraste instantâneo entre plano sério e desastre coletivo com timing cômico perfeito.",
+      "ideal_context_banner": "O plano perfeito durou 8 segundos no Discord",
+      "ideal_duration_bucket": "short"
+    },
+    {
+      "id": "papo-reto-bastidores-real-talk",
+      "archetype": "serio_realtalk",
+      "tier": "ouro",
+      "game": "geral",
+      "summary": "Streamer pausa o jogo, baixa o tom de voz, olha direto na câmera e dá um conselho sincero sobre pressão ou bastidores da vida de criador.",
+      "why_gold": "Retenção altíssima e fidelização; não tem grito nem ação no jogo, mas prende pela sinceridade.",
+      "ideal_context_banner": "Ele pausou a live pra mandar um papo reto",
+      "ideal_duration_bucket": "extended"
+    },
+    {
+      "id": "hot-take-industria-preco",
+      "archetype": "polemica_hottake",
+      "tier": "ouro",
+      "game": "geral",
+      "summary": "Opinião firme e bem argumentada criticando preço abusivo, microtransação ou decisão de estúdio grande ('não dá pra passar pano').",
+      "why_gold": "Explode a seção de comentários com debate orgânico e engajamento muito acima da média.",
+      "ideal_context_banner": "A opinião que dividiu o chat inteiro",
+      "ideal_duration_bucket": "short"
+    },
+    {
+      "id": "instant-karma-deadpan",
+      "archetype": "deadpan_karma",
+      "tier": "ouro",
+      "game": "geral",
+      "summary": "Streamer diz confiante 'relaxa, tá super seguro', morre de forma ridícula 2 segundos depois e apenas encara a câmera em silêncio absoluto.",
+      "why_gold": "Micro-clipe de 10-14s com loop natural (>100% retenção) baseado em contradição fala × tela.",
+      "ideal_context_banner": "Ele falou 'tá seguro' 2 segundos antes...",
+      "ideal_duration_bucket": "micro"
+    },
+    {
+      "id": "espiral-rage-tilt",
+      "archetype": "rage_tilt",
+      "tier": "forte",
+      "game": "geral",
+      "summary": "Após falhas seguidas no mesmo trecho, o streamer entra em silêncio mortal, dá uma risada coringada e explode na tela de derrota.",
+      "why_gold": "Arco clássico de escalada emocional onde o público sente a tensão subindo até o clímax.",
+      "ideal_context_banner": "Depois de 12 tentativas no mesmo checkpoint...",
+      "ideal_duration_bucket": "short"
+    }
+  ]
+}

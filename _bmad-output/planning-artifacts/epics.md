@@ -2,12 +2,14 @@
 title: 'Épicos e Histórias — Picorte (Plano Mestre Evolutivo v2)'
 status: final
 created: '2026-11-18'
-updated: '2026-11-18'
+updated: '2026-11-19'
 sources:
   - ../specs/spec-picorte/SPEC.md
   - ./architecture.md
   - ./pilares.md
   - ./concorrentes.md
+  - ./epic-3-5-motor-caca-extraordinaria.md
+  - ./sprint-change-proposal-2026-11-19.md
 ---
 
 # Épicos e Histórias — Picorte (`projeto-cortes`)
@@ -170,6 +172,66 @@ Como operador, quero que arcos densos gerem tanto o Corte Longo `16:9` (3–5 mi
 
 ---
 
+## Epic 3.5: Motor de Caça Extraordinária — 10 Arquétipos, Recall Multi-Pista, Full-VOD Scout e Editor-Chefe v2
+
+**Objetivo:** Tunar o motor de descoberta do Épico 3 para capturar **todos os 16→10 arquétipos de cortes extraordinários em lives de games** (incluindo callbacks culturais silenciosos como o caso *Alanzoka / geladeira GTA 6*, caos co-op, rage/tilt, real-talk sério, polêmicas, descobertas de detalhe, clutches/fails, sustos, ironia *deadpan* / instant karma e trocas com o chat), corrigindo os gargalos observados em produção e classificando cada candidato em 3 tiers (`ouro`, `forte`, `experimental`).
+**Blueprint técnico completo:** [`epic-3-5-motor-caca-extraordinaria.md`](epic-3-5-motor-caca-extraordinaria.md).
+**Capacidades cobertas:** `CAP-1` (enriquecida), `CAP-4`, `CAP-5`, `CAP-7`.
+**Regras de Arquitetura:** `AD-1`, `AD-3`, `AD-4`, `AD-10`, `AD-11`.
+
+### Story 3.5.1: Correções de Precisão, Heatmap/Capítulos do YouTube, NMS Pré-Visão e HUD Limpo (Onda 1)
+
+**Descrição:**
+Como operador, quero persistir `heatmap` (*Most Replayed*) e `chapters` na ingestão, executar NMS temporal antes do loop `[vision 1/12]`, remover falsos positivos `PERSON` do `hud_detector.py` e transformar `ANAPHORIC_OPENERS` em detector de dêiticos visuais, eliminando os gargalos comprovados do motor atual.
+
+**Critérios de Aceite (AC):**
+1. `ingest.py::probe_source()` persiste `heatmap`, `chapters`, `title`, `channel` e `detected_game` no `source_meta` e promove picos do *Most Replayed* como sementes candidatas obrigatórias.
+2. `temporal_nms()` roda antes do loop `[vision]` em `score_clips.py`, garantindo janelas temporalmente distintas (IoU `<= 0.35`).
+3. `hud_detector.py` ignora a classe COCO `person` e a caixa da facecam, eliminando saturação artificial em `hud_score = 10.0`.
+4. Dêiticos visuais (`"olha isso"`, `"olha a mão"`, `"espera"`, `"repara"`) deixam de ser penalizados e passam a acionar expansão de setup + marcação `has_visual_deictic=True`.
+
+### Story 3.5.2: Recall Multi-Pista (5 Pistas), Payoff-First Rewind, Full-VOD Narrative Scout e Durações Flexíveis (Onda 1)
+
+**Descrição:**
+Como operador, quero acabar com a porta estreita enviesada por volume (`deduped[:30]`) usando 5 pistas com cota reservada, filtro anti-lixo, léxico PT-BR + TF-IDF local + Silêncio Magnético, descoberta *Payoff-First Rewind*, um **Full-VOD Narrative Scout (`llm_scout.py`)** que lê a live inteira por `sentence_id` (com Map-Reduce em lives 4h+) e durações flexíveis (`8–14s`, `15–59s`, `60–120s`, `120–300s`).
+
+**Critérios de Aceite (AC):**
+1. `multitrack.py` reserva cotas garantidas nas 5 pistas (Energia/Chat/Heatmap, Full-VOD Scout, Sério/Polêmica/Silêncio Magnético, Dêiticos/Detetive/Callbacks, Caos Co-op/Payoff Rewind), impedindo que momentos silenciosos morram antes do LLM.
+2. `llm_scout.py` numera blocos por `sentence_id`, suporta Map-Reduce em VODs longos e converte `start_sid`/`end_sid` em timestamps reais sem alucinar segundos.
+3. O motor suporta durações flexíveis incluindo micro-clipes (`8–14s`) e verticais estendidos (`60–120s`), além de filtrar leitura longa de subs/patrocínios/intervalos.
+
+### Story 3.5.3: Editor-Chefe v2, 10 Arquétipos/3 Tiers, `golden_examples.json`, `game_dossiers/` e MMR (Onda 1)
+
+**Descrição:**
+Como operador, quero um Editor-Chefe v2 no `llm_router.py` guiado pelo Conselho de 4 Caçadores Especialistas, alimentado por `golden_examples.json`, `game_dossiers/<jogo>.json` (`gta6.json` inicial) e `pre_context`/`post_context`, com diversificação MMR por tempo e arquétipo.
+
+**Critérios de Aceite (AC):**
+1. `llm_router.py` classifica candidatos nos **10 arquétipos canônicos** e **3 tiers (`ouro`, `forte`, `experimental`)**, devolvendo `context_banner_2s` (Tradutor de Piada Oculta sem Spoiler), `tone`, `rewatchability`, `shareability` e ajuste fino de bordas.
+2. `picorte/ai/golden_examples.json` e `picorte/ai/game_dossiers/gta6.json` são carregados automaticamente (multiplataforma `pathlib.Path`) e injetados no prompt com `pre_context` (20s) e `post_context` (15s).
+3. Diversificação MMR garante cobertura distribuída na timeline e variedade de arquétipos no ranking final, e o teste "Benchmark Geladeira do Alanzoka" classifica o caso-âncora como `callback_oculto` (`ouro`).
+
+### Story 3.5.4: Visão Seletiva (3 Keyframes), Comentários do YouTube, Prosódia Avançada, Facecam Rica e Segmentação de Atividade (Onda 2)
+
+**Descrição:**
+Como operador, quero validação multimodal seletiva (3 keyframes em dêiticos visuais), mineração opcional de timestamps em comentários do YouTube, detecção em CPU de riso rítmico (`3–6 Hz`), susto (`>18 dB`) e taxa de fala/F0 (com hook opcional YAMNet/PANNs), `gaze-to-camera` / facepalm na facecam e segmentação de atividade do VOD.
+
+**Critérios de Aceite (AC):**
+1. `multimodal_keyframes.py` extrai 3 frames em candidatos com dêitico visual ou nota limítrofe e degrada limpo quando o provedor ativo é somente texto.
+2. `comments_miner.py` (opcional, respeitando P1) extrai timestamps `mm:ss`/`hh:mm:ss` e descrições humanas de comentários do VOD.
+3. `prosody_events.py` e `visual_games.py` expõem riso pulsado `3–6 Hz`, assinatura de susto `>18 dB`, `gaze-to-camera`, facepalm/fuga de quadro e inspeção visual; `activity_segmenter.py` classifica blocos de atividade do VOD.
+
+### Story 3.5.5: Arcos de 2 Atos, Compilação por Arquétipo, Estilo Adaptado, Query-Driven, Deep Hunt e Auto-Atualizador de Dossiês (Onda 2)
+
+**Descrição:**
+Como operador, quero montar arcos de 2 atos (*setup → payoff* distantes), compilações temáticas por arquétipo da mesma live, adaptar o estilo de badge/Cold Open ao tom do arquétipo, buscar cortes por pergunta livre (`--query`), alternar entre `Fast Radar` e `Deep Hunt` (`--hunt-mode`) e atualizar `game_dossiers/` via CLI/MCP.
+
+**Critérios de Aceite (AC):**
+1. `two_act_arc.py` e `archetype_compiler.py` montam cortes compostos via FFmpeg compatível com Windows e Linux (`AD-11`).
+2. `retention_engine.py` / `render_clips.py` adaptam o visual e o Cold Open ao arquétipo (ex.: `susto_tensao` sem spoiler; `serio_realtalk` editorial sóbrio).
+3. `--query "..."`, `--hunt-mode fast|deep` e `dossier_updater.py` funcionam via CLI e ferramentas MCP.
+
+---
+
 ## Epic 4: Escudo Anti-Strike e Anti-Desmonetização (P1 Inegociável)
 
 **Objetivo:** Implementar todos os portões automáticos de segurança do pilar **P1**: bloqueio de fonte `desconhecida`, políticas por publisher/jogo (ex.: Rockstar/GTA 6), cirurgia seletiva de música com `Demucs` na GPU, filtro "Selo Verde 15s" (micro-bleep + visão), detector visual de "React Perigoso", Score mínimo YPP (`>=70`) e deduplicação perceptual `pHash`.
@@ -212,15 +274,16 @@ Como operador, quero que os primeiros 15 segundos de todo corte recebam micro-bl
 **Capacidades cobertas:** `CAP-2`, `CAP-3`, `CAP-17`.
 **Regras de Arquitetura:** `AD-1`, `AD-5`, `AD-9`.
 
-### Story 5.1: Radar de Tendências, Calendário de Eventos, Campanhas CPM e Limpeza de 30 Dias
+### Story 5.1: Radar de Tendências, Calendário de Eventos, Tendências 48h, Modo Day-1, Campanhas CPM e Limpeza de 30 Dias
 
 **Descrição:**
-Como operador, quero um radar que consulte Twitch Top Games/Streams e YouTube Gaming em alta, cruze com o calendário de eventos e com as campanhas pagas de clipping (`campaigns`), alerte sobre fontes em alta ainda `desconhecidas` e expurgue dados de terceiros em até 30 dias.
+Como operador, quero um radar que consulte Twitch Top Games/Streams e YouTube Gaming em alta, cruze com o calendário de eventos e com as campanhas pagas de clipping (`campaigns`), injete tendências externas (48h) e Modo Day-1 (72h) no Scout e no auto-atualizador de `game_dossiers/`, alerte sobre fontes em alta ainda `desconhecidas` e expurgue dados de terceiros em até 30 dias.
 
 **Critérios de Aceite (AC):**
 1. `trend_radar.py` atualiza as tendências usando apenas as ordenações oficiais das APIs (sem criar métricas derivadas proibidas sobre canais de terceiros).
 2. Fontes em alta com status `desconhecida` geram alerta explicando o que falta para liberá-las, sem baixar nenhum vídeo delas.
 3. Job diário purga registros de terceiros com `expires_at <= now()` (regra III.E.4.d).
+4. Termos/memes em alta das últimas 48h são injetados como pistas semânticas no Scout (`Épico 3.5`), e lançamentos/patches nas primeiras 72h do Calendário ativam prioridade Day-1 e disparam atualização do respectivo `game_dossiers/<jogo>.json`.
 
 ### Story 5.2: Monitor de Lives Ao Vivo e Feeds de VODs (`live_monitor.py`)
 
@@ -234,14 +297,24 @@ Como operador, quero monitorar canais autorizados na Twitch, Kick e YouTube e ca
 1. `live_monitor.py` adaptado ao PostgreSQL e ao `policy_gate.py` captura segmentos de lives e novos VODs com reconexão automática.
 2. Segmentos de live com explosão no chat/áudio são processados prioritariamente pelo pipeline dos Épicos 3 e 4.
 
-### Story 5.3: Caçador de Clipes de Terceiros (`clip_hunter.py`) e Detector de Treta (`storyline_detector.py`)
+### Story 5.3: Caçador de Clipes de Terceiros (`clip_hunter.py`), Detector de Treta e Consenso Cross-Streamer (`storyline_detector.py`)
 
 **Descrição:**
-Como operador, quero buscar automaticamente *Twitch Clips* virais recentes das fontes autorizadas (extraindo da VOD limpa quando disponível e re-transformando por completo) e detectar quando um streamer menciona outro na transcrição para sugerir cortes de resposta.
+Como operador, quero buscar automaticamente *Twitch Clips* virais recentes das fontes autorizadas (extraindo da VOD limpa quando disponível e re-transformando por completo), detectar quando um streamer menciona outro na transcrição e identificar Consenso Cross-Streamer do Mesmo Dia (3+ fontes reagindo ao mesmo detalhe/cena em 24h).
 
 **Critérios de Aceite (AC):**
 1. `clip_hunter.py` importa candidatos, localiza o offset no VOD limpo quando existente e exige passagem completa pelo Escudo P1 e pelo Score de Transformação YPP (`>= 70`).
 2. `storyline_detector.py` identifica citações nominais entre streamers cadastrados e agrupa os trechos relacionados para compilação.
+3. Quando 3 ou mais fontes monitoradas reagem ao mesmo evento/detalhe do jogo em 24h, `storyline_detector.py` aplica boost automático de prioridade na fila e sugere compilação cross-streamer.
+
+### Story 5.4: Perfis Adaptativos e Memória de Piadas Internas (`streamer_profiles.py`)
+
+**Descrição:**
+Como operador, quero manter um perfil adaptativo por fonte autorizada contendo bordões, piadas internas (*running gags*), referências da comunidade e baseline de energia/ritmo, para que o Scout e o Editor-Chefe v2 (Épico 3.5) reconheçam ironias e referências sutis de cada streamer.
+
+**Critérios de Aceite (AC):**
+1. `streamer_profiles.py` persiste e consulta o perfil por `source_id` no PostgreSQL e injeta automaticamente suas piadas internas e tom habitual no prompt do Scout e do Editor-Chefe v2.
+2. Permite cadastrar/editar piadas internas via CLI/MCP e sugerir novas entradas de forma incremental a partir de cortes aprovados.
 
 ---
 
@@ -283,6 +356,8 @@ Como operador, quero operar a fila, o Seletor de IA (`Ollama` / `Claude` / `Gemi
 **Critérios de Aceite (AC):**
 1. Interface aplica `design/tokens/tokens.css`, logos de `design/brand/` e fontes `Antonio`, `Archivo` e `JetBrains Mono`, com layouts dedicados para desktop e celular.
 2. Inclui o Seletor de Motor de IA (4 modos), visualização das 4 notas do corte com a "Curva do Mais Repetido", botões de 1 clique da Publicação Assistida e estados de risco acessíveis (nunca indicados só por cor — WCAG AA).
+3. A Fila exibe e permite filtrar os **10 arquétipos** e os **3 tiers (`Ouro / Forte / Experimental`)** com ícone + texto acessíveis (WCAG AA), além da galeria/preview de thumbnails (`_thumb.png`) e do botão de 1 clique **"Salvar como Exemplo Ouro"** (`golden_examples.json`).
+4. O painel oferece campo de **Busca por Pergunta Livre (*Query-Driven Clipping*)**, alternador para **Modo Caça Profunda (*Deep Hunt*)** e editor simples para **`game_dossiers/`** e perfis de piadas internas (`streamer_profiles`).
 
 ---
 
@@ -301,20 +376,20 @@ Como operador, quero que o sistema colete automaticamente views, likes, comentá
 1. `metrics_collector.py` agenda e grava os snapshots de `1h`, `24h` e `7d` em `metrics_snapshots`.
 2. `reward.py` calcula $Y$ ponderado por $Q_{\text{ret}}$ e $M_{\text{camp}}$ conforme especificado no `companion-cerebro-bandit.md`.
 
-### Story 7.2: Bandit Contextual com Esquecimento Temporal e Reciclagem A/B de Gancho
+### Story 7.2: Bandit Contextual por Arquétipo/Tier com Esquecimento Temporal e Reciclagem A/B de Gancho
 
 **Descrição:**
-Como operador, quero que o Bandit aprenda separadamente o peso de cada variável (`jogo`, `streamer`, `tipo_momento`, `formato`, `duração`, `rede`, `horário`) dando menos peso ao passado ($\gamma$ diário), e que cortes com ótima retenção após 5s mas *swipe-away* alto nos 3s ganhem automaticamente uma "Segunda Vida" com novo Cold Open e novo título.
+Como operador, quero que o Bandit aprenda separadamente o peso de cada variável (`jogo`, `streamer`, `archetype` dos 10 arquétipos canônicos, `tier`, `formato`, `duração`, `rede`, `horário`) dando menos peso ao passado ($\gamma$ diário), e que cortes com ótima retenção após 5s mas *swipe-away* alto nos 3s ganhem automaticamente uma "Segunda Vida" com novo Cold Open e novo título respeitando o tom editorial do arquétipo.
 
 **Critérios de Aceite (AC):**
-1. `contextual_bandit.py` atualiza `bandit_state` com decaimento exponencial $\gamma \in [0.85, 0.92]$, reserva ~20% para exploração e reordena a fila de produção.
-2. `ab_recycler.py` detecta cortes com retenção pós-5s alta e retenção 3s baixa e cria automaticamente o job `ab_variant = 2` trocando o Cold Open de 1,5s, a faixa de contexto e o título.
+1. `contextual_bandit.py` atualiza `bandit_state` usando `archetype` (os 10 arquétipos do Épico 3.5) e `tier` com decaimento exponencial $\gamma \in [0.85, 0.92]$, reserva ~20% para exploração e reordena a fila de produção.
+2. `ab_recycler.py` detecta cortes com retenção pós-5s alta e retenção 3s baixa e cria automaticamente o job `ab_variant = 2` trocando o Cold Open de 1,5s, a faixa de contexto e o título sem violar o estilo editorial do arquétipo.
 
-### Story 7.3: Autocaptura de Dataset Rotulado (`active_learning.py`) e Treino Local na RTX 4060 Ti
+### Story 7.3: Autocaptura de Dataset Rotulado (`active_learning.py`) e Pré-Classificador Local de Arquétipos na RTX 4060 Ti
 
 **Descrição:**
-Como operador, quero que cortes campeões (`>= 2.5x` mediana) e fracassos (`<= 0.35x` mediana) tenham seus vetores multimodais e keyframes salvos automaticamente em `dataset_rotulado/` e que `train_local_scorer.py` treine nosso modelo próprio na RTX 4060 Ti para calibrar os pesos do pontuador.
+Como operador, quero que cortes campeões (`>= 2.5x` mediana) e fracassos (`<= 0.35x` mediana) tenham seus vetores multimodais, `archetype`, `tier` e keyframes salvos automaticamente em `dataset_rotulado/`, que campeões sejam sugeridos para `golden_examples.json` e que `train_local_scorer.py` treine nosso calibrador e um Pré-Classificador Local de Arquétipos na RTX 4060 Ti.
 
 **Critérios de Aceite (AC):**
-1. `active_learning.py` exporta `features.npz`, `keyframes/` e `label.json` para `dataset_rotulado/<clip_id>/` e registra em `dataset_samples`.
-2. `train_local_scorer.py` roda sob o `vram_runner.py` (preferencialmente no Modo Madrugada), treina o classificador local sobre os exemplos acumulados e atualiza os pesos usados pelo `score_clips.py`.
+1. `active_learning.py` exporta `features.npz`, `keyframes/` e `label.json` (incluindo `archetype` e `tier`) para `dataset_rotulado/<clip_id>/`, registra em `dataset_samples` e gera sugestão de promoção de campeões para `golden_examples.json`.
+2. `train_local_scorer.py` roda sob o `vram_runner.py` (preferencialmente no Modo Madrugada), treina o calibrador de pesos e o **Pré-Classificador Local de Arquétipos** sobre os exemplos acumulados e atualiza os pesos/probabilidades consumidos pelo `score_clips.py`.

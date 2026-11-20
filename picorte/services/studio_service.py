@@ -176,3 +176,82 @@ class StudioService:
             "video": self.db.fetch_one("SELECT * FROM videos WHERE id = ?", (video_id,)),
             "clips": synced_clips,
         }
+
+    def record_manual_publication(
+        self,
+        *,
+        project_id: str,
+        clip_stem: str,
+        platform: str,
+        external_url: str = "",
+        source_url: str = "",
+    ) -> dict[str, Any]:
+        """Registra publicação assistida/manual na tabela `publications` (alimenta o Épico 7 / P3)."""
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc).isoformat()
+        video_id = f"studio-{project_id}"
+        clip_id = f"{video_id}:{clip_stem}"
+
+        if not self.db.fetch_one("SELECT id FROM videos WHERE id = ?", (video_id,)):
+            self.db.execute(
+                """INSERT INTO videos
+                   (id, source_id, origin_type, source_url, game_slug, duration_seconds, workdir_path, status, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (video_id, None, "vod", str(source_url or ""), "", 0.0, "", "complete", now, now),
+            )
+        if not self.db.fetch_one("SELECT id FROM clips WHERE id = ?", (clip_id,)):
+            self.db.execute(
+                """INSERT INTO clips
+                   (id, video_id, parent_long_clip_id, format_type, ab_variant, start_sec, end_sec,
+                    score_chat, score_audio, score_visual, score_text, score_overall,
+                    ypp_transform_score, phash_signature, llm_mode_used, risk_status,
+                    mp4_path, thumbnail_path, proposed_title, context_banner_2s, pinned_comment_debate, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    clip_id, video_id, None, "short_9_16", 1, 0.0, 0.0,
+                    0.0, 0.0, 0.0, 0.0, 0.0, 0, "", "manual", "approved",
+                    "", "", clip_stem, "", "", now,
+                ),
+            )
+
+        existing = self.db.fetch_one(
+            "SELECT * FROM publications WHERE clip_id = ? AND platform = ? ORDER BY created_at DESC LIMIT 1",
+            (clip_id, platform),
+        )
+        if existing:
+            self.db.execute(
+                "UPDATE publications SET status = ?, external_url = ?, publish_mode = ? WHERE id = ?",
+                ("publicado", str(external_url or existing.get("external_url") or ""), "assisted_manual", existing["id"]),
+            )
+            return self.db.fetch_one("SELECT * FROM publications WHERE id = ?", (existing["id"],))  # type: ignore[return-value]
+
+        return self.repos.publications.create_publication(
+            clip_id=clip_id,
+            platform=platform,
+            publish_mode="assisted_manual",
+            status="publicado",
+            external_url=str(external_url or ""),
+        )
+
+    def list_project_publications(self, project_id: str) -> dict[str, dict[str, dict[str, Any]]]:
+        """Retorna mapa clip_stem -> platform -> registro de publicação já gravado no banco."""
+        prefix = f"studio-{project_id}:"
+        rows = self.db.fetch_all(
+            "SELECT * FROM publications WHERE clip_id LIKE ? ORDER BY created_at DESC",
+            (prefix + "%",),
+        )
+        result: dict[str, dict[str, dict[str, Any]]] = {}
+        for row in rows:
+            cid = str(row.get("clip_id") or "")
+            stem = cid[len(prefix):] if cid.startswith(prefix) else cid
+            plat = str(row.get("platform") or "")
+            if stem and plat and plat not in result.setdefault(stem, {}):
+                result[stem][plat] = {
+                    "id": row.get("id"),
+                    "status": row.get("status"),
+                    "publish_mode": row.get("publish_mode"),
+                    "external_url": row.get("external_url") or "",
+                    "created_at": row.get("created_at") or "",
+                }
+        return result

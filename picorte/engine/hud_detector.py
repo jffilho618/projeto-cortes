@@ -18,6 +18,27 @@ HUD_KEYWORDS_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Classes genéricas de COCO que representam pessoas/mobília de webcam, nunca banners de HUD.
+IGNORED_YOLO_LABELS = {
+    "person", "chair", "couch", "bed", "dining table", "tv", "laptop",
+    "keyboard", "mouse", "cell phone", "bottle", "cup", "book", "clock",
+    "potted plant", "tie", "backpack", "handbag",
+}
+
+
+def _box_inside_exclude(bbox: Any, exclude_box: tuple[int, int, int, int] | None) -> bool:
+    if not exclude_box or not bbox or len(bbox) != 4:
+        return False
+    try:
+        x1, y1, x2, y2 = (float(v) for v in bbox)
+        ex1, ey1, ex2, ey2 = (float(v) for v in exclude_box)
+    except (TypeError, ValueError):
+        return False
+    inter_x = max(0.0, min(x2, ex2) - max(x1, ex1))
+    inter_y = max(0.0, min(y2, ey2) - max(y1, ey1))
+    area = max(1e-6, (x2 - x1) * (y2 - y1))
+    return (inter_x * inter_y) / area >= 0.45
+
 
 def _sample_hud_frames(video_path: str | Path, start: float, end: float, fps: float = 1.0) -> list[np.ndarray]:
     return sample_video_frames(video_path, start, end, fps=fps)
@@ -68,8 +89,14 @@ def _default_yolo_runner_factory() -> Callable[[np.ndarray], list[dict[str, Any]
                 boxes = getattr(r, "boxes", None)
                 if boxes is None:
                     continue
-                for cls_id, conf in zip(boxes.cls.tolist(), boxes.conf.tolist()):
-                    out.append({"label": str(names.get(int(cls_id), cls_id)), "conf": float(conf)})
+                xyxy = boxes.xyxy.tolist() if getattr(boxes, "xyxy", None) is not None else [None] * len(boxes.cls)
+                for cls_id, conf, bbox in zip(boxes.cls.tolist(), boxes.conf.tolist(), xyxy):
+                    out.append({
+                        "label": str(names.get(int(cls_id), cls_id)),
+                        "class_id": int(cls_id),
+                        "conf": float(conf),
+                        "bbox": bbox,
+                    })
             return out
 
         return _run
@@ -88,6 +115,7 @@ def detect_hud_events(
     ocr_runner: Callable[[np.ndarray, int], list[str]] | None = None,
     yolo_runner: Callable[[np.ndarray], list[dict[str, Any]]] | None = None,
     vram_runner: VRAMRunner | None = None,
+    exclude_box: tuple[int, int, int, int] | None = None,
 ) -> dict[str, Any]:
     """Detecta eventos de HUD/Killfeed usando RapidOCR+OpticalFlow (low) ou YOLO11n+RapidOCR (high)."""
     resolved = resolve_vision_preset(vision_preset, vram_mib=vram_mib, gpu_name=gpu_name)
@@ -136,12 +164,18 @@ def detect_hud_events(
             if yolo_fn is not None:
                 dets = yolo_fn(frame) or []
                 for det in dets:
+                    label = str(det.get("label", "")).strip().lower()
+                    cls_id = det.get("class_id")
+                    if cls_id == 0 or label in IGNORED_YOLO_LABELS:
+                        continue
+                    if _box_inside_exclude(det.get("bbox"), exclude_box):
+                        continue
                     if float(det.get("conf", 0.0)) >= 0.45:
                         yolo_hits += 1
                         events.append({"t": ts, "keyword": str(det.get("label", "HUD")).upper(), "conf": float(det["conf"])})
 
         ocr_hits = sum(1 for ev in events if "text" in ev)
-        raw = min(10.0, ocr_hits * 3.8 + flow_spikes * 1.2 + (yolo_hits * 0.9 if use_yolo else 0.0))
+        raw = min(10.0, ocr_hits * 3.8 + min(2.4, flow_spikes * 0.8) + (min(3.5, yolo_hits * 0.7) if use_yolo else 0.0))
         return {
             "preset": preset,
             "backend_used": backend_used,

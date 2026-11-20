@@ -1,0 +1,27 @@
+{
+  "slug": "gta6",
+  "display_name": "Grand Theft Auto VI (GTA 6)",
+  "aliases": [
+    "gta 6",
+    "gta vi",
+    "grand theft auto 6",
+    "grand theft auto vi",
+    "vice city",
+    "leonida"
+  ],
+  "updated_at": "2026-11-19",
+  "cultural_callbacks": [
+    "Animação da geladeira no trailer onde o item spawna direto na mão do Jason (verificar se a Rockstar corrigiu)",
+    "Física de líquidos, cerveja e bolhas nas garrafas vista no trailer",
+    "Protagonistas Lucia e Jason e comparações com GTA 5 e Red Dead Redemption 2",
+    "Memes de 'antes de GTA 6' e promessas de realismo extremo da Rockstar"
+  ],
+  "hot_details_to_watch": [
+    "Animações de pegar objetos, abrir portas, geladeiras e interações cotidianas",
+    "Reação de NPCs, polícia, trânsito e física de água/veículos",
+    "Easter eggs de Vice City, GTA San Andreas, GTA 5 e Red Dead Redemption 2"
+  ],
+  "spoiler_watch_p1": [
+    "Cutscenes de final de campanha ou vazamentos vedados (sinalizar para policy_gate do Épico 4)"
+  ]
+}

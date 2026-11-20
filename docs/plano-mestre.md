@@ -1,7 +1,7 @@
 # Plano Mestre — projeto-cortes (Picorte)
 
-> **Versão 2 (Plano Mestre Evolutivo) · 2026-11-18** · Mantido em `docs/plano-mestre.md`.
-> Substitui a Versão 1 (modelo em cachoeira focado em SaaS) após a decisão da **E3.5**: **foco 100% em lucrar com os próprios canais de cortes** (começando pelo **Bomba Clips** em games), partindo dos clones open-source auditados em `referencias/` e evoluindo camada por camada até o sistema autônomo completo.
+> **Versão 2.1 (Plano Mestre Evolutivo + Épico 3.5) · 2026-11-19** · Mantido em `docs/plano-mestre.md`.
+> Substitui a Versão 1 (modelo em cachoeira focado em SaaS) após a decisão da **E3.5**: **foco 100% em lucrar com os próprios canais de cortes** (começando pelo **Bomba Clips** em games), partindo dos clones open-source auditados em `referencias/` e evoluindo camada por camada até o sistema autônomo completo. Atualizado em **2026-11-19** via `bmad-correct-course` para incluir o **Épico 3.5 (Motor de Caça Extraordinária)** e a alocação da Onda 3 nos Épicos 5, 6 e 7.
 
 ---
 
@@ -54,25 +54,29 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
   Épico 2: Controle por Agente (Skill + MCP para Claude/Gemini) + Banco PostgreSQL local + Gerenciador de Fila/VRAM + Seletor de IA na UI ✅
    │
    ▼
-  Épico 3: Upgrade Multimodal 4D (Sismógrafo do Chat + Áudio + Visão Computacional de Games: Facecam/HUD/Micro-expressões) ⏳ PRÓXIMO
+  Épico 3: Upgrade Multimodal 4D (Sismógrafo do Chat + Áudio + Visão Computacional de Games: Facecam/HUD/Micro-expressões) ✅
            + Engenharia de Retenção (Cold Open 1,5s, Contexto 2s, Seamless Loop, Layout Dinâmico, Sniper Crop,
              Compilação Cross-Streamer, Cortes Longos 3-5 min + Fábrica de Thumbnail)
    │
    ▼
-  Épico 4: Escudo Anti-Strike P1 (Status da fonte, Políticas por Publisher/GTA 6, Cirurgia de Música com Demucs seletivo,
+  Épico 3.5: Motor de Caça Extraordinária (10 Arquétipos + 3 Tiers + Recall Multi-Pista + Full-VOD Scout + ✅
+             Editor-Chefe v2 + golden_examples + game_dossiers + Keyframes Seletivos + Query-Driven + Deep Hunt)
+   │
+   ▼
+  Épico 4: Escudo Anti-Strike P1 (Status da fonte, Políticas por Publisher/GTA 6, Cirurgia de Música com Demucs seletivo, ⏳ PRÓXIMO
            Selo Verde 15s, Detector Visual de React Perigoso, Score YPP, Deduplicação pHash)
    │
    ▼
-  Épico 5: Olho para Fora (Radar Twitch/YouTube + Calendário de Eventos + Multiplicador de Campanhas Pagas CPM +
-           Monitor de Lives AO VIVO e VODs + Caçador/Transformador de Clipes Virais de Terceiros + Detector de Treta)
+  Épico 5: Olho para Fora (Radar Twitch/YouTube + Tendências 48h + Modo Day-1 72h + Calendário + Campanhas CPM +
+           Monitor de Lives AO VIVO + Caçador de Clipes + Consenso Cross-Streamer + Memória de Piadas Internas)
    │
    ▼
   Épico 6: Publicação Autônoma nas 5 Redes (Shorts + Related Video -> Longo, YT Longo, TikTok, Reels, FB + 1º Comentário Fixado)
-           + Monitor de Claims com Disjuntor Global + Painel Web "Estúdio do Criador" (`DESIGN.md` em PC e Celular)
+           + Monitor de Claims com Disjuntor Global + Painel Web "Estúdio do Criador" (`DESIGN.md`, 10 Arquétipos/3 Tiers, Query-Driven/Deep Hunt)
    │
    ▼
-  Épico 7: O Cérebro que Aprende (Coletor de Snapshots 1h/24h/7d + Bandit Contextual com Esquecimento +
-           Reciclagem A/B de Gancho "Segunda Vida" + Autocaptura de Dataset Rotulado Active Learning na 4060 Ti)
+  Épico 7: O Cérebro que Aprende (Coletor de Snapshots 1h/24h/7d + Bandit Contextual por Arquétipo/Tier com Esquecimento +
+           Reciclagem A/B de Gancho "Segunda Vida" + Active Learning + Pré-Classificador Local de Arquétipos na 4060 Ti)
 ```
 
 ---
@@ -222,6 +226,22 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 
 ---
 
+### ÉPICO 3.5 · Motor de Caça Extraordinária — 10 Arquétipos, Recall Multi-Pista, Full-VOD Scout e Editor-Chefe v2 ✅ (2026-11-19)
+- **Objetivo:** tunar o motor de descoberta do Épico 3 para que **nenhum corte extraordinário fique de fora** — capturando desde piadas ocultas/callbacks culturais silenciosos (ex.: *Alanzoka testando a animação da geladeira do GTA 6*) até caos co-op, rage/tilt, real-talk sério, polêmicas, descobertas, clutches/fails, sustos, ironia *deadpan* / instant karma e trocas com o chat — eliminando os gargalos reais observados em produção.
+- **Blueprint técnico completo:** `_bmad-output/planning-artifacts/epic-3-5-motor-caca-extraordinaria.md` (cobrindo os 16→10 arquétipos, sinais, contratos JSON, prompts e matriz TDD) + `_bmad-output/planning-artifacts/sprint-change-proposal-2026-11-19.md`.
+- **Taxonomia Canônica:** 10 arquétipos (`callback_oculto`, `caos_coop`, `rage_tilt`, `serio_realtalk`, `polemica_hottake`, `descoberta_detalhe`, `clutch_fail`, `susto_tensao`, `deadpan_karma`, `chat_trolagem`) + 3 tiers (`ouro`, `forte`, `experimental`).
+- **O que será feito (em 2 ondas):**
+  - **Onda 1 (Impacto Imediato — Histórias `3.5.1` a `3.5.3`):**
+    1. **Correções Estruturais + Sinais Gratuitos do YouTube (`3.5.1`):** persistir `heatmap` (*Most Replayed*) e `chapters` no `ingest.py`; aplicar **NMS temporal obrigatório antes do loop `[vision 1/12]`** em `score_clips.py`; filtrar falsos positivos COCO `person` no `hud_detector.py`; converter `ANAPHORIC_OPENERS` em detector de **Dêiticos Visuais** (`"olha isso"`, `"olha a mão"`, `"espera"`).
+    2. **Recall Multi-Pista (5 Pistas), Payoff-First Rewind, Full-VOD Narrative Scout e Durações Flexíveis (`3.5.2`):** substituir a porta estreita única por 5 pistas com cota reservada (`multitrack.py`), filtro anti-lixo, léxico PT-BR + TF-IDF local + Silêncio Magnético, **Full-VOD Narrative Scout (`llm_scout.py`)** com Map-Reduce e saída por `sentence_id` (zero timestamp alucinado), *Payoff-First Rewind* e faixas flexíveis (`8–14s`, `15–59s`, `60–120s`, `120–300s`).
+    3. **Editor-Chefe v2 + Contexto Cultural + Diversificação MMR (`3.5.3`):** novo prompt com Conselho de 4 Caçadores Especialistas em `llm_router.py`, biblioteca editável `picorte/ai/golden_examples.json`, dossiês por jogo `picorte/ai/game_dossiers/` (`gta6.json` inicial), injeção de `pre_context`/`post_context`, Tradutor de Piada Oculta sem Spoiler e diversificação MMR por tempo e arquétipo.
+  - **Onda 2 (Sensores Ricos + Narrativa Avançada — Histórias `3.5.4` e `3.5.5`):**
+    4. **Visão Seletiva, Comentários, Prosódia Avançada e Facecam Rica (`3.5.4`):** extração de 3 keyframes em dêiticos visuais (`multimodal_keyframes.py`), mineração opcional de timestamps em comentários do YouTube (`comments_miner.py`), prosódia em CPU (riso pulsado `3–6 Hz`, susto `>18 dB`, taxa de fala/F0, contraste voz×jogo, hook opcional YAMNet/PANNs com fallback), `gaze-to-camera` / facepalm / inspeção visual no `visual_games.py` e segmentação de atividade (`activity_segmenter.py`).
+    5. **Narrativa Avançada & Modos Sob Demanda (`3.5.5`):** arcos de 2 atos (*setup → payoff* distantes em `two_act_arc.py`), compilação automática por arquétipo (`archetype_compiler.py`), estilo de badge e Cold Open adaptados ao arquétipo (`susto_tensao` sem spoiler, `serio_realtalk` sóbrio), **Busca por Pergunta Livre (`--query`)**, **Modo Caça Profunda (`--hunt-mode fast|deep`)** e auto-atualizador CLI/MCP de dossiês (`dossier_updater.py`).
+- **Critério de saída do Épico 3.5:** suíte completa verde (376 testes anteriores + novos testes TDD `3.5.1`–`3.5.5`), benchmark do caso geladeira do Alanzoka classificado como `callback_oculto` (`ouro`), e validação em VOD real sem repetição de janelas no `[vision]` nem saturação no `hud_detector`.
+
+---
+
 ### ÉPICO 4 · Escudo Anti-Strike e Anti-Desmonetização (P1 Inegociável) ⏳ PRÓXIMO
 - **Objetivo:** blindar 100% da operação antes que qualquer vídeo vá para a fila de publicação, garantindo que nenhuma fonte proibida, música com copyright, spoiler vedado, react cruzado ou abertura desmonetizável passe.
 - **Skills de apoio:** `cortes-pilares` (validação de regras P1) e `bmad-code-review` (revisão adversarial obrigatória neste épico).
@@ -251,20 +271,24 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
   - Monitor assíncrono de lives e feeds: `referencias/fralapo_clippyme/src/clippyme/monitoring/live_monitor.py`.
   - Clientes de plataforma: `referencias/fralapo_clippyme/src/clippyme/integrations/` (`twitch_client.py`, `kick_client.py`, `youtube_feed.py`).
 - **O que será feito (`hunter/`):**
-  1. **Radar de Tendências e Calendário de Eventos (`trend_radar.py`):**
+  1. **Radar de Tendências, Calendário de Eventos, Tendências 48h e Modo Day-1 (`trend_radar.py`):**
      - Consulta periodicamente a **API oficial da Twitch** (`Get Top Games`, `Get Streams`) e a **YouTube Data API v3** (`videos.list?chart=mostPopular&videoCategoryId=20` — Gaming) para medir quais jogos e streamers estão em pico de audiência **hoje**.
      - Cruza com a tabela de **Calendário de Eventos** (lançamentos de jogos, atualizações, campeonatos de e-sports) e com a tabela de **Campanhas Pagas de Clipping (`campaigns`)** (aplicando o multiplicador de CPM).
+     - **Cruzamento com Tendências Externas (48h) + Modo Day-1 (72h):** injeta termos e memes em alta nas últimas 48h como pistas semânticas no Scout do Épico 3.5; nas primeiras 72h de um lançamento/patch grande do Calendário, ativa prioridade Day-1 (primeiras reações, detalhes, callbacks e bugs) e dispara o **Auto-Atualizador de Dossiê Cultural (`game_dossiers/`)**.
      - Se detectar um streamer/fonte explodindo de audiência que ainda está com status `desconhecida`, gera uma notificação clara no painel/agente: *"Fonte X está em alta em [Jogo], mas está bloqueada (status: desconhecida). O que falta para liberar: [verificar campanha / permissão]."*
      - Limpa automaticamente dados brutos de canais de terceiros com mais de 30 dias (cumprindo a regra III.E.4.d da API do YouTube).
   2. **Monitor de Lives AO VIVO e VODs (`live_monitor.py` transplantado e evoluído):**
      - Vigia as fontes autorizadas na Twitch, Kick e YouTube.
      - Quando uma fonte entra **ao vivo**, captura segmentos contínuos de 3 a 5 minutos via `streamlink`/`FFmpeg` junto com o fluxo do chat ao vivo.
-     - Se o **Sismógrafo do Chat + Áudio** disparar acima do limiar de explosão, envia o segmento imediatamente para a fila prioritária dos Épicos 3 e 4, gerando o corte minutos depois do lance acontecer ao vivo.
+     - Se o **Sismógrafo do Chat + Áudio** disparar acima do limiar de explosão, envia o segmento imediatamente para a fila prioritária dos Épicos 3, 3.5 e 4, gerando o corte minutos depois do lance acontecer ao vivo.
   3. **Caçador e Transformador de Clipes Já Prontos de Terceiros (`clip_hunter.py`):**
      - Busca os *Twitch Clips* mais vistos das últimas horas nas categorias/streamers autorizados.
-     - Baixa o trecho original limpo (da VOD correspondente, quando disponível, para ter qualidade máxima e zero overlay) ou o próprio clipe, passa pelo pontuador 4D (Épico 3) e pelo Escudo Anti-Strike (Épico 4), e aplica transformação completa (Cold Open, Contexto 2s, Layout Dinâmico, legenda nossa) para virar obra própria (P2).
-  4. **Detector de "Treta / Pingue-Pongue" (`storyline_detector.py`):**
+     - Baixa o trecho original limpo (da VOD correspondente, quando disponível, para ter qualidade máxima e zero overlay) ou o próprio clipe, passa pelo pontuador 4D + Caça Extraordinária (Épicos 3/3.5) e pelo Escudo Anti-Strike (Épico 4), e aplica transformação completa (Cold Open, Contexto 2s, Layout Dinâmico, legenda nossa) para virar obra própria (P2).
+  4. **Detector de "Treta / Pingue-Pongue" e Consenso Cross-Streamer do Mesmo Dia (`storyline_detector.py`):**
      - Varre as transcrições procurando menções aos nomes/apelidos dos outros streamers monitorados. Quando o Streamer A fala do Streamer B, busca nos clipes/VODs recentes do Streamer B menções de volta e sugere a montagem de um corte combinado.
+     - **Consenso Cross-Streamer do Mesmo Dia:** quando **3 ou mais fontes monitoradas** reagem ao mesmo detalhe, cena ou assunto do jogo em 24h, eleva automaticamente a prioridade na fila e sugere compilação cross-streamer.
+  5. **Perfis Adaptativos e Memória de Piadas Internas (`streamer_profiles.py`):**
+     - Mantém perfil vivo por fonte autorizada (`streamer_profiles` no PostgreSQL) com bordões, *running gags* (piadas recorrentes), referências da comunidade e baseline de voz/energia do streamer, injetado no Scout e no Editor-Chefe v2 (Épico 3.5) para reconhecer ironias e piadas internas com alta precisão.
 - **Critério de saída do Épico 5:** o Radar lista os jogos/streamers em alta agora, emite alerta para fontes não liberadas, o `live_monitor` captura e corta um segmento de teste de live/VOD e o `clip_hunter` importa e re-transforma um clipe curto dentro das regras P1/P2.
 
 ---
@@ -291,7 +315,8 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
   4. **Painel Web "Estúdio do Criador" (Desktop + Mobile Nativo — `DESIGN.md`):**
      - Evolui o `dashboard.py` / `design/mock/fila.html` com os tokens de `design/tokens/tokens.css` (`#FF4D1C` laranja-brasa, `#F59E0B` âmbar para "pede você", fontes `Antonio`, `Archivo` e `JetBrains Mono`).
      - Telas enxutas para PC e para uso rápido de uma mão no celular:
-       - **Fila e Revisão Rápida:** player vertical/horizontal com o motivo da escolha (notas de chat/áudio/visão/texto, campanha ativa, Curva do Mais Repetido), botões de 1 toque para aprovar, trocar gancho ou pausar fonte;
+       - **Fila e Revisão Rápida:** player vertical/horizontal com o motivo da escolha (notas de chat/áudio/visão/texto, campanha ativa, Curva do Mais Repetido), **badges e filtros acessíveis (ícone + texto, WCAG AA) dos 10 arquétipos e 3 tiers (`Ouro / Forte / Experimental`)**, galeria de thumbnails (`_thumb.png`), botões de 1 toque para aprovar, trocar gancho, pausar fonte ou **"Salvar como Exemplo Ouro"** (`golden_examples.json`);
+       - **Caça Sob Demanda & Curadoria Cultural:** campo de **Busca por Pergunta Livre (*Query-Driven Clipping*)**, alternador **Modo Caça Profunda (*Deep Hunt*)** e editor simples para **`game_dossiers/`** e **piadas internas (`streamer_profiles`)**;
        - **Fontes, Campanhas e Escudo P1:** gestão de permissões, políticas por jogo e estado do disjuntor;
        - **Saúde das Redes e da GPU:** cotas restantes do dia, status das auditorias (T1) e fila da RTX 4060 Ti.
 - **Critério de saída do Épico 6:** publicação ponta a ponta (em modo privado/teste ou público conforme T1) funcionando com tokens cifrados, disjuntor de claim testado (simulando um claim e verificando a pausa imediata em todas as redes) e painel web aprovado no desktop e no celular.
@@ -306,15 +331,15 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
   2. **Fórmula de Recompensa Anti-Clickbait (`reward.py`):**
      - Calcula a recompensa de cada corte combinando **views normalizadas pela mediana recente do canal** ponderadas pela **retenção** (penalizando cortes onde as pessoas clicam mas abandonam logo após os primeiros segundos) e multiplicadas pelo fator financeiro se fizer parte de uma **Campanha Paga ativa (CPM)**.
   3. **Bandit Contextual / Hierárquico com Esquecimento (`contextual_bandit.py`):**
-     - Modela separadamente o efeito de cada variável: `jogo`, `streamer/fonte`, `tipo_momento` (engraçado, jogada, polêmica, reação), `formato` (Short <60s vs Longo 3–5 min vs Cross-Streamer), `duração`, `horário` e `rede`.
-     - Assim, se *"GTA 6 está explodindo independente do streamer"*, o peso da feature `jogo=GTA_6` sobe sozinho e já prioriza cortes de GTA 6 de um streamer novo!
+     - Modela separadamente o efeito de cada variável: `jogo`, `streamer/fonte`, **`archetype` (os 10 arquétipos canônicos do Épico 3.5)**, **`tier` (`ouro`, `forte`, `experimental`)**, `formato` (Micro/Short <60s vs Vertical Estendido 60–120s vs Longo 3–5 min vs Cross-Streamer), `duração`, `horário` e `rede`.
+     - Assim, se *"GTA 6 com `callback_oculto` está explodindo no YouTube Shorts independente do streamer"*, os pesos de `jogo=GTA_6` e `archetype=callback_oculto` sobem sozinhos e já priorizam cortes similares de um streamer novo!
      - Aplica **fator de desconto temporal ($\gamma$ diário / janela deslizante)** sobre observações antigas: quando um assunto esfria, o peso dele cai rápido e o sistema muda de foco em dias, reservando ~20% da cota diária para **exploração controlada** de novas apostas vindas do Radar (Épico 5).
   4. **Reciclagem A/B de Gancho — "Segunda Vida" (`ab_recycler.py`):**
      - Identifica cortes onde a retenção do corpo do vídeo (após 5s) ficou no quartil superior (>70%), mas o *swipe-away* nos primeiros 3s foi ruim.
-     - Envia automaticamente um job de re-renderização trocando o **Cold Open de 1,5s**, a **Faixa de Contexto** e o **Título** para testar uma segunda versão (em outra rede ou após janela de respiro).
+     - Envia automaticamente um job de re-renderização trocando o **Cold Open de 1,5s**, a **Faixa de Contexto** e o **Título** (sempre preservando o **tom editorial do arquétipo**, ex.: sóbrio em `serio_realtalk`, sem spoiler em `susto_tensao`) para testar uma segunda versão (em outra rede ou após janela de respiro).
   5. **Autocaptura de Dataset Rotulado e Treino Local na RTX 4060 Ti (`active_learning.py`):**
-     - Sempre que um corte fecha o snapshot de 24h/7d como **campeão** (`>3x` a mediana de recompensa do canal) ou **fracasso claro** (`<0.3x` a mediana), salva automaticamente um pacote leve em `dataset_rotulado/` contendo os vetores extraídos daquele trecho (curva do chat, curva de áudio 1 Hz, vetores de visão 2 fps, features de texto e rótulo real `y`).
-     - Inclui script `train_local_scorer.py` (XGBoost / MLP leve / LoRA em PyTorch na 4060 Ti) que treina um classificador próprio sobre os nossos dados reais para calibrar os pesos do `score_clips.py` do Épico 3.
+     - Sempre que um corte fecha o snapshot de 24h/7d como **campeão** (`>=2.5x` a mediana de recompensa do canal) ou **fracasso claro** (`<=0.35x` a mediana), salva automaticamente um pacote leve em `dataset_rotulado/` contendo os vetores extraídos daquele trecho (curva do chat, curva de áudio 1 Hz, vetores de visão 2 fps, features de texto, **`archetype`**, **`tier`** e rótulo real `y`), e **sugere automaticamente campeões para enriquecer o `golden_examples.json`**.
+     - Inclui script `train_local_scorer.py` (XGBoost / MLP leve / LoRA em PyTorch na 4060 Ti) que treina, além do calibrador de pesos de `score_clips.py`, um **Pré-Classificador Local de Arquétipos** que atribui probabilidades por arquétipo antes do LLM.
 - **Critério de saída do Épico 7:** ciclo fechado rodando de ponta a ponta — snapshots sendo gravados no Postgres, Bandit atualizando prioridades com decaimento temporal, reciclador A/B gerando segunda versão para corte de alta retenção interna e `train_local_scorer.py` treinando sobre `dataset_rotulado/`.
 
 ---
@@ -328,3 +353,4 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 | 2026-11-18 | **Foco 100% em lucrar com os próprios cortes; SaaS descartado.** | Remove `workspace_id`, cobrança, termos de SaaS e E17. Simplifica o banco Postgres e libera o estudo/uso de qualquer referência open-source local. |
 | 2026-11-18 | **Estratégia Evolutiva a partir de Clones Open-Source (`referencias/`).** | `mehbul/chopify` (MIT) escolhido como chassi do motor de vídeo, somado a transplantes do `fralapo/clippyme` (MIT: `live_monitor.py` e integrações) e `FujiwaraChoki/supoclip` (`reaction_layout.py`, `social/` e `mcp/`). |
 | 2026-11-18 | **Incorporação das alavancas do Brainstorming BMAD (exceto Jump-Cut + Compressor).** | Entram no mapa: Sismógrafo do Chat, Cold Open 1,5s, Contexto 2s, Seamless Loop, Compilação Cross-Streamer, Sniper Crop, Layout Dinâmico, HUD/Killfeed, Micro-expressões Facecam, Funil Short→Longo 4min + Thumbnail automática, 1º Comentário Fixado, Multiplicador de Campanhas Pagas CPM, Selo Verde 15s, Demucs seletivo, Detector de React Perigoso, Score YPP, `pHash`, Reciclagem A/B de Gancho, Autocaptura de Dataset Active Learning e Modo Madrugada GPU. |
+| 2026-11-19 | **Inclusão do Épico 3.5 (Motor de Caça Extraordinária) + Onda 3 nos Épicos 5, 6 e 7 (`bmad-correct-course` + `cortes-pilares`: SEGUE).** | Garante captura de momentos sutis e todos os 16→10 arquétipos gamers + 3 tiers (ex.: callback cultural tipo geladeira do GTA 6), corrige NMS pré-visão e `hud_detector`, cria `llm_scout.py`, Multi-Pista (5 pistas), `golden_examples.json`, `game_dossiers/`, Keyframes Seletivos, Query-Driven/Deep Hunt, e distribui Tendências 48h/Day-1/Consenso/Piadas Internas (Épico 5), UI de Arquétipos/Tiers (Épico 6) e Bandit por Arquétipo + Pré-Classificador Local (Épico 7). Blueprint em `_bmad-output/planning-artifacts/epic-3-5-motor-caca-extraordinaria.md`. |

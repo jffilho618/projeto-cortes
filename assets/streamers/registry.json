@@ -1,0 +1,84 @@
+{
+  "channel_brand": {
+    "name": "Bomba Clips",
+    "handle": "@bombaclips4",
+    "contact_email": "jffilho618@gmail.com"
+  },
+  "streamers": [
+    {
+      "slug": "alanzoka",
+      "display_name": "ALANZOKA",
+      "aliases": [
+        "alanzoka",
+        "alan",
+        "electronicdesirege",
+        "lives do alanzoka",
+        "alanzoka lives"
+      ],
+      "accent_hex": "#E11D2E",
+      "twitch": "https://www.twitch.tv/alanzoka",
+      "youtube": "https://www.youtube.com/@alanzoka",
+      "handle": "@alanzoka"
+    },
+    {
+      "slug": "davy-jones",
+      "display_name": "DAVY JONES",
+      "aliases": [
+        "davy jones",
+        "davi jones",
+        "gameplayrj",
+        "davyjones",
+        "cortes do davy jones",
+        "flow games"
+      ],
+      "accent_hex": "#F59E0B",
+      "twitch": "https://www.twitch.tv/davyjones",
+      "youtube": "https://www.youtube.com/@Gameplayrj",
+      "handle": "@davyjones"
+    },
+    {
+      "slug": "coringa",
+      "display_name": "CORINGA",
+      "aliases": [
+        "coringa",
+        "loud coringa",
+        "loud_coringa",
+        "loud cori",
+        "victor augusto",
+        "coringa lives"
+      ],
+      "accent_hex": "#16A34A",
+      "twitch": "https://www.twitch.tv/loud_coringa",
+      "youtube": "https://www.youtube.com/@loud_coringa",
+      "handle": "@loud_coringa"
+    },
+    {
+      "slug": "bistecone",
+      "display_name": "BISTECONE",
+      "aliases": [
+        "bistecone",
+        "bisteconee",
+        "bistecone lives",
+        "cortes do bistecone"
+      ],
+      "accent_hex": "#EA580C",
+      "twitch": "https://www.twitch.tv/bisteconee",
+      "youtube": "https://www.youtube.com/@bistecone",
+      "handle": "@bistecone"
+    },
+    {
+      "slug": "brksedu",
+      "display_name": "BRKSEDU",
+      "aliases": [
+        "brksedu",
+        "brks edu",
+        "edu",
+        "bilada"
+      ],
+      "accent_hex": "#2563EB",
+      "twitch": "https://www.twitch.tv/brksedu",
+      "youtube": "https://www.youtube.com/@BRKsEDU",
+      "handle": "@BRKsEDU"
+    }
+  ]
+}

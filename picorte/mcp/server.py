@@ -82,6 +82,37 @@ class PicorteMCPServer:
                     "properties": {"video_id": {"type": "string"}},
                 },
             },
+            {
+                "name": "picorte_buscar_por_pergunta",
+                "description": "Busca trechos específicos em um projeto/VOD usando pergunta livre em linguagem natural (Query-Driven Clipping).",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["workdir", "query"],
+                    "properties": {
+                        "workdir": {"type": "string"},
+                        "query": {"type": "string"},
+                        "ai_mode": {"type": "string", "default": "claude"},
+                        "min_score": {"type": "number", "default": 7.5},
+                    },
+                },
+            },
+            {
+                "name": "picorte_atualizar_dossie",
+                "description": "Cria ou atualiza um dossiê cultural de jogo em picorte/ai/game_dossiers/<slug>.json.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["slug", "display_name"],
+                    "properties": {
+                        "slug": {"type": "string"},
+                        "display_name": {"type": "string"},
+                        "aliases": {"type": "array", "items": {"type": "string"}, "default": []},
+                        "cultural_callbacks": {"type": "array", "items": {"type": "string"}, "default": []},
+                        "hot_details_to_watch": {"type": "array", "items": {"type": "string"}, "default": []},
+                        "spoiler_watch_p1": {"type": "array", "items": {"type": "string"}, "default": []},
+                        "dossiers_dir": {"type": "string"},
+                    },
+                },
+            },
         ]
 
     def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
@@ -115,6 +146,28 @@ class PicorteMCPServer:
             )
         if name == "picorte_listar_cortes":
             return self.service.list_clips(video_id=args.get("video_id"))
+        if name == "picorte_buscar_por_pergunta":
+            import score_clips
+            segments, used_mode = score_clips.select(
+                args["workdir"],
+                min_score=float(args.get("min_score", 7.5)),
+                ai_mode=str(args.get("ai_mode", "claude")),
+                query=str(args["query"]),
+            )
+            return {"mode": used_mode, "count": len(segments), "segments": segments}
+        if name == "picorte_atualizar_dossie":
+            from pathlib import Path
+            from picorte.ai.dossier_updater import save_dossier
+            out_path = save_dossier(
+                args["slug"],
+                display_name=args["display_name"],
+                aliases=args.get("aliases") or [],
+                cultural_callbacks=args.get("cultural_callbacks") or [],
+                hot_details_to_watch=args.get("hot_details_to_watch") or [],
+                spoiler_watch_p1=args.get("spoiler_watch_p1") or [],
+                dossiers_dir=Path(args["dossiers_dir"]) if args.get("dossiers_dir") else None,
+            )
+            return {"slug": out_path.stem, "path": str(out_path)}
         raise ValueError(f"Ferramenta MCP desconhecida: {name}")
 
     def handle_jsonrpc(self, request: dict[str, Any]) -> dict[str, Any] | None:

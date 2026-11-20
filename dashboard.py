@@ -22,6 +22,25 @@ HERE = Path(__file__).resolve().parent
 STATIC = HERE / "assets" / "studio"
 
 
+def _open_in_file_manager(target: Path) -> None:
+    """Abre pasta ou seleciona arquivo no gerenciador de arquivos do SO (Windows/Linux/macOS — AD-11)."""
+    target = Path(target).resolve()
+    try:
+        if sys.platform == "win32":
+            if target.is_file():
+                subprocess.Popen(["explorer", f"/select,{target}"])
+            else:
+                subprocess.Popen(["explorer", str(target)])
+        elif sys.platform == "darwin":
+            cmd = ["open", "-R", str(target)] if target.is_file() else ["open", str(target)]
+            subprocess.Popen(cmd)
+        else:
+            folder = target.parent if target.is_file() else target
+            subprocess.Popen(["xdg-open", str(folder)])
+    except OSError:
+        pass
+
+
 def project_detail(root, project_id):
     """Build the JSON payload for one project, including selection.json."""
     path = projects.project_path(root, project_id)
@@ -38,6 +57,34 @@ def project_detail(root, project_id):
             if file.suffix in {".mp4", ".srt", ".png", ".json"}:
                 data["files"].append({"name": file.name, "kind": directory,
                                       "url": f"/media/{project_id}/{directory}/{file.name}"})
+    publish_kits = {}
+    clips_dir = path / "clips"
+    if clips_dir.is_dir():
+        try:
+            from picorte.engine.publish_kit import build_publish_kit
+            sm_proj = state.get("source_meta") or {}
+            for mp4 in sorted(clips_dir.glob("*.mp4")):
+                stem = mp4.stem
+                meta_file = clips_dir / f"{stem}.meta.json"
+                meta = projects.read_json(meta_file) if meta_file.is_file() else {"hook": stem}
+                kit = meta.get("publish_kit")
+                if not isinstance(kit, dict) or "platforms" not in kit:
+                    thumb_f = clips_dir / f"{stem}_thumb.png"
+                    kit = build_publish_kit(
+                        meta,
+                        source_meta=sm_proj,
+                        mp4_path=mp4,
+                        thumb_path=thumb_f if thumb_f.is_file() else "",
+                    )
+                publish_kits[stem] = kit
+        except Exception:
+            pass
+    data["publish_kits"] = publish_kits
+    try:
+        from picorte.services.studio_service import StudioService
+        data["publications"] = StudioService().list_project_publications(project_id)
+    except Exception:
+        data["publications"] = {}
     if (path / "job.log").exists():
         with (path / "job.log").open("rb") as log:
             log.seek(max(0, (path / "job.log").stat().st_size - 12000))
@@ -309,7 +356,7 @@ class Handler(BaseHTTPRequestHandler):
                     project_id, action = parts[2:]
                     path = projects.project_path(self.app.root, project_id)
                     state = projects.read_project(path)
-                    if self.app.busy(project_id):
+                    if action not in {"mark-posted", "open-folder", "export-bundle"} and self.app.busy(project_id):
                         raise ValueError("Wait for this project's current job to finish before editing.")
                     if action == "settings":
                         settings = dict(body)
@@ -328,6 +375,47 @@ class Handler(BaseHTTPRequestHandler):
                         projects.atomic_json(path / "segments.json", segments)
                     elif action == "run":
                         self.app.enqueue(project_id, body.get("action", "prepare"), body.get("preview", False), body.get("pick"))
+                    elif action == "mark-posted":
+                        clip_stem = str(body.get("clip_stem") or "").strip()
+                        platform = str(body.get("platform") or "").strip()
+                        external_url = str(body.get("external_url") or "").strip()
+                        if not clip_stem or platform not in {"youtube_shorts", "tiktok", "instagram_reels", "facebook_reels"}:
+                            raise ValueError("Provide a valid clip_stem and platform.")
+                        from picorte.services.studio_service import StudioService
+                        pub = StudioService().record_manual_publication(
+                            project_id=project_id,
+                            clip_stem=clip_stem,
+                            platform=platform,
+                            external_url=external_url,
+                            source_url=str(state.get("source") or ""),
+                        )
+                        return self.send_json({"ok": True, "publication": pub})
+                    elif action == "export-bundle":
+                        from picorte.engine.publish_kit import export_daily_bundle
+                        clip_stems = body.get("clip_stems")
+                        per_day = int(body.get("per_day") or 3)
+                        out_root = body.get("out_root")
+                        bundle = export_daily_bundle(
+                            path,
+                            clip_stems=clip_stems if isinstance(clip_stems, list) else None,
+                            out_root=out_root,
+                            per_day=per_day,
+                        )
+                        if body.get("open_folder", True):
+                            _open_in_file_manager(Path(bundle["bundle_dir"]))
+                        return self.send_json({"ok": True, **bundle})
+                    elif action == "open-folder":
+                        clip_name = str(body.get("file") or "").strip()
+                        kind = str(body.get("kind") or "clips").strip()
+                        if kind not in {"clips", "previews"}:
+                            kind = "clips"
+                        target = (path / kind / clip_name).resolve() if clip_name else (path / kind).resolve()
+                        if not str(target).startswith(str(path.resolve())):
+                            raise ValueError("Invalid target path.")
+                        if not target.exists():
+                            target = (path / kind).resolve()
+                        _open_in_file_manager(target)
+                        return self.send_json({"ok": True, "path": str(target)})
                     else:
                         return self.send_json({"error": "Not found."}, 404)
                     return self.send_json({"ok": True})

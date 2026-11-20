@@ -205,6 +205,7 @@ def analyze_facecam_reactions(
     gpu_name: str | None = None,
     landmark_runner: Callable[[np.ndarray], Any] | None = None,
     emotion_runner: Callable[[np.ndarray], dict[str, float]] | None = None,
+    yaw_runner: Callable[[np.ndarray], float | None] | None = None,
     vram_runner: VRAMRunner | None = None,
 ) -> dict[str, Any]:
     """Avalia reações na facecam respeitando o preset Low ('YuNet+MediaPipe') vs High ('+HSEmotion')."""
@@ -224,6 +225,9 @@ def analyze_facecam_reactions(
             "mar_peak": 0.0,
             "motion_peak": 0.0,
             "emotion_peak": 0.0,
+            "gaze_to_camera_sec": 0.0,
+            "face_disappeared_event": False,
+            "inspection_pause_score": 0.0,
             "score": 0.0,
         }
 
@@ -235,19 +239,46 @@ def analyze_facecam_reactions(
     def _run_stage() -> dict[str, Any]:
         mar_values: list[float] = []
         motion_values: list[float] = []
+        border_motion_values: list[float] = []
+        center_motion_values: list[float] = []
         emotion_values: list[float] = []
+        face_presence: list[bool] = []
+        frontal_streak = 0
+        max_frontal_streak = 0
         prev_gray: np.ndarray | None = None
+        dur_s = max(0.5, float(end) - float(start))
+        dt = dur_s / max(1, len(frames))
 
         for frame in frames:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame
             if prev_gray is not None and prev_gray.shape == gray.shape:
                 diff = cv2.absdiff(gray, prev_gray)
                 motion_values.append(float(np.mean(diff)) / 32.0)
+                h, w = diff.shape[:2]
+                cy1, cy2 = int(h * 0.25), int(h * 0.75)
+                cx1, cx2 = int(w * 0.25), int(w * 0.75)
+                center_m = float(np.mean(diff[cy1:cy2, cx1:cx2])) if (cy2 > cy1 and cx2 > cx1) else 0.0
+                # Borda externa (movimento global da câmera do personagem)
+                border_mask = np.ones_like(diff, dtype=bool)
+                border_mask[cy1:cy2, cx1:cx2] = False
+                border_m = float(np.mean(diff[border_mask])) if np.any(border_mask) else 0.0
+                center_motion_values.append(center_m)
+                border_motion_values.append(border_m)
             prev_gray = gray
 
             pts = lm_fn(frame)
+            has_face = bool(pts)
+            face_presence.append(has_face)
             if pts:
                 mar_values.append(compute_mouth_aspect_ratio(pts))
+
+            if yaw_runner is not None:
+                yaw = yaw_runner(frame)
+                if yaw is not None and abs(float(yaw)) <= 12.0:
+                    frontal_streak += 1
+                    max_frontal_streak = max(max_frontal_streak, frontal_streak)
+                else:
+                    frontal_streak = 0
 
             if emo_fn is not None:
                 emo = emo_fn(frame) or {}
@@ -264,6 +295,32 @@ def analyze_facecam_reactions(
         motion_peak = min(1.0, max(motion_values, default=0.0))
         emotion_peak = min(1.0, max(emotion_values, default=0.0))
 
+        # Gaze-to-camera (olhar sustentado direto na lente)
+        gaze_to_camera_sec = round(max_frontal_streak * dt, 2)
+
+        # Facepalm / fuga do quadro: rosto presente por >= 2 frames e depois some abruptamente
+        seen_face = sum(1 for p in face_presence if p)
+        face_disappeared = False
+        if seen_face >= 2:
+            for idx in range(1, len(face_presence)):
+                if face_presence[idx - 1] and not face_presence[idx]:
+                    if sum(1 for p in face_presence[idx : idx + 2] if not p) >= 1:
+                        face_disappeared = True
+                        break
+
+        # Detetive de Inspeção Visual: câmera para de mexer globalmente (borda cai a quase zero)
+        # enquanto pequena região central continua mudando (ex.: abrir geladeira / olhar objeto)
+        inspection_pause_score = 0.0
+        if len(border_motion_values) >= 4:
+            peak_border = max(border_motion_values)
+            if peak_border >= 10.0:
+                inspected_frames = sum(
+                    1
+                    for bm, cm in zip(border_motion_values, center_motion_values)
+                    if bm <= peak_border * 0.25 and cm >= max(3.0, bm * 2.0)
+                )
+                inspection_pause_score = round(min(1.0, inspected_frames / max(1.0, len(border_motion_values) * 0.5)), 3)
+
         mar_component = min(1.0, mar_peak / 0.65)
         base_score = 0.55 * mar_component + 0.35 * motion_peak
         if use_emotion:
@@ -279,6 +336,9 @@ def analyze_facecam_reactions(
             "mar_peak": round(float(mar_peak), 3),
             "motion_peak": round(float(motion_peak), 3),
             "emotion_peak": round(float(emotion_peak), 3),
+            "gaze_to_camera_sec": gaze_to_camera_sec,
+            "face_disappeared_event": face_disappeared,
+            "inspection_pause_score": inspection_pause_score,
             "score": round(min(10.0, max(0.0, blended * 10.0)), 2),
         }
 

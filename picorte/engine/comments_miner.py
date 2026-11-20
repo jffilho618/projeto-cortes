@@ -1,0 +1,126 @@
+"""Mineração Opcional de Comentários com Timestamp do YouTube (Épico 3.5 — Story 3.5.4).
+
+Respeita o portão P1: NUNCA minera vídeos de fontes 'desconhecida' ou 'lista_negra'.
+"""
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+import sys
+from typing import Any, Callable
+
+BLOCKED_PERMISSION_STATUSES = {"desconhecida", "lista_negra", "pausada_por_claim", "expirada"}
+TIMESTAMP_RE = re.compile(r"\b(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\b")
+
+
+def parse_timestamp_to_seconds(ts_str: str) -> float | None:
+    """Converte 'mm:ss' ou 'hh:mm:ss' em segundos float."""
+    match = TIMESTAMP_RE.fullmatch((ts_str or "").strip())
+    if not match:
+        return None
+    h_str, m_str, s_str = match.groups()
+    hours = int(h_str) if h_str is not None else 0
+    minutes = int(m_str)
+    seconds = int(s_str)
+    if seconds >= 60 or (h_str is not None and minutes >= 60):
+        return None
+    return float(hours * 3600 + minutes * 60 + seconds)
+
+
+def extract_comment_timestamps(
+    comments: list[dict[str, Any]],
+    *,
+    duration_s: float | None = None,
+    min_gap_sec: float = 20.0,
+) -> list[dict[str, Any]]:
+    """Extrai timestamps válidos e descrições humanas dos comentários do VOD."""
+    hits: list[dict[str, Any]] = []
+    for item in comments or []:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text") or "").strip()
+        if not text:
+            continue
+        likes = int(item.get("like_count") or 0)
+        for match in TIMESTAMP_RE.finditer(text):
+            sec = parse_timestamp_to_seconds(match.group(0))
+            if sec is None:
+                continue
+            if duration_s is not None and duration_s > 0 and sec > float(duration_s):
+                continue
+            desc = TIMESTAMP_RE.sub("", text).strip(" -–—:;,.")
+            hits.append({
+                "timestamp_s": round(sec, 2),
+                "likes": likes,
+                "comment_text": text[:280],
+                "description": (desc or text)[:180],
+            })
+            break
+
+    hits.sort(key=lambda h: (-h["likes"], h["timestamp_s"]))
+    deduped: list[dict[str, Any]] = []
+    for h in hits:
+        if all(abs(h["timestamp_s"] - prev["timestamp_s"]) >= float(min_gap_sec) for prev in deduped):
+            deduped.append(h)
+    return deduped
+
+
+def mine_youtube_comments(
+    url: str,
+    *,
+    permission_status: str = "desconhecida",
+    runner: Callable[..., Any] | None = None,
+    max_comments: int = 100,
+    window_before_sec: float = 12.0,
+    window_after_sec: float = 22.0,
+) -> list[dict[str, Any]]:
+    """Minera comentários com timestamp de um VOD autorizado no YouTube via yt-dlp."""
+    status = str(permission_status or "desconhecida").strip().lower()
+    if status in BLOCKED_PERMISSION_STATUSES:
+        raise PermissionError(
+            f"Portão P1: mineração de comentários bloqueada para fonte com status '{status}'."
+        )
+
+    exec_fn = runner or subprocess.run
+    cmd = [
+        sys.executable, "-m", "yt_dlp",
+        "--dump-single-json", "--skip-download", "--no-playlist",
+        "--write-comments",
+        "--extractor-args", f"youtube:max_comments={int(max_comments)},all,0,0",
+        url,
+    ]
+    res = exec_fn(cmd, capture_output=True, text=True, check=True)
+    data = json.loads(res.stdout or "{}")
+    duration = data.get("duration")
+    try:
+        duration_f = float(duration) if duration is not None else None
+    except (TypeError, ValueError):
+        duration_f = None
+
+    extracted = extract_comment_timestamps(data.get("comments") or [], duration_s=duration_f)
+    candidates: list[dict[str, Any]] = []
+    for item in extracted:
+        t = item["timestamp_s"]
+        start = max(0.0, t - float(window_before_sec))
+        end = t + float(window_after_sec)
+        if duration_f and duration_f > 0:
+            end = min(duration_f, end)
+        if end <= start + 4.0:
+            continue
+        like_bonus = min(1.5, item["likes"] / 250.0)
+        candidates.append({
+            "start": round(start, 2),
+            "end": round(end, 2),
+            "duration": round(end - start, 2),
+            "hook": item["description"][:70] or f"Comentário em {int(t)}s",
+            "text": item["description"],
+            "overall": round(7.4 + like_bonus, 2),
+            "raw_score": round(7.4 + like_bonus, 2),
+            "seed_kind": "comment_timestamp",
+            "track_origin": "coop_payoff_nontextual",
+            "score_parts": {"comment_likes": item["likes"]},
+            "evidence": {},
+            "reason": f"Timestamp de comentário ({item['likes']} likes): {item['description']}"[:300],
+        })
+    return candidates

@@ -589,7 +589,8 @@ def _format_games_banner_ass(text: str, max_chars_per_line: int = 24) -> str:
 
 def build_ass(words, clip_start, clip_end, path, tw, th, font_size, margin_v,
               style_name=DEFAULT_STYLE, brand=None, caption=None,
-              context_banner_2s=None, games_layout=False, facecam_h=None):
+              context_banner_2s=None, games_layout=False, facecam_h=None,
+              banner_start=0.0, banner_end=3.4):
     st = resolve_caption(style_name, brand, caption)
     color = ass_style_color(st["color"])
     highlight = ass_style_color(st["highlight"])
@@ -616,8 +617,8 @@ def build_ass(words, clip_start, clip_end, path, tw, th, font_size, margin_v,
         margin_l = max(20, round(60 * tw / 1080))
         margin_r = margin_l
         cap_font_size = max(12, round(font_size * 0.78))
-        cap_margin_v = max(30, round(th * 0.12))
-        cap_y = round(th * 0.825)
+        cap_margin_v = max(30, round(th * 0.16))
+        cap_y = round(th * 0.80)  # 1536px em 1080x1920 — acima da zona de legendas nativas do jogo!
         banner_clean_len = len(" ".join(str(context_banner_2s or "").split()))
         if banner_clean_len <= 30:
             banner_ratio, banner_scalex = 0.044, 92
@@ -727,9 +728,11 @@ def build_ass(words, clip_start, clip_end, path, tw, th, font_size, margin_v,
         if banner_raw:
             if games_layout:
                 seam_y = int(facecam_h) if facecam_h else ((round(th / 3.0)) // 2) * 2
-                banner_styled = _format_games_banner_ass(banner_raw, max_chars_per_line=28)
+                banner_styled = _format_games_banner_ass(banner_raw, max_chars_per_line=26)
+                b_start = max(0.0, float(banner_start))
+                b_end = max(b_start + 0.6, float(banner_end))
                 events.append(
-                    f"Dialogue: 1,0:00:00.00,0:00:06.00,ContextBanner,,0,0,0,,{{\\q2\\an5\\pos({tw // 2},{seam_y})}}{banner_styled}"
+                    f"Dialogue: 1,{ass_time(b_start)},{ass_time(b_end)},ContextBanner,,0,0,0,,{{\\fad(140,140)\\q2\\an5\\pos({tw // 2},{seam_y})}}{banner_styled}"
                 )
             else:
                 banner_txt = ass_escape(banner_raw)
@@ -741,18 +744,26 @@ def build_ass(words, clip_start, clip_end, path, tw, th, font_size, margin_v,
     Path(path).write_text(header + "\n".join(events) + "\n", encoding="utf-8")
 
 
-def write_meta(seg, out_path):
-    """Deterministic ready-to-post metadata saved as <clip>.meta.json."""
-    hook = str(seg.get("hook", "clip")).replace("-", " ").strip()
-    title = str(seg.get("proposed_title") or hook.capitalize()).strip()
+def write_meta(seg, out_path, source_meta=None):
+    """Deterministic ready-to-post metadata + PublishPayload PT-BR saved as <clip>.meta.json."""
+    from picorte.engine.publish_kit import build_publish_kit
+
+    thumb_candidate = Path(out_path).with_name(Path(out_path).stem + "_thumb.png")
+    kit = build_publish_kit(
+        seg,
+        source_meta=source_meta,
+        mp4_path=out_path,
+        thumb_path=seg.get("thumbnail_1280x720") or (str(thumb_candidate) if thumb_candidate.is_file() else ""),
+    )
+    yt = kit["platforms"]["youtube_shorts"]
     meta = {
-        "title": title if "#" in title else f"{title} #shorts",
-        "description": (f"{hook.capitalize()} - full video on the channel.\n"
-                        "#shorts #reels #fyp #viral #podcast"),
-        "hashtags": ["#shorts", "#reels", "#fyp", "#viral"],
+        "title": yt["title"],
+        "description": yt["description"],
+        "hashtags": yt["hashtags"],
         "score": seg.get("overall"),
         "start": seg.get("start"),
         "end": seg.get("end"),
+        "publish_kit": kit,
     }
     for extra in (
         "proposed_title",
@@ -762,6 +773,8 @@ def write_meta(seg, out_path):
         "cold_open",
         "thumbnail_1280x720",
         "llm_mode_used",
+        "archetype",
+        "tier",
     ):
         if seg.get(extra) is not None:
             meta[extra] = seg[extra]
@@ -994,13 +1007,12 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         banner_text = seg.get("proposed_title") or (
             str(seg["hook"]).replace("-", " ").strip() if seg.get("hook") else None
         )
-    build_ass(cap_words, start, start + dur, out_dir / "_caption.ass",
-              tw, th, font_size, margin_v, style, brand, caption,
-              context_banner_2s=banner_text, games_layout=games_layout,
-              facecam_h=games_facecam_h)
 
     badge_path = None
     badge_seam_top = 0
+    badge_end_sec = 3.5
+    ass_banner_start = 0.0
+    ass_banner_end = 3.5
     if games_layout and banner_text and str(banner_text).strip():
         from picorte.engine.title_badge import create_torn_paper_badge
 
@@ -1009,6 +1021,12 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         badge_path = out_dir / "_title_badge.png"
         create_torn_paper_badge(badge_path, width=badge_w, height=badge_h)
         badge_seam_top = max(0, int(games_facecam_h) - badge_h // 2)
+
+    build_ass(cap_words, start, start + dur, out_dir / "_caption.ass",
+              tw, th, font_size, margin_v, style, brand, caption,
+              context_banner_2s=banner_text, games_layout=games_layout,
+              facecam_h=games_facecam_h,
+              banner_start=ass_banner_start, banner_end=ass_banner_end)
 
     needs_track = cw < W * 0.95          # real horizontal crop -> track the speaker
     if layout == "split":
@@ -1024,12 +1042,13 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         mode = "podcast split-screen"
     elif layout == "games":
         import cv2
-        from picorte.engine.reaction_layout import build_reaction_layout, find_reactor_face
-        from picorte.engine.reframe_games import compute_sniper_crop_track
+        from picorte.engine.reaction_layout import (
+            build_reaction_layout,
+            find_reactor_face,
+        )
 
         cap = cv2.VideoCapture(str(render_src))
-        sampled_frames = []
-        face_box = None
+        face_boxes = []
         try:
             n_samples = 6
             for idx in range(n_samples):
@@ -1037,41 +1056,27 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
                 cap.set(cv2.CAP_PROP_POS_MSEC, ts_ms)
                 ok, frame = cap.read()
                 if ok and frame is not None:
-                    sampled_frames.append(frame)
-                    if face_box is None:
-                        detected = find_reactor_face(frame)
-                        if detected is not None:
-                            face_box = expand_facecam_box(detected, W, H, frame=frame)
+                    detected = find_reactor_face(frame)
+                    if detected is not None:
+                        face_boxes.append(expand_facecam_box(detected, W, H, frame=frame))
         finally:
             cap.release()
 
-        focus_x, focus_y = 0.5, 0.5
-        if sampled_frames:
-            excl_box = None
-            if face_box is not None:
-                fx, fy, fw, fh = face_box
-                cx_f = fx + fw / 2.0
-                if cx_f < W * 0.40:
-                    excl_w = max(fx + fw + 32, int(round(W * 0.34)))
-                    excl_h = max(fy + fh + 48, int(round(H * 0.44)))
-                    excl_box = (0, 0, min(W, excl_w), min(H, excl_h))
-                elif cx_f > W * 0.60:
-                    excl_x = min(max(0, fx - 32), int(round(W * 0.66)))
-                    excl_h = max(fy + fh + 48, int(round(H * 0.44)))
-                    excl_box = (excl_x, 0, W - excl_x, min(H, excl_h))
-                else:
-                    excl_box = face_box
-            track_res = compute_sniper_crop_track(
-                sampled_frames,
-                source_w=W,
-                source_h=H,
-                vision_preset=vision_preset,
-                exclude_box=excl_box,
+        face_box = None
+        if face_boxes:
+            # Mediana por coordenada elimina falsos positivos isolados (ex.: boneco/fundo da prateleira)
+            def _med(vals):
+                s = sorted(vals)
+                return int(s[len(s) // 2])
+            face_box = (
+                _med([b[0] for b in face_boxes]),
+                _med([b[1] for b in face_boxes]),
+                _med([b[2] for b in face_boxes]),
+                _med([b[3] for b in face_boxes]),
             )
-            pts = track_res.get("centers") or [(0.5, 0.5)]
-            focus_x = sum(p[0] for p in pts) / len(pts)
-            focus_y = sum(p[1] for p in pts) / len(pts)
+            seg["_detected_facecam_box"] = list(face_box)
 
+        # Unanimidade: parte de baixo sempre preenchida 100% e centralizada (sem modo wide-menu com blur)
         facecam_h = games_facecam_h
         rl = build_reaction_layout(
             source_w=W,
@@ -1080,18 +1085,19 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
             out_h=th,
             facecam_box=face_box,
             facecam_h=facecam_h,
-            focus_x_norm=focus_x,
-            focus_y_norm=focus_y,
+            focus_x_norm=0.5,
+            focus_y_norm=0.5,
         )
+        mode = "games facecam+gameplay"
+
         if badge_path is not None:
             vf = (
                 rl["filter_chain"]
                 + f",setsar=1[games_bg];[games_bg][1:v]overlay=(W-w)/2:{badge_seam_top}"
-                + ":enable='between(t,0,6.0)',subtitles=_caption.ass"
+                + f":enable='between(t,0,{badge_end_sec:.3f})',subtitles=_caption.ass"
             )
         else:
             vf = rl["filter_chain"] + ",setsar=1,subtitles=_caption.ass"
-        mode = "games facecam+gameplay"
     elif needs_track:
         track = smooth_track(detect_track(render_src, local_start, dur, W, workdir), W, cw)
         build_sendcmd(track, cw, out_dir / "_crop.cmd")

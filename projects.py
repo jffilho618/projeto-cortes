@@ -24,7 +24,8 @@ DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "min_score": 8.0, "preferred_len": None,
                    "llm": None, "ai_mode": "heuristic",
                    "ai_filter": "ollama", "ai_companion": "claude",
-                   "search": None, "semantic": None,
+                   "search": None, "semantic": None, "query": None,
+                   "hunt_mode": "fast",
                    "embed_model": "nomic-embed-text", "brand": None,
                    "layout": "single", "centers": [0.25, 0.75], "caption": None}
 
@@ -99,13 +100,17 @@ def validate_options(options):
     for k in ("ai_filter", "ai_companion"):
         if result[k] not in {"ollama", "claude", "gemini"}:
             raise ValueError(f"{k} must be ollama, claude or gemini.")
+    if result["hunt_mode"] is None:
+        result["hunt_mode"] = "fast"
+    if result["hunt_mode"] not in {"fast", "deep"}:
+        raise ValueError("hunt_mode must be fast or deep.")
     if result["search"] and result["semantic"]:
         raise ValueError("Choose keyword search or semantic search, not both.")
     centers = result["centers"]
     if not isinstance(centers, (list, tuple)) or len(centers) != 2 or any(
             not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 <= v <= 1 for v in centers):
         raise ValueError("Provide two speaker centers between 0 and 1.")
-    for key in ("whisper_model", "embed_model", "llm", "search", "semantic", "brand"):
+    for key in ("whisper_model", "embed_model", "llm", "search", "semantic", "query", "brand"):
         if result[key] is not None and (not isinstance(result[key], str) or len(result[key]) > 2000):
             raise ValueError(f"{key} must be text.")
     for key in ("tighten", "loudnorm"):
@@ -118,9 +123,9 @@ def validate_options(options):
 
 def score_options(options):
     keys = ("llm", "ai_mode", "ai_filter", "ai_companion", "vision_preset", "search",
-            "semantic", "embed_model", "min_score", "max_clips", "min_len",
+            "semantic", "query", "hunt_mode", "embed_model", "min_score", "max_clips", "min_len",
             "max_len", "preferred_len")
-    return {key: options[key] for key in keys}
+    return {key: options.get(key, DEFAULT_OPTIONS.get(key)) for key in keys}
 
 
 def score_keys(transcript_key, data, options):
@@ -133,7 +138,7 @@ def score_keys(transcript_key, data, options):
                             visual.FEATURE_VERSION])
     selection_options = {
         key: options.get(key, DEFAULT_OPTIONS.get(key))
-        for key in ("min_score", "max_clips", "llm", "ai_mode", "ai_filter", "ai_companion", "vision_preset")
+        for key in ("min_score", "max_clips", "llm", "ai_mode", "ai_filter", "ai_companion", "vision_preset", "query", "hunt_mode")
     }
     selection_key = digest([discovery_key, selection_options])
     return discovery_key, selection_key
@@ -422,7 +427,9 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         llm=options["llm"],
                         ai_mode=options.get("ai_mode", "heuristic"),
                         ai_filter=options.get("ai_filter", "ollama"),
-                        ai_companion=options.get("ai_companion", "claude"))
+                        ai_companion=options.get("ai_companion", "claude"),
+                        query=options.get("query"),
+                        hunt_mode=options.get("hunt_mode", "fast"))
                     state["cache"]["selection"] = selection_key
                     save_project(path, state)
 
@@ -547,7 +554,10 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                     try:
                         from picorte.engine.retention_engine import build_cold_open_plan
                         enriched_seg["cold_open"] = build_cold_open_plan(
-                            float(segment["start"]), float(segment["end"])
+                            float(segment["start"]),
+                            float(segment["end"]),
+                            archetype=segment.get("archetype"),
+                            tone=segment.get("tone"),
                         )
                     except Exception:
                         pass
@@ -559,11 +569,22 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         vision_preset=options.get("vision_preset", "auto"),
                         dominant_language=data.get("language"))
                     try:
+                        import shutil as _shutil
+                        from picorte.engine.publish_kit import resolve_streamer
                         from picorte.engine.thumbnail_factory import generate_thumbnail
+
                         thumb_out = Path(output).with_name(Path(output).stem + "_thumb.png")
                         clip_dur = max(0.5, float(segment["end"]) - float(segment["start"]))
-                        thumb_ts = max(0.0, float(segment["start"]) - source_offset + clip_dur * 0.4)
+                        clip_local_start = max(0.0, float(segment["start"]) - source_offset)
+                        clip_local_end = clip_local_start + clip_dur
+                        thumb_ts = clip_local_start + clip_dur * 0.4
                         thumb_src = render_source if (W and H and W >= H) else Path(output)
+                        sm_proj = state.get("source_meta") or {}
+                        streamer_info = resolve_streamer(
+                            channel_name=sm_proj.get("channel") or sm_proj.get("uploader"),
+                            title=f"{sm_proj.get('title') or ''} {enriched_seg.get('proposed_title') or ''}",
+                            source_url=state.get("source"),
+                        )
                         thumb_res = generate_thumbnail(
                             thumb_src,
                             thumb_out,
@@ -574,11 +595,24 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                                 or "DESTAQUE"
                             ),
                             timestamp_s=thumb_ts if thumb_src == render_source else clip_dur * 0.4,
+                            clip_start_s=clip_local_start if thumb_src == render_source else 0.0,
+                            clip_end_s=clip_local_end if thumb_src == render_source else clip_dur,
+                            aspect=options["aspect"],
                             vision_preset=options.get("vision_preset", "auto"),
+                            facecam_box=enriched_seg.get("_detected_facecam_box"),
+                            streamer_name=streamer_info.get("display_name") or None,
+                            streamer_accent_hex=streamer_info.get("accent_hex") or "#E11D2E",
                         )
                         if not preview:
                             enriched_seg["thumbnail_1280x720"] = thumb_res["path"]
-                            render_clips.write_meta(enriched_seg, Path(output))
+                            # Substitui o poster cru (<clip>.png com legenda) pela capa oficial única
+                            poster_png = Path(output).with_suffix(".png")
+                            if Path(thumb_res["path"]).is_file() and Path(thumb_res["path"]).suffix.lower() == ".png":
+                                try:
+                                    _shutil.copy2(thumb_res["path"], poster_png)
+                                except OSError:
+                                    pass
+                            render_clips.write_meta(enriched_seg, Path(output), source_meta=sm_proj)
                     except Exception as thumb_exc:
                         print(f"Thumbnail warning: {thumb_exc}", flush=True)
                 except (Exception, SystemExit) as exc:

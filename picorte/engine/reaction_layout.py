@@ -152,4 +152,91 @@ def build_reaction_layout(
         "gameplay_crop": {"w": crop_w, "h": crop_h, "x": gx, "y": gy},
         "filter_chain": filter_chain,
         "filter_complex": filter_complex,
+        "mode": "split_crop",
+    }
+
+
+def is_wide_menu_frame(frame: np.ndarray, *, exclude_box: tuple[int, int, int, int] | None = None) -> bool:
+    """Detecta telas de menu / UI larga (estatísticas, inventário, mapa com texto nos dois lados)
+    que ficariam ilegíveis se fossem recortadas em 9:16 fechado."""
+    if frame is None or getattr(frame, "size", 0) == 0:
+        return False
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame.copy()
+    h, w = gray.shape[:2]
+    if h < 120 or w < 200:
+        return False
+    if exclude_box:
+        ex, ey, ew, eh = [int(v) for v in exclude_box]
+        gray[max(0, ey) : min(h, ey + eh), max(0, ex) : min(w, ex + ew)] = 0
+
+    # Textos e tabelas de menu produzem múltiplos blocos de bordas finas distribuídos em linhas
+    # horizontais tanto na metade esquerda quanto na metade direita da tela 16:9.
+    edges = cv2.Canny(gray, 70, 170)
+    mid_band = edges[int(h * 0.14) : int(h * 0.86), :]
+    left_half = mid_band[:, int(w * 0.04) : int(w * 0.46)]
+    right_half = mid_band[:, int(w * 0.52) : int(w * 0.96)]
+
+    def _text_row_score(region: np.ndarray) -> tuple[int, float]:
+        rh, rw = region.shape[:2]
+        if rh < 40 or rw < 40:
+            return 0, 0.0
+        # Agrupa em faixas horizontais de ~12px; menus têm várias faixas alternadas texto/fundo
+        strip_h = max(8, rh // 28)
+        n_strips = rh // strip_h
+        active_strips = 0
+        densities = []
+        for i in range(n_strips):
+            s = region[i * strip_h : (i + 1) * strip_h, :]
+            d = float(np.mean(s > 0))
+            densities.append(d)
+            if 0.025 <= d <= 0.38:
+                active_strips += 1
+        # Verifica periodicidade/contraste entre faixas (fundo liso + texto nítido)
+        flat_bg = float(np.mean(np.std(gray[int(h * 0.14) : int(h * 0.86), :], axis=1) < 62.0))
+        return active_strips, flat_bg
+
+    l_rows, flat_bg = _text_row_score(left_half)
+    r_rows, _ = _text_row_score(right_half)
+    return l_rows >= 8 and r_rows >= 8 and flat_bg >= 0.45
+
+
+def build_wide_menu_layout(
+    *,
+    source_w: int,
+    source_h: int,
+    out_w: int = 1080,
+    out_h: int = 1920,
+    facecam_box: tuple[int, int, int, int] | None = None,
+    facecam_h: int = 640,
+) -> dict[str, Any]:
+    """Layout 9:16 anti-corte para menus/UI largas: Facecam no topo + 16:9 inteiro no meio sobre fundo blur."""
+    inset = measure_reaction_inset(source_w=source_w, source_h=source_h, facecam_box=facecam_box)
+    face_h = (max(240, min(out_h - 400, int(facecam_h))) // 2) * 2
+    game_h = ((out_h - face_h) // 2) * 2
+
+    # Altura do vídeo 16:9 encaixado inteiro na largura out_w sem cortar as laterais
+    fit_h = (min(game_h, max(120, int(round(out_w * source_h / max(1.0, float(source_w)))))) // 2) * 2
+    pad_y = max(0, (game_h - fit_h) // 2)
+    fx, fy, fw, fh = inset["x"], inset["y"], inset["width"], inset["height"]
+
+    filter_chain = (
+        f"[0:v]split=3[vface][vbg][vfg];"
+        f"[vface]crop={fw}:{fh}:{fx}:{fy},scale={out_w}:{face_h}:force_original_aspect_ratio=increase,"
+        f"crop={out_w}:{face_h}[top];"
+        f"[vbg]scale={out_w}:{game_h}:force_original_aspect_ratio=increase,crop={out_w}:{game_h},"
+        f"boxblur=24:2,eq=brightness=-0.16:saturation=0.85[bg];"
+        f"[vfg]scale={out_w}:{fit_h}[fg];"
+        f"[bg][fg]overlay=0:{pad_y}[bot];"
+        f"[top][bot]vstack=inputs=2"
+    )
+    return {
+        "out_w": out_w,
+        "out_h": out_h,
+        "facecam_h": face_h,
+        "gameplay_h": game_h,
+        "inset": inset,
+        "gameplay_crop": {"w": source_w, "h": source_h, "x": 0, "y": 0},
+        "filter_chain": filter_chain,
+        "filter_complex": filter_chain + "[v]",
+        "mode": "wide_menu",
     }

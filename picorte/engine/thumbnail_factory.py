@@ -59,7 +59,7 @@ def _extract_frame(frame_or_video: np.ndarray | str | Path, timestamp_s: float =
     if isinstance(frame_or_video, (str, Path)):
         cap = cv2.VideoCapture(str(frame_or_video))
         try:
-            cap.set(cv2.CAP_PROP_POS_MSEC, float(timestamp_s) * 1000.0)
+            cap.set(cv2.CAP_PROP_POS_MSEC, max(0.0, float(timestamp_s)) * 1000.0)
             ok, frame = cap.read()
             if ok and frame is not None:
                 return frame
@@ -67,6 +67,158 @@ def _extract_frame(frame_or_video: np.ndarray | str | Path, timestamp_s: float =
             cap.release()
         return np.zeros((THUMB_H, THUMB_W, 3), dtype=np.uint8)
     return np.asarray(frame_or_video, dtype=np.uint8)
+
+
+def _select_best_thumbnail_frame(
+    frame_or_video: np.ndarray | str | Path,
+    *,
+    timestamp_s: float = 0.5,
+    clip_start_s: float | None = None,
+    clip_end_s: float | None = None,
+    facecam_box: tuple[int, int, int, int] | None = None,
+) -> tuple[np.ndarray, tuple[int, int, int, int] | None]:
+    """Escolhe o frame mais nítido e com rosto visível dentro do clipe (evita 1 frame isolado de cabeça baixa)."""
+    if not isinstance(frame_or_video, (str, Path)):
+        arr = np.asarray(frame_or_video, dtype=np.uint8)
+        return arr, facecam_box
+
+    if clip_start_s is not None and clip_end_s is not None and clip_end_s > clip_start_s + 0.5:
+        dur = float(clip_end_s) - float(clip_start_s)
+        sample_ts = [float(clip_start_s) + dur * frac for frac in (0.18, 0.34, 0.50, 0.66, 0.82)]
+    else:
+        t0 = max(0.0, float(timestamp_s))
+        sample_ts = sorted({max(0.0, t0 - 1.5), t0, t0 + 1.5})
+
+    cap = cv2.VideoCapture(str(frame_or_video))
+    frames: list[np.ndarray] = []
+    try:
+        for ts in sample_ts:
+            cap.set(cv2.CAP_PROP_POS_MSEC, ts * 1000.0)
+            ok, fr = cap.read()
+            if ok and fr is not None and fr.size > 0:
+                frames.append(fr)
+    finally:
+        cap.release()
+
+    if not frames:
+        return _extract_frame(frame_or_video, timestamp_s=timestamp_s), facecam_box
+
+    best_frame = frames[0]
+    best_score = -1.0
+    resolved_box = facecam_box
+
+    for fr in frames:
+        sh, sw = fr.shape[:2]
+        detected = find_reactor_face(fr)
+        has_corner = detected is not None and _is_corner_facecam(detected, sw, sh)
+        if has_corner and resolved_box is None and detected is not None:
+            resolved_box = _expand_facecam(detected, sw, sh, frame=fr)
+
+        roi = fr
+        box_for_sharp = resolved_box or (detected if has_corner else None)
+        if box_for_sharp is not None:
+            bx, by, bw, bh = [int(v) for v in box_for_sharp]
+            crop = fr[max(0, by) : min(sh, by + bh), max(0, bx) : min(sw, bx + bw)]
+            if crop.size > 0:
+                roi = crop
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        luma = float(gray.mean())
+
+        # Mede riqueza visual da área central do gameplay (penaliza menus borrados, telas de load ou céu liso)
+        gx0, gx1 = int(sw * 0.18), int(sw * 0.72)
+        gy0, gy1 = int(sh * 0.14), int(sh * 0.86)
+        game_roi = fr[gy0:gy1, gx0:gx1] if (gx1 > gx0 and gy1 > gy0) else fr
+        game_gray = cv2.cvtColor(game_roi, cv2.COLOR_BGR2GRAY)
+        game_sharp = float(cv2.Laplacian(game_gray, cv2.CV_64F).var())
+        game_std = float(game_gray.std())
+        game_luma = float(game_gray.mean())
+        low_detail_penalty = -450.0 if (game_sharp < 18.0 or game_std < 22.0 or game_luma < 14.0) else 0.0
+
+        # Penaliza frames quase pretos/transições e bonifica forte quem tem rosto visível + gameplay nítido
+        score = (
+            (1000.0 if has_corner else 0.0)
+            + min(sharpness, 300.0)
+            + min(game_sharp * 1.4, 350.0)
+            + min(game_std * 2.0, 120.0)
+            + low_detail_penalty
+            + (40.0 if 35.0 <= luma <= 215.0 else -60.0)
+        )
+        if score > best_score:
+            best_score = score
+            best_frame = fr
+
+    return best_frame, resolved_box
+
+
+def _hex_to_bgr(hex_color: str | None, fallback: tuple[int, int, int] = (46, 29, 225)) -> tuple[int, int, int]:
+    raw = str(hex_color or "").strip().lstrip("#")
+    if len(raw) == 6:
+        try:
+            r = int(raw[0:2], 16)
+            g = int(raw[2:4], 16)
+            b = int(raw[4:6], 16)
+            return (b, g, r)
+        except ValueError:
+            pass
+    return fallback
+
+
+def _draw_author_pill(
+    canvas: np.ndarray,
+    *,
+    center_x: int,
+    center_y: int,
+    streamer_name: str,
+    accent_hex: str | None = "#E11D2E",
+) -> None:
+    """Desenha selo estilizado Bomba Clips (fundo accent + borda escura + detalhe amarelo) atrás do nome do autor."""
+    name = str(streamer_name or "").strip().upper()
+    if not name:
+        return
+    h, w = canvas.shape[:2]
+    pill_h = 68
+    pill_w = max(250, min(int(w * 0.72), 96 + len(name) * 32))
+    x0 = max(20, center_x - pill_w // 2)
+    y0 = max(20, center_y - pill_h // 2)
+    x1 = min(w - 20, x0 + pill_w)
+    y1 = min(h - 20, y0 + pill_h)
+    pw, ph = x1 - x0, y1 - y0
+    if pw < 80 or ph < 30:
+        return
+
+    radius = 16
+    border = 4
+    inner_mask = _rounded_rect_mask(pw, ph, radius)
+    outer_w, outer_h = pw + border * 2, ph + border * 2
+    outer_mask = _rounded_rect_mask(outer_w, outer_h, radius + border)
+
+    # Sombra projetada atrás da tag
+    sh_pad = 16
+    sh_c = np.zeros((outer_h + sh_pad * 2, outer_w + sh_pad * 2), dtype=np.float32)
+    sh_c[sh_pad : sh_pad + outer_h, sh_pad : sh_pad + outer_w] = outer_mask
+    sh_blur = cv2.GaussianBlur(sh_c, (23, 23), 0) * 0.72
+    sx0, sy0 = x0 - border - sh_pad, y0 - border - sh_pad + 6
+    xs, ys = max(0, sx0), max(0, sy0)
+    xe, ye = min(w, sx0 + outer_w + sh_pad * 2), min(h, sy0 + outer_h + sh_pad * 2)
+    sc = sh_blur[ys - sy0 : ye - sy0, xs - sx0 : xe - sx0][:, :, None]
+    canvas[ys:ye, xs:xe] = np.clip(canvas[ys:ye, xs:xe].astype(np.float32) * (1.0 - sc), 0, 255).astype(np.uint8)
+
+    # Borda dourada/amarela Bomba Clips (#FFD400 em BGR: 0, 212, 255)
+    ox0, oy0 = max(0, x0 - border), max(0, y0 - border)
+    ox1, oy1 = min(w, ox0 + outer_w), min(h, oy0 + outer_h)
+    om = outer_mask[: oy1 - oy0, : ox1 - ox0, None]
+    gold = np.array([0.0, 212.0, 255.0], dtype=np.float32).reshape((1, 1, 3))
+    roi_o = canvas[oy0:oy1, ox0:ox1].astype(np.float32)
+    canvas[oy0:oy1, ox0:ox1] = np.clip(gold * om + roi_o * (1.0 - om), 0, 255).astype(np.uint8)
+
+    # Corpo preenchido na cor do streamer / vermelho Bomba Clips com leve gradiente vertical
+    bgr = np.array(_hex_to_bgr(accent_hex), dtype=np.float32).reshape((1, 1, 3))
+    grad = np.linspace(1.06, 0.78, ph, dtype=np.float32)[:, None, None]
+    fill = np.clip(bgr * grad, 0, 255)
+    im = inner_mask[:, :, None]
+    roi_i = canvas[y0:y1, x0:x1].astype(np.float32)
+    canvas[y0:y1, x0:x1] = np.clip(fill * im + roi_i * (1.0 - im), 0, 255).astype(np.uint8)
 
 
 def _resize_to_thumb(frame: np.ndarray) -> np.ndarray:
@@ -338,7 +490,165 @@ def _build_thumbnail_ass(words: list[str], *, has_facecam: bool) -> str:
     return header + "\n".join(dialogues) + "\n"
 
 
-def _render_title_with_ffmpeg_ass(canvas: np.ndarray, words: list[str], work_dir: Path, *, has_facecam: bool) -> np.ndarray:
+def _build_vertical_thumbnail_canvas(
+    raw_frame: np.ndarray,
+    *,
+    facecam_box: tuple[int, int, int, int] | None = None,
+    streamer_name: str | None = None,
+    streamer_accent_hex: str | None = "#E11D2E",
+) -> tuple[np.ndarray, bool, int]:
+    """Monta capa vertical 1080x1920 (9:16) nativa Bomba Clips: Facecam no topo + Gameplay 100% preenchido embaixo."""
+    vw, vh = 1080, 1920
+    face_h = 652
+    game_h = vh - face_h  # 1268
+    src_h, src_w = raw_frame.shape[:2]
+
+    box_used: tuple[int, int, int, int] | None = None
+    if facecam_box is not None and len(facecam_box) == 4:
+        bx, by, bw, bh = [int(v) for v in facecam_box]
+        if bw >= 32 and bh >= 32:
+            box_used = (max(0, bx), max(0, by), min(src_w - max(0, bx), bw), min(src_h - max(0, by), bh))
+
+    if box_used is None:
+        face = find_reactor_face(raw_frame)
+        if face is not None and _is_corner_facecam(face, src_w, src_h):
+            box_used = _expand_facecam(face, src_w, src_h, frame=raw_frame)
+
+    has_facecam = box_used is not None
+    canvas = np.zeros((vh, vw, 3), dtype=np.uint8)
+
+    if has_facecam and box_used is not None:
+        bx, by, bw, bh = box_used
+        fc_crop = raw_frame[max(0, by) : min(src_h, by + bh), max(0, bx) : min(src_w, bx + bw)]
+        if fc_crop.size > 0:
+            scale = max(vw / float(fc_crop.shape[1]), face_h / float(fc_crop.shape[0]))
+            rw = max(vw, int(round(fc_crop.shape[1] * scale)))
+            rh = max(face_h, int(round(fc_crop.shape[0] * scale)))
+            resized = cv2.resize(fc_crop, (rw, rh), interpolation=cv2.INTER_LANCZOS4)
+            ox = (rw - vw) // 2
+            oy = max(0, (rh - face_h) // 3)
+            top_panel = _grade_gameplay_frame(
+                resized[oy : oy + face_h, ox : ox + vw], sat_boost=1.08, contrast=1.06, beta=4.0
+            )
+            # Leve nitidez na facecam do streamer
+            blur_t = cv2.GaussianBlur(top_panel, (0, 0), 1.2)
+            canvas[:face_h, :] = cv2.addWeighted(top_panel, 1.18, blur_t, -0.18, 0)
+        else:
+            has_facecam = False
+
+    if not has_facecam:
+        # Sem facecam: gameplay 100% preenchido e centralizado de ponta a ponta
+        scale = max(vw / float(src_w), vh / float(src_h))
+        rw, rh = max(vw, int(round(src_w * scale))), max(vh, int(round(src_h * scale)))
+        full = cv2.resize(raw_frame, (rw, rh), interpolation=cv2.INTER_LANCZOS4)
+        ox, oy = (rw - vw) // 2, (rh - vh) // 2
+        canvas = _grade_gameplay_frame(full[oy : oy + vh, ox : ox + vw])
+    else:
+        # Unanimidade: base 100% preenchida e centralizada no gameplay (evitando a webcam de canto, sem vãos borrados)
+        target_ratio = vw / float(game_h)
+        crop_w = min(src_w, int(round(src_h * target_ratio)))
+        bx, by, bw, bh = box_used  # type: ignore[misc]
+        pad_clear = max(48, int(round(bw * 0.35)))
+        cx_face = (bx + bw / 2.0) / max(1.0, float(src_w))
+        if cx_face < 0.40:
+            gx = min(src_w - crop_w, max(0, bx + bw + pad_clear))
+        elif cx_face > 0.60:
+            gx = max(0, min(src_w - crop_w, bx - pad_clear - crop_w))
+        else:
+            gx = max(0, (src_w - crop_w) // 2)
+        game_crop = raw_frame[:, gx : gx + crop_w]
+        game_resized = cv2.resize(game_crop, (vw, game_h), interpolation=cv2.INTER_LANCZOS4)
+        canvas[face_h:, :] = _grade_gameplay_frame(game_resized)
+
+    # Gradiente sutil na faixa central da divisão para contraste máximo do título sem poluir rosto nem jogo
+    work = canvas.astype(np.float32)
+    y_coords = np.arange(vh, dtype=np.float32)[:, None, None]
+    seam_y = float(face_h) if has_facecam else float(vh * 0.42)
+    band_dist = np.abs(y_coords - seam_y) / 195.0
+    band_dark = np.clip(1.0 - band_dist, 0.0, 1.0)
+    band_dark = (band_dark * band_dark) * 0.60
+    work = work * (1.0 - band_dark) + np.array([10.0, 12.0, 16.0], dtype=np.float32) * band_dark
+    composed = np.clip(work, 0, 255).astype(np.uint8)
+
+    badge_y = int(seam_y - 122) if has_facecam else int(seam_y - 138)
+    clean_streamer = str(streamer_name or "").strip().upper()
+    if clean_streamer:
+        _draw_author_pill(
+            composed,
+            center_x=vw // 2,
+            center_y=badge_y,
+            streamer_name=clean_streamer,
+            accent_hex=streamer_accent_hex,
+        )
+
+    return composed, has_facecam, badge_y
+
+
+def _build_vertical_thumbnail_ass(
+    words: list[str],
+    *,
+    seam_y: int = 652,
+    streamer_name: str | None = None,
+    badge_y: int | None = None,
+) -> str:
+    """Tipografia vertical centralizada na divisão da capa 9:16 (1080x1920) + selo do autor."""
+    lines = _layout_hook_lines(words)
+    font_name = "Impact" if sys.platform == "win32" else "Antonio"
+    longest = max((len(" ".join(line)) for line in lines), default=8)
+    font_size = 112 if longest <= 14 else (92 if longest <= 20 else 76)
+    line_step = int(font_size * 1.06)
+    total_h = line_step * len(lines)
+    clean_streamer = str(streamer_name or "").strip().upper()
+    anchor_seam = seam_y + 42 if clean_streamer else seam_y
+    start_y = max(240, anchor_seam - total_h // 2 + line_step // 2)
+
+    header = (
+        "[Script Info]\n"
+        "ScriptType: v4.00+\n"
+        "PlayResX: 1080\n"
+        "PlayResY: 1920\n\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, "
+        "Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, "
+        "Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        f"Style: ThumbVert,{font_name},{font_size},&H00FFFFFF,&H00FFFFFF,&H00000000,&HC8000000,"
+        "-1,0,0,0,96,100,-1,0,1,12,6,5,60,60,40,1\n"
+        f"Style: AuthorTag,{font_name},48,&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,"
+        "-1,0,0,0,104,100,2,0,1,4,2,5,40,40,20,1\n\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+    dialogues: list[str] = []
+    if clean_streamer:
+        by = badge_y if badge_y is not None else max(180, seam_y - 122)
+        dialogues.append(
+            f"Dialogue: 1,0:00:00.00,0:00:01.00,AuthorTag,,0,0,0,,{{\\an5\\pos(540,{by})}}{_escape_ass_text(clean_streamer)}"
+        )
+    for li, line_words in enumerate(lines):
+        y_pos = start_y + li * line_step
+        is_last = li == len(lines) - 1
+        if is_last and len(line_words) == 1:
+            rendered = f"{{\\c&H0000D4FF&}}{_escape_ass_text(line_words[0])}"
+        elif is_last and len(line_words) >= 2:
+            prefix = " ".join(_escape_ass_text(w) for w in line_words[:-1])
+            climax = _escape_ass_text(line_words[-1])
+            rendered = f"{{\\c&H00FFFFFF&}}{prefix} {{\\c&H0000D4FF&}}{climax}"
+        else:
+            rendered = f"{{\\c&H00FFFFFF&}}" + " ".join(_escape_ass_text(w) for w in line_words)
+        dialogues.append(
+            f"Dialogue: 0,0:00:00.00,0:00:01.00,ThumbVert,,0,0,0,,{{\\an5\\pos(540,{y_pos})}}{rendered}"
+        )
+    return header + "\n".join(dialogues) + "\n"
+
+
+def _render_title_with_ffmpeg_ass(
+    canvas: np.ndarray,
+    words: list[str],
+    work_dir: Path,
+    *,
+    has_facecam: bool,
+    ass_override: str | None = None,
+) -> np.ndarray:
     """Queima título PT-BR via FFmpeg + libass usando cwd=work_dir e nomes relativos (AD-11)."""
     ffmpeg_bin = resolve_cli_binary("ffmpeg") or "ffmpeg"
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -356,7 +666,8 @@ def _render_title_with_ffmpeg_ass(canvas: np.ndarray, words: list[str], work_dir
         if not ok:
             raise RuntimeError("Falha ao codificar frame temporário BMP para thumbnail.")
         in_path.write_bytes(buf.tobytes())
-        ass_path.write_text(_build_thumbnail_ass(words, has_facecam=has_facecam), encoding="utf-8")
+        ass_text = ass_override if ass_override is not None else _build_thumbnail_ass(words, has_facecam=has_facecam)
+        ass_path.write_text(ass_text, encoding="utf-8")
 
         subprocess.run(
             [
@@ -401,35 +712,85 @@ def generate_thumbnail(
     *,
     title_text: str,
     timestamp_s: float = 0.5,
+    aspect: str = "16:9",
     vision_preset: str = "auto",
     vram_mib: int | None = None,
     gpu_name: str | None = None,
+    facecam_box: tuple[int, int, int, int] | list[int] | None = None,
+    streamer_name: str | None = None,
+    streamer_accent_hex: str | None = "#E11D2E",
+    clip_start_s: float | None = None,
+    clip_end_s: float | None = None,
     cutout_runner: Callable[[np.ndarray, str], np.ndarray] | None = None,
     vram_runner: VRAMRunner | None = None,
 ) -> dict[str, Any]:
-    """Gera thumbnail 1280x720 (<= 2MB) cinematográfica com facecam destacada e tipografia PT-BR via ASS."""
+    """Gera thumbnail 1280x720 (16:9) ou capa vertical 1080x1920 (9:16) com identidade do streamer."""
     resolved = resolve_vision_preset(vision_preset, vram_mib=vram_mib, gpu_name=gpu_name)
     preset = resolved["preset"]
     cutout_model = resolved["models"]["thumbnail_cutout"]
 
     runner = vram_runner or VRAMRunner()
     cut_fn = cutout_runner or _default_cutout_runner_factory()
-    raw_frame = _extract_frame(frame_or_video, timestamp_s=timestamp_s)
-    canvas_src = _resize_to_thumb(raw_frame)
-
-    def _run_stage() -> np.ndarray:
-        return cut_fn(canvas_src, cutout_model)
-
-    mask = runner.run_stage(f"thumbnail_{preset}", _run_stage)
-    graded = _grade_gameplay_frame(canvas_src)
-    composed = _apply_clean_cutout_depth(graded, mask)
-    composed = _apply_cinematic_scrims(composed)
-    composed, facecam_detected = _composite_corner_facecam(composed, raw_frame)
-
-    words = _trim_hook_words(title_text, max_words=6)
+    box_tuple = (
+        (int(facecam_box[0]), int(facecam_box[1]), int(facecam_box[2]), int(facecam_box[3]))
+        if facecam_box is not None and len(facecam_box) == 4
+        else None
+    )
+    raw_frame, resolved_box = _select_best_thumbnail_frame(
+        frame_or_video,
+        timestamp_s=timestamp_s,
+        clip_start_s=clip_start_s,
+        clip_end_s=clip_end_s,
+        facecam_box=box_tuple,
+    )
+    words = _trim_hook_words(title_text, max_words=5)
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
-    composed = _render_title_with_ffmpeg_ass(composed, words, out.parent, has_facecam=facecam_detected)
+    clean_streamer = str(streamer_name or "").strip().upper() or None
+
+    if str(aspect).strip() == "9:16":
+        composed, facecam_detected, badge_y = _build_vertical_thumbnail_canvas(
+            raw_frame,
+            facecam_box=resolved_box,
+            streamer_name=clean_streamer,
+            streamer_accent_hex=streamer_accent_hex,
+        )
+        seam_y = 652 if facecam_detected else 820
+        ass_vert = _build_vertical_thumbnail_ass(
+            words,
+            seam_y=seam_y,
+            streamer_name=clean_streamer,
+            badge_y=badge_y,
+        )
+        composed = _render_title_with_ffmpeg_ass(
+            composed, words, out.parent, has_facecam=facecam_detected, ass_override=ass_vert
+        )
+        out_w, out_h = 1080, 1920
+    else:
+        canvas_src = _resize_to_thumb(raw_frame)
+
+        def _run_stage() -> np.ndarray:
+            return cut_fn(canvas_src, cutout_model)
+
+        mask = runner.run_stage(f"thumbnail_{preset}", _run_stage)
+        graded = _grade_gameplay_frame(canvas_src)
+        composed = _apply_clean_cutout_depth(graded, mask)
+        composed = _apply_cinematic_scrims(composed)
+        composed, facecam_detected = _composite_corner_facecam(composed, raw_frame)
+        ass_wide = _build_thumbnail_ass(words, has_facecam=facecam_detected)
+        if clean_streamer:
+            bx = THUMB_W - 226 if facecam_detected else 210
+            by = 404 if facecam_detected else 74
+            _draw_author_pill(composed, center_x=bx, center_y=by, streamer_name=clean_streamer, accent_hex=streamer_accent_hex)
+            font_name = "Impact" if sys.platform == "win32" else "Antonio"
+            ass_wide = ass_wide.replace(
+                "[Events]\n",
+                f"Style: AuthorTag,{font_name},38,&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,104,100,2,0,1,4,2,5,20,20,20,1\n\n[Events]\n",
+            ) + f"Dialogue: 1,0:00:00.00,0:00:01.00,AuthorTag,,0,0,0,,{{\\an5\\pos({bx},{by})}}{_escape_ass_text(clean_streamer)}\n"
+        composed = _render_title_with_ffmpeg_ass(
+            composed, words, out.parent, has_facecam=facecam_detected, ass_override=ass_wide
+        )
+        out_w, out_h = THUMB_W, THUMB_H
 
     size_bytes = _write_encoded_image(composed, out, ".png", [cv2.IMWRITE_PNG_COMPRESSION, 6])
     if size_bytes > MAX_THUMB_BYTES:
@@ -439,12 +800,13 @@ def generate_thumbnail(
 
     return {
         "path": str(out),
-        "width": THUMB_W,
-        "height": THUMB_H,
+        "width": out_w,
+        "height": out_h,
         "preset": preset,
         "cutout_model": cutout_model,
         "size_bytes": size_bytes,
         "words": words,
         "facecam_detected": facecam_detected,
+        "streamer_name": clean_streamer,
         "text_renderer": "ffmpeg_ass",
     }

@@ -620,7 +620,13 @@ function renderDetail() {
           const aiBadge = c.llm_mode_used
             ? ` · IA: ${escapeHTML(String(c.llm_mode_used))}`
             : "";
-          return `<article class="candidate" data-index="${i}"><input type="checkbox" aria-label="Select clip ${i + 1}" data-select="${i + 1}" ${state.selected.has(i + 1) ? "checked" : ""}><div><div class="candidate-title"><input aria-label="Clip ${i + 1} title" data-field="hook" value="${escapeHTML(c.hook)}"></div><div class="candidate-meta">#${rank} · ${Number(c.overall).toFixed(1)}/10 · ${formatDuration(duration)}${aiBadge}${c.similarity !== undefined ? " · SEMANTIC " + Number(c.similarity).toFixed(2) : ""}</div>${aiTitle}${aiBanner}${aiComment}<div class="candidate-time"><label>Start (seconds)<input data-field="start" type="number" min="0" step="0.01" value="${c.start}"></label><label>End (seconds)<input data-field="end" type="number" min="0" step="0.01" value="${c.end}"></label></div><details class="candidate-reason"><summary>Why this clip</summary><p>${escapeHTML(c.reason || "")}</p><pre>${escapeHTML(JSON.stringify(c.score_parts || {}, null, 2))}</pre>${c.evidence ? `<pre>${escapeHTML(JSON.stringify(c.evidence, null, 2))}</pre>` : ""}</details></div><button data-play="${i}">▶ Watch</button></article>`;
+          const tierPill = c.tier
+            ? ` <span class="pill-tier pill-tier-${escapeHTML(String(c.tier).toLowerCase())}">${escapeHTML(String(c.tier).toUpperCase())}</span>`
+            : "";
+          const archPill = c.archetype
+            ? ` <span class="pill-arch">${escapeHTML(String(c.archetype))}</span>`
+            : "";
+          return `<article class="candidate" data-index="${i}"><input type="checkbox" aria-label="Select clip ${i + 1}" data-select="${i + 1}" ${state.selected.has(i + 1) ? "checked" : ""}><div><div class="candidate-title"><input aria-label="Clip ${i + 1} title" data-field="hook" value="${escapeHTML(c.hook)}"></div><div class="candidate-meta">#${rank} · ${Number(c.overall).toFixed(1)}/10 · ${formatDuration(duration)}${aiBadge}${tierPill}${archPill}${c.similarity !== undefined ? " · SEMANTIC " + Number(c.similarity).toFixed(2) : ""}</div>${aiTitle}${aiBanner}${aiComment}<div class="candidate-time"><label>Start (seconds)<input data-field="start" type="number" min="0" step="0.01" value="${c.start}"></label><label>End (seconds)<input data-field="end" type="number" min="0" step="0.01" value="${c.end}"></label></div><details class="candidate-reason"><summary>Why this clip</summary><p>${escapeHTML(c.reason || "")}</p><pre>${escapeHTML(JSON.stringify(c.score_parts || {}, null, 2))}</pre>${c.evidence ? `<pre>${escapeHTML(JSON.stringify(c.evidence, null, 2))}</pre>` : ""}</details></div><button data-play="${i}">▶ Watch</button></article>`;
         })
         .join("")
     : '<p class="muted">Find clips to see candidates here. You can adjust selection and timing before export.</p>';
@@ -674,32 +680,110 @@ function renderWords() {
   for (const el of document.querySelectorAll("#transcript-words input"))
     el.disabled = state.busy;
 }
+const PUBLISH_PLATFORMS = [
+  { id: "youtube_shorts", short: "YT", label: "YouTube Shorts" },
+  { id: "tiktok", short: "TT", label: "TikTok" },
+  { id: "instagram_reels", short: "IG", label: "Reels" },
+  { id: "facebook_reels", short: "FB", label: "Facebook" },
+];
+const outputPlatformState = new Map();
+
+async function copyToClipboard(text, label) {
+  try {
+    await navigator.clipboard.writeText(text);
+    notice(`${label} copiado!`);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+    notice(`${label} copiado!`);
+  }
+}
+
+function renderPublishBox(stem, kit, postedMap) {
+  if (!kit || !kit.platforms) return "";
+  const activePlat = outputPlatformState.get(stem) || "youtube_shorts";
+  const platData = kit.platforms[activePlat] || kit.platforms.youtube_shorts;
+  const isPosted = !!(postedMap && postedMap[activePlat]);
+  const streamerLabel = kit.streamer?.display_name || "";
+  const tabsHtml = PUBLISH_PLATFORMS.map((p) => {
+    const done = !!(postedMap && postedMap[p.id]);
+    return `<button type="button" class="pub-tab ${p.id === activePlat ? "active" : ""} ${done ? "is-posted" : ""}" data-pub-tab="${p.id}" data-stem="${escapeHTML(stem)}">${p.short}${done ? " ✓" : ""}</button>`;
+  }).join("");
+  const titleBtn =
+    activePlat === "youtube_shorts"
+      ? `<button type="button" class="pub-btn" data-copy-field="title" data-stem="${escapeHTML(stem)}">📋 Título</button>`
+      : "";
+  const descLabel = activePlat === "youtube_shorts" ? "📋 Descrição" : "📋 Legenda";
+  const commentBtn =
+    platData?.pinned_comment && activePlat === "youtube_shorts"
+      ? `<button type="button" class="pub-btn" data-copy-field="pinned_comment" data-stem="${escapeHTML(stem)}">📋 1º Comentário</button>`
+      : "";
+  const postedBadge = isPosted
+    ? `<span class="pub-posted-tag">✓ Postado</span>`
+    : `<button type="button" class="pub-btn pub-btn-done" data-mark-posted="${activePlat}" data-stem="${escapeHTML(stem)}">✅ Marcar postado</button>`;
+  return `<div class="publish-kit" data-pub-stem="${escapeHTML(stem)}">
+    <div class="pub-head">
+      ${streamerLabel ? `<span class="pub-streamer">${escapeHTML(streamerLabel)}</span>` : ""}
+      <div class="pub-tabs">${tabsHtml}</div>
+    </div>
+    <div class="pub-actions">
+      ${titleBtn}
+      <button type="button" class="pub-btn" data-copy-field="description" data-stem="${escapeHTML(stem)}">${descLabel}</button>
+      ${commentBtn}
+      <a class="pub-btn pub-link" href="${escapeHTML(platData?.upload_url || "#")}" target="_blank" rel="noopener">↗ Abrir upload</a>
+      ${postedBadge}
+    </div>
+  </div>`;
+}
+
 function renderOutputs(detail) {
   const videos = detail.files.filter((f) => f.name.endsWith(".mp4"));
+  const exportedVideos = videos.filter((f) => f.kind === "clips");
+  const bundleBtn = $("#export-daily-bundle");
+  if (bundleBtn) bundleBtn.hidden = exportedVideos.length === 0;
   $("#output-count").textContent = `${videos.length} CLIPS`;
   $("#outputs").className = videos.length ? "output-grid" : "";
+  const kits = detail.publish_kits || {};
+  const pubs = detail.publications || {};
   $("#outputs").innerHTML = videos.length
     ? videos
         .map((file) => {
           const stem = file.name.slice(0, -4),
+            hasOfficialThumb = detail.files.some(
+              (f) => f.kind === file.kind && f.name === stem + "_thumb.png",
+            ),
             related = detail.files.filter(
               (f) =>
                 f.kind === file.kind &&
                 [
                   stem + ".srt",
-                  stem + ".png",
-                  stem + "_thumb.png",
+                  ...(hasOfficialThumb ? [stem + "_thumb.png"] : [stem + ".png"]),
                   stem + ".meta.json",
                 ].includes(f.name),
             ),
             thumbFile =
-              related.find((f) => f.name === stem + "_thumb.png") ||
-              related.find((f) => f.name === stem + ".png"),
+              detail.files.find(
+                (f) => f.kind === file.kind && f.name === stem + "_thumb.png",
+              ) ||
+              detail.files.find(
+                (f) => f.kind === file.kind && f.name === stem + ".png",
+              ),
             posterAttr = thumbFile ? ` poster="${encodeURI(thumbFile.url)}"` : "",
-            thumbImg = thumbFile
-              ? `<a class="output-thumb-wrap" href="${encodeURI(thumbFile.url)}" target="_blank" rel="noopener"><img class="output-thumb" src="${encodeURI(thumbFile.url)}" alt="Thumbnail de ${escapeHTML(stem)}" loading="lazy"></a>`
-              : "";
-          return `<article class="output-card"><video controls preload="none"${posterAttr} src="${encodeURI(file.url)}"></video>${thumbImg}<div class="output-info"><p>${escapeHTML(file.kind === "previews" ? "DRAFT · " : "EXPORT · ")}${escapeHTML(stem)}</p><div class="output-links"><a href="${encodeURI(file.url)}" download>MP4 ↓</a>${related.map((f) => `<a href="${encodeURI(f.url)}" download>${f.name.endsWith(".srt") ? "SRT" : f.name.endsWith(".png") ? "THUMB" : "METADATA"} ↓</a>`).join("")}</div></div></article>`;
+            viewThumbLink = thumbFile
+              ? `<a href="${encodeURI(thumbFile.url)}" target="_blank" rel="noopener">VER THUMB ↗</a>`
+              : "",
+            folderBtn = `<button type="button" class="link-btn" data-open-folder="${escapeHTML(file.name)}" data-kind="${escapeHTML(file.kind)}">📂 PASTA</button>`,
+            pubHtml =
+              file.kind === "clips"
+                ? renderPublishBox(stem, kits[stem], pubs[stem])
+                : '<p class="draft-pub-hint">Rascunho 480p · Clique em <strong>Export selected ↗</strong> para liberar os botões YT/TT/IG/FB e o Pacote do Dia.</p>';
+          return `<article class="output-card"><video controls preload="none"${posterAttr} src="${encodeURI(file.url)}"></video><div class="output-info"><p>${escapeHTML(file.kind === "previews" ? "DRAFT · " : "EXPORT · ")}${escapeHTML(stem)}</p><div class="output-links"><a href="${encodeURI(file.url)}" download>MP4 ↓</a>${viewThumbLink}${related.map((f) => `<a href="${encodeURI(f.url)}" download>${f.name.endsWith(".srt") ? "SRT" : f.name.endsWith(".png") ? "THUMB" : "META"} ↓</a>`).join("")}${folderBtn}</div>${pubHtml}</div></article>`;
         })
         .join("")
     : '<p class="muted">Choose candidates and make a preview or export.</p>';
@@ -1115,6 +1199,72 @@ setInterval(async () => {
     polling = false;
   }
 }, 2000);
+$("#outputs").addEventListener(
+  "click",
+  safe(async (event) => {
+    const tabBtn = event.target.closest("[data-pub-tab]");
+    if (tabBtn && state.detail) {
+      outputPlatformState.set(tabBtn.dataset.stem, tabBtn.dataset.pubTab);
+      renderOutputs(state.detail);
+      return;
+    }
+    const copyBtn = event.target.closest("[data-copy-field]");
+    if (copyBtn && state.detail) {
+      const stem = copyBtn.dataset.stem;
+      const field = copyBtn.dataset.copyField;
+      const activePlat = outputPlatformState.get(stem) || "youtube_shorts";
+      const kit = (state.detail.publish_kits || {})[stem];
+      const text = kit?.platforms?.[activePlat]?.[field] || "";
+      if (!text) throw new Error("Campo vazio para copiar.");
+      const labels = { title: "Título", description: "Descrição", pinned_comment: "1º Comentário" };
+      await copyToClipboard(text, labels[field] || "Texto");
+      return;
+    }
+    const folderBtn = event.target.closest("[data-open-folder]");
+    if (folderBtn && state.id) {
+      await api(`/api/projects/${state.id}/open-folder`, {
+        file: folderBtn.dataset.openFolder,
+        kind: folderBtn.dataset.kind || "clips",
+      });
+      notice("Pasta aberta no explorador de arquivos.");
+      return;
+    }
+    const markBtn = event.target.closest("[data-mark-posted]");
+    if (markBtn && state.id && state.detail) {
+      const stem = markBtn.dataset.stem;
+      const platform = markBtn.dataset.markPosted;
+      const externalUrl = window.prompt(
+        `Link do vídeo postado em ${platform} (opcional — pode deixar vazio e clicar OK):`,
+        "",
+      );
+      if (externalUrl === null) return;
+      const res = await api(`/api/projects/${state.id}/mark-posted`, {
+        clip_stem: stem,
+        platform,
+        external_url: externalUrl.trim(),
+      });
+      state.detail.publications = state.detail.publications || {};
+      state.detail.publications[stem] = state.detail.publications[stem] || {};
+      state.detail.publications[stem][platform] = res.publication;
+      renderOutputs(state.detail);
+      notice(`Marcado como postado em ${platform} e salvo no banco!`);
+    }
+  }),
+);
+const bundleBtnEl = $("#export-daily-bundle");
+if (bundleBtnEl) {
+  bundleBtnEl.addEventListener(
+    "click",
+    safe(async () => {
+      if (!state.id) return;
+      const res = await api(`/api/projects/${state.id}/export-bundle`, {
+        per_day: 3,
+        open_folder: true,
+      });
+      notice(`Pacote do Dia gerado (${res.count} clipes) em: ${res.bundle_dir}`);
+    }),
+  );
+}
 safe(async () => {
   await config();
   await refreshProjects();

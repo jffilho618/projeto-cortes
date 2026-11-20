@@ -40,7 +40,7 @@ LONG_SOURCE_SECONDS = 7200
 BLOCK_SECONDS = 1800
 BLOCK_VERSION = 1
 
-BASE_LADDER = (15, 30, 45, 60, 90, 120, 180, 300)
+BASE_LADDER = (8, 12, 15, 30, 45, 60, 90, 120, 180, 300)
 DURATION_HELP = "Use seconds or a duration like 45s, 2m, or 1m30s (5s to 1h)."
 
 
@@ -229,6 +229,13 @@ META_OUTROS = (
 )
 ANAPHORIC_OPENERS = ("this", "that", "it", "he", "she", "they", "those", "these",
                      "isso", "esse", "essa", "aquilo", "ele", "ela")
+VISUAL_DEICTIC_CUES = (
+    "olha isso", "olha a mão", "olha a mao", "olha ali", "olha aqui",
+    "olha só", "olha so", "olha o que", "olha a física", "olha a fisica",
+    "espera aí", "espera ai", "peraí", "perai", "repara", "tá vendo",
+    "ta vendo", "aqui ó", "aqui o", "vê se", "ve se", "deixa eu ver",
+    "look at", "look here", "watch this", "see that",
+)
 EARLIER_REFERENCES = ("as i said", "like i mentioned", "earlier", "last time",
                       "previous video", "as you know",
                       "como eu disse", "no vídeo passado", "como vocês sabem")
@@ -370,6 +377,8 @@ def sentence_features(sent):
     filler_count = sum(token in FILLER_TOKENS for token in tokens)
     if _has_filler_sequence(tokens):
         filler_count += 1
+    visual_deictic = any(phrase in low for phrase in VISUAL_DEICTIC_CUES)
+    is_anaphoric = (bool(tokens) and tokens[0] in ANAPHORIC_OPENERS) and not visual_deictic
     return {
         "start": float(sent["start"]), "end": float(sent["end"]),
         "duration": duration, "words": len(tokens), "text": text,
@@ -380,7 +389,8 @@ def sentence_features(sent):
         "filler_ratio": filler_count / max(1, len(tokens)),
         "meta_open": any(phrase in low for phrase in META_OPENERS),
         "meta_outro": any(phrase in low for phrase in META_OUTROS),
-        "anaphoric": bool(tokens) and tokens[0] in ANAPHORIC_OPENERS,
+        "visual_deictic": visual_deictic,
+        "anaphoric": is_anaphoric,
         "earlier_ref": any(phrase in low for phrase in EARLIER_REFERENCES),
         "question": text.strip().endswith("?") or " what if " in low,
         "number": bool(re.search(
@@ -421,7 +431,7 @@ PREFIX_KEYS = (
     "hook", "payoff_cue", "curiosity", "stakes", "superlative", "negation",
     "earlier_ref", "emotion", "reaction", "personal_stakes", "controversy",
     "humour", "exclamation", "caps", "repeated", "intensity", "laughter",
-    "game_cue",
+    "game_cue", "visual_deictic",
     "filler_count", "repeated_bigram", "false_start", "words",
 )
 
@@ -1015,6 +1025,14 @@ OPTIONAL_SEGMENT_KEYS = (
     "pinned_comment_debate",
     "llm_mode_used",
     "parent_long_clip_id",
+    "archetype",
+    "tier",
+    "tone",
+    "rewatchability",
+    "shareability",
+    "hook_quote",
+    "track_origin",
+    "why_extraordinary",
 )
 
 
@@ -1685,6 +1703,52 @@ def apply_4d_and_snap(
     return out
 
 
+def temporal_nms(candidates, *, iou_threshold=0.35, min_center_gap_sec=20.0, limit=12):
+    """Non-Maximum Suppression temporal para impedir janelas clonadas no mesmo minuto."""
+    if not candidates:
+        return []
+    ordered = sorted(
+        candidates,
+        key=lambda c: (-float(c.get("overall") or 0.0), float(c.get("start") or 0.0)),
+    )
+    kept = []
+    for cand in ordered:
+        s = float(cand.get("start") or 0.0)
+        e = float(cand.get("end") or s)
+        center = (s + e) / 2.0
+        conflict = False
+        for prev in kept:
+            ps = float(prev.get("start") or 0.0)
+            pe = float(prev.get("end") or ps)
+            inter = max(0.0, min(e, pe) - max(s, ps))
+            union = max(1e-6, max(e, pe) - min(s, ps))
+            min_dur = max(1e-6, min(e - s, pe - ps))
+            iou = inter / union
+            containment = inter / min_dur
+            pcenter = (ps + pe) / 2.0
+            if iou > float(iou_threshold) or containment >= 0.70 or abs(center - pcenter) < float(min_center_gap_sec):
+                conflict = True
+                break
+        if not conflict:
+            kept.append(cand)
+            if limit is not None and len(kept) >= int(limit):
+                break
+    return kept
+
+
+def _load_source_meta(workdir: Path) -> dict:
+    """Lê source_meta salvo em project.json quando existir."""
+    proj_path = Path(workdir) / "project.json"
+    if not proj_path.is_file():
+        return {}
+    try:
+        data = json.loads(proj_path.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return {}
+    meta = data.get("source_meta")
+    return meta if isinstance(meta, dict) else {}
+
+
 def _load_optional_chat_seismic(workdir: Path, source: str | None, duration_s: float) -> dict | None:
     """Procura log de chat da live ao lado do projeto/vídeo e calcula o Sismógrafo 1Hz."""
     from picorte.engine.chat_seismic import analyze_chat_seismic, parse_chat_log
@@ -1778,8 +1842,63 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
         min_len, max_len)
 
     from picorte.config import resolve_vision_preset
+    import ingest as _ingest
+    from picorte.engine.multitrack import payoff_first_rewind
     resolved_vp = resolve_vision_preset(vision_preset)
     chat_seismic = _load_optional_chat_seismic(workdir, source, source_duration)
+    source_meta = _load_source_meta(workdir)
+    heatmap_peaks = _ingest.extract_heatmap_peaks(source_meta.get("heatmap"))
+
+    # Marca candidatos com dêiticos visuais ('olha isso', 'olha a mão', 'espera')
+    for cand in candidates:
+        low_txt = f" {str(cand.get('text') or '').lower()} "
+        if any(cue in low_txt for cue in VISUAL_DEICTIC_CUES):
+            cand["has_visual_deictic"] = True
+
+    # Descoberta Payoff-First Rewind: ancora em payoffs fortes e rebobina para o setup.
+    if sentences:
+        for rw in payoff_first_rewind(sentences, min_len=float(min_len), max_len=float(max_len)):
+            ws, we = float(rw["start"]), float(rw["end"])
+            covered = any(
+                min(float(c["end"]), we) - max(float(c["start"]), ws) >= 0.55 * max(1.0, we - ws)
+                for c in candidates
+            )
+            if not covered:
+                candidates.append(rw)
+
+    # Promove picos do heatmap Most Replayed do YouTube como sementes candidatas obrigatórias.
+    for pk in heatmap_peaks:
+        ps = float(pk["start"])
+        pe = float(pk["end"])
+        center = float(pk["center"])
+        span = max(float(min_len), min(float(max_len), max(30.0, pe - ps + 12.0)))
+        ws = max(0.0, center - span / 2.0)
+        we = min(source_duration if source_duration > 0 else ws + span, ws + span)
+        if (we - ws) < float(min_len) and source_duration >= float(min_len):
+            ws = max(0.0, source_duration - float(min_len))
+            we = source_duration
+        covered = any(
+            min(float(c["end"]), we) - max(float(c["start"]), ws) >= 0.4 * max(1.0, we - ws)
+            for c in candidates
+        )
+        if not covered and (we - ws) >= min(float(min_len), source_duration or float(min_len)):
+            peak_text = " ".join(
+                s["text"] for s in sentences if float(s["end"]) >= ws and float(s["start"]) <= we
+            ).strip()
+            candidates.append({
+                "start": round(ws, 2),
+                "end": round(we, 2),
+                "duration": round(we - ws, 2),
+                "hook": make_hook(peak_text) if peak_text else f"Pico Most Replayed em {int(center)}s",
+                "text": peak_text,
+                "overall": round(7.4 + min(1.5, float(pk["value"]) * 1.5), 2),
+                "raw_score": 7.6,
+                "seed_kind": "heatmap_peak",
+                "track_origin": "energy_chat_heatmap",
+                "score_parts": {"heatmap_value": pk["value"]},
+                "evidence": {},
+                "reason": f"Pico Most Replayed YouTube ({pk['value']:.2f})",
+            })
 
     # Se o Sismógrafo do Chat detectou picos em trechos sem candidato de fala (muito comum em lives de games),
     # promove esses picos para janelas candidatas dentro de [min_len, max_len].
@@ -1821,7 +1940,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
             from picorte.engine.hud_detector import detect_hud_events
             from picorte.engine.visual_games import analyze_facecam_reactions, sample_video_frames
 
-            ranked = sorted(candidates, key=lambda c: float(c.get("overall") or 0.0), reverse=True)[:12]
+            ranked = temporal_nms(candidates, iou_threshold=0.35, min_center_gap_sec=20.0, limit=12)
             total_ranked = len(ranked)
             for idx, cand in enumerate(ranked, 1):
                 s_t, e_t = float(cand["start"]), float(cand["end"])
@@ -1881,7 +2000,8 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 
 def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
            band=None, llm=None, host=OLLAMA_HOST, mode="heuristic",
-           ai_mode="heuristic", ai_filter="ollama", ai_companion="claude"):
+           ai_mode="heuristic", ai_filter="ollama", ai_companion="claude",
+           query=None, hunt_mode="fast"):
     """Read candidates.json, write segments.json and selection.json."""
     workdir = Path(workdir)
     candidates, discovery = load_candidates(workdir)
@@ -1891,15 +2011,87 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
     deduped = dedupe_candidates(candidates, preferred_len=preferred_len,
                                 band=effective_band, min_score=min_score)
     if ai_mode and ai_mode != "heuristic":
-        from picorte.ai.llm_router import LLMRouter
+        import ingest as _ingest
+        from picorte.ai.game_dossiers.loader import load_dossier_for_source
+        from picorte.ai.llm_router import LLMRouter, load_golden_examples
+        from picorte.ai.llm_scout import query_vod_clips, scout_full_vod
+        from picorte.engine.multitrack import build_multitrack_pool
+
         router = LLMRouter(ollama_host=host, ollama_model=llm or None)
+        source_meta = _load_source_meta(workdir)
+        dossier = load_dossier_for_source(source_meta)
+        golden_examples = load_golden_examples()
+        heatmap_peaks = _ingest.extract_heatmap_peaks(source_meta.get("heatmap"))
+
+        sentences = []
+        tr_path = workdir / "transcript.json"
+        if tr_path.is_file():
+            try:
+                tr_data = json.loads(tr_path.read_text(encoding="utf-8-sig"))
+                sentences = sentenceize(tr_data.get("words") or [])
+            except (OSError, ValueError):
+                sentences = []
+
+        scout_cands = []
+        if sentences:
+            try:
+                if query:
+                    scout_cands = query_vod_clips(
+                        sentences,
+                        query=query,
+                        router=router,
+                        ai_mode=ai_mode,
+                        source_meta=source_meta,
+                        dossier=dossier,
+                        filter_provider=ai_filter,
+                        companion_provider=ai_companion,
+                        model=llm,
+                    )
+                else:
+                    scout_cands = scout_full_vod(
+                        sentences,
+                        router=router,
+                        ai_mode=ai_mode,
+                        source_meta=source_meta,
+                        dossier=dossier,
+                        max_findings=20 if hunt_mode == "deep" else 15,
+                        filter_provider=ai_filter,
+                        companion_provider=ai_companion,
+                        model=llm,
+                    )
+            except Exception:
+                scout_cands = []
+
+        if hunt_mode == "deep" and sentences:
+            try:
+                from picorte.engine.two_act_arc import detect_two_act_arcs
+                arcs = detect_two_act_arcs(sentences)
+                if arcs:
+                    _write_json(workdir / "two_act_arcs.json", arcs)
+            except Exception:
+                pass
+
+        multitrack_pool = build_multitrack_pool(
+            deduped,
+            sentences=sentences,
+            scout_candidates=scout_cands,
+            heatmap_peaks=heatmap_peaks,
+            max_total=55 if hunt_mode == "deep" else 45,
+        ) or deduped
+
         try:
             routed = router.rerank_candidates(
-                deduped,
+                multitrack_pool,
                 ai_mode=ai_mode,
                 filter_provider=ai_filter,
                 companion_provider=ai_companion,
                 model=llm,
+                source_meta=source_meta,
+                sentences=sentences,
+                dossier=dossier,
+                golden_examples=golden_examples,
+                max_per_archetype=3,
+                keep_overflow=True,
             )
             adjusted = routed["candidates"]
             used_mode = routed["llm_mode_used"]
@@ -1908,10 +2100,19 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
             adjusted, used_mode = None, "heuristic"
         if adjusted:
             by_key = {_candidate_key(item): item for item in adjusted}
-            candidates = [{**item, **by_key[_candidate_key(item)]}
-                          if _candidate_key(item) in by_key else item
-                          for item in candidates]
-            deduped = [by_key.get(_candidate_key(item), item) for item in deduped]
+            updated_cands = [
+                {**item, **by_key[_candidate_key(item)]}
+                if _candidate_key(item) in by_key else item
+                for item in candidates
+            ]
+            seen_keys = {_candidate_key(item) for item in updated_cands}
+            for item in adjusted:
+                k = _candidate_key(item)
+                if k not in seen_keys:
+                    updated_cands.append(item)
+                    seen_keys.add(k)
+            candidates = updated_cands
+            deduped = adjusted
             mode = used_mode
             save_candidates(workdir, candidates, discovery, mode=mode)
     elif llm:
@@ -1932,6 +2133,14 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         evidence_available=discovery.get("evidence_available"))
     _write_json(workdir / "segments.json", segments)
     _write_json(workdir / "selection.json", stats)
+    if hunt_mode == "deep" and segments:
+        try:
+            from picorte.engine.archetype_compiler import compile_by_archetype
+            comps = compile_by_archetype(segments)
+            if comps:
+                _write_json(workdir / "archetype_compilations.json", comps)
+        except Exception:
+            pass
     return segments, mode
 
 

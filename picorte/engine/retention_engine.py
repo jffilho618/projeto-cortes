@@ -8,16 +8,145 @@ import numpy as np
 from picorte.engine.audio_align import find_audio_offset
 
 
+ARCHETYPE_RETENTION_POLICIES: dict[str, dict[str, Any]] = {
+    "callback_oculto": {
+        "use_cold_open": False,
+        "banner_style": "curioso",
+        "font_name": "Archivo",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HD0182433",
+        "comparative_badge": True,
+    },
+    "descoberta_detalhe": {
+        "use_cold_open": False,
+        "banner_style": "curioso",
+        "font_name": "Archivo",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HD0182433",
+        "comparative_badge": True,
+    },
+    "serio_realtalk": {
+        "use_cold_open": False,
+        "banner_style": "editorial",
+        "font_name": "Archivo",
+        "primary_colour": "&H00F2F2F2",
+        "back_colour": "&HE0121214",
+        "comparative_badge": False,
+    },
+    "polemica_hottake": {
+        "use_cold_open": False,
+        "banner_style": "editorial",
+        "font_name": "Archivo",
+        "primary_colour": "&H00F5F5F5",
+        "back_colour": "&HE01A1414",
+        "comparative_badge": False,
+    },
+    "susto_tensao": {
+        "use_cold_open": False,
+        "banner_style": "tenso",
+        "font_name": "Antonio",
+        "primary_colour": "&H00E5E5FF",
+        "back_colour": "&HE00D0D14",
+        "comparative_badge": False,
+    },
+    "deadpan_karma": {
+        "use_cold_open": False,
+        "banner_style": "ironico",
+        "font_name": "Archivo",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HD01A1A1A",
+        "comparative_badge": False,
+    },
+    "caos_coop": {
+        "use_cold_open": True,
+        "banner_style": "hype",
+        "font_name": "Arial Black",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HC8000000",
+        "comparative_badge": False,
+    },
+    "rage_tilt": {
+        "use_cold_open": True,
+        "banner_style": "hype",
+        "font_name": "Arial Black",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HC8000024",
+        "comparative_badge": False,
+    },
+    "clutch_fail": {
+        "use_cold_open": True,
+        "banner_style": "hype",
+        "font_name": "Arial Black",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HC8000000",
+        "comparative_badge": False,
+    },
+    "chat_trolagem": {
+        "use_cold_open": True,
+        "banner_style": "hype",
+        "font_name": "Archivo",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HC8141422",
+        "comparative_badge": False,
+    },
+}
+
+
+def resolve_archetype_retention_policy(
+    archetype: str | None,
+    *,
+    tone: str | None = None,
+) -> dict[str, Any]:
+    """Resolve política de Cold Open e estilo visual da Faixa de Contexto pelo arquétipo."""
+    key = str(archetype or "").strip().lower()
+    if key in ARCHETYPE_RETENTION_POLICIES:
+        return dict(ARCHETYPE_RETENTION_POLICIES[key])
+    t = str(tone or "").strip().lower()
+    if t == "editorial":
+        return dict(ARCHETYPE_RETENTION_POLICIES["serio_realtalk"])
+    if t == "tenso":
+        return dict(ARCHETYPE_RETENTION_POLICIES["susto_tensao"])
+    if t == "curioso":
+        return dict(ARCHETYPE_RETENTION_POLICIES["callback_oculto"])
+    if t == "ironico":
+        return dict(ARCHETYPE_RETENTION_POLICIES["deadpan_karma"])
+    return {
+        "use_cold_open": True,
+        "banner_style": "hype",
+        "font_name": "Arial Black",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HC8000000",
+        "comparative_badge": False,
+    }
+
+
 def build_cold_open_plan(
     clip_start: float,
     clip_end: float,
     *,
     peak_t: float | None = None,
     teaser_dur: float = 1.5,
+    archetype: str | None = None,
+    tone: str | None = None,
 ) -> dict[str, Any]:
-    """Planeja Cold Open Reverso de 1.2s a 1.8s puxando o pico dramático para o segundo 0:00."""
+    """Planeja Cold Open Reverso de 1.2s a 1.8s puxando o pico dramático para o segundo 0:00.
+
+    Respeita a política do arquétipo: desliga spoiler em susto_tensao / serio_realtalk / callback_oculto.
+    """
     s = float(clip_start)
     e = float(clip_end)
+    policy = resolve_archetype_retention_policy(archetype, tone=tone)
+    if not policy["use_cold_open"]:
+        return {
+            "enabled": False,
+            "archetype": archetype,
+            "clip_start": round(s, 3),
+            "clip_end": round(e, 3),
+            "teaser_start": round(s, 3),
+            "teaser_end": round(s, 3),
+            "teaser_duration": 0.0,
+        }
+
     dur = max(0.5, e - s)
     td = max(1.2, min(1.8, float(teaser_dur), dur * 0.45))
 
@@ -25,6 +154,8 @@ def build_cold_open_plan(
     t_start = max(s, min(e - td, center - td / 2.0))
     t_end = min(e, t_start + td)
     return {
+        "enabled": True,
+        "archetype": archetype,
         "clip_start": round(s, 3),
         "clip_end": round(e, 3),
         "teaser_start": round(t_start, 3),
@@ -48,13 +179,21 @@ def build_context_banner_ass(
     height: int = 1920,
     duration_s: float = 2.0,
     y_pos: int = 300,
+    archetype: str | None = None,
+    tone: str | None = None,
 ) -> str:
     """Gera bloco ASS para Faixa de Contexto de 2s na área segura superior (y=240..360, AD-7)."""
+    policy = resolve_archetype_retention_policy(archetype, tone=tone)
     safe_y = max(240, min(360, int(y_pos)))
     safe_x = int(width // 2)
     clean_text = str(text or "").replace("\n", " ").strip()
     start_ts = _fmt_ass_time(0.0)
     end_ts = _fmt_ass_time(max(1.0, float(duration_s)))
+    font_name = policy["font_name"]
+    primary = policy["primary_colour"]
+    back = policy["back_colour"]
+    font_size = 42 if policy["banner_style"] == "editorial" else 46
+    outline_px = 8 if policy["banner_style"] == "editorial" else 12
     header = (
         "[Script Info]\n"
         "ScriptType: v4.00+\n"
@@ -62,7 +201,7 @@ def build_context_banner_ass(
         f"PlayResY: {int(height)}\n\n"
         "[V4+ Styles]\n"
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
-        "Style: ContextBanner,Arial Black,46,&H00FFFFFF,&H00FFFFFF,&HC8000000,&HC8000000,-1,0,0,0,100,100,0,0,3,12,0,8,80,80,240,1\n\n"
+        f"Style: ContextBanner,{font_name},{font_size},{primary},{primary},{back},{back},-1,0,0,0,100,100,0,0,3,{outline_px},0,8,80,80,240,1\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )
