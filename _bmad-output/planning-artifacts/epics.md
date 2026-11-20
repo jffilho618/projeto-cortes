@@ -232,39 +232,59 @@ Como operador, quero montar arcos de 2 atos (*setup → payoff* distantes), comp
 
 ---
 
-## Epic 4: Escudo Anti-Strike e Anti-Desmonetização (P1 Inegociável)
+## Epic 4: Escudo Anti-Strike, Anti-Desmonetização e Anti-Bloqueio (P1 Inegociável — Ampliado)
 
-**Objetivo:** Implementar todos os portões automáticos de segurança do pilar **P1**: bloqueio de fonte `desconhecida`, políticas por publisher/jogo (ex.: Rockstar/GTA 6), cirurgia seletiva de música com `Demucs` na GPU, filtro "Selo Verde 15s" (micro-bleep + visão), detector visual de "React Perigoso", Score mínimo YPP (`>=70`) e deduplicação perceptual `pHash`.
+**Objetivo:** Implementar o escudo completo em quarentena granular por rede (`RiskVerdict`) cobrindo todos os portões automáticos do pilar **P1**: bloqueio Pre-Ingest/Pre-Export de fonte `desconhecida`/campanha vencida, políticas declarativas por publisher/jogo (`assets/policies/publishers.json` + DB), Disjuntor de Fonte, Copy Hygiene por rede (TikTok/Reels/Shorts), Cadência Anti-Spam + Cool-Down 48h, pontuação dupla YPP (`>=70`) + TikTok Originality + deduplicação híbrida `pHash`, cirurgia seletiva de música `Demucs` na GPU, Selo Verde 15s (áudio + visão + Cold Open + Thumbnail), React Guard com exceção de UI in-game, Raio-X na UI e ferramentas MCP.
 **Capacidades cobertas:** `CAP-10`, `CAP-11`, `CAP-12`, `CAP-13`.
-**Regras de Arquitetura:** `AD-3`, `AD-5`.
+**Regras de Arquitetura:** `AD-3`, `AD-5`, `AD-11`.
 
-### Story 4.1: Portão de Status da Fonte e Políticas por Publisher/Jogo (`policy_gate.py`)
-
-**Descrição:**
-Como operador, quero que o sistema recuse baixar ou publicar qualquer fonte `desconhecida`, expirada ou na lista negra e aplique as regras da tabela `publisher_policies` (janela de spoiler, cutscenes proibidas, flag de rádio licenciada).
-
-**Critérios de Aceite (AC):**
-1. `policy_gate.assert_can_ingest` bloqueia 100% das chamadas de download para fontes com `permission_status` não autorizado ou campanha vencida.
-2. Políticas pré-cadastradas (incluindo Rockstar/GTA 6) barram candidatos fora da janela de spoiler ou de categorias proibidas pelo publisher.
-
-### Story 4.2: Cirurgia Seletiva de Música com `Demucs` na GPU (`music_surgeon.py`)
+### Story 4.1: Portão de Fontes, Políticas de Publisher e Disjuntor de Emergência (Onda 4A)
 
 **Descrição:**
-Como operador, quero que trechos do corte que contenham música de fundo licenciada (ex.: rádio de carro no GTA) passem por separação neural `htdemucs` na GPU apenas nos segundos afetados, removendo a música e preservando a voz limpa do streamer sem alterar pitch ou velocidade (A2).
+Como operador, quero sincronizar o cadastro de streamers com o banco, bloquear 100% de downloads/exports de fontes `desconhecida`, expiradas ou na lista negra, aplicar políticas declarativas por publisher/jogo (Rockstar/GTA 6, Nintendo, Riot, Valve, Sony) e acionar pausa global de fonte em caso de claim.
 
 **Critérios de Aceite (AC):**
-1. `music_surgeon.py` detecta os intervalos com música sob a fala e executa `htdemucs` sob o `vram_runner.py`.
-2. O áudio resultante substitui apenas o intervalo musical pelo stem `vocals` com crossfade suave de 150 ms, mantendo o áudio original do jogo no restante do corte.
+1. `policy_gate.assert_can_ingest` e `assert_can_export` bloqueiam fontes não autorizadas ou campanhas com `expires_at` vencido, sem flag de bypass.
+2. `assets/policies/publishers.json` é carregado e sincronizado com `publisher_policies`, barrando spoilers/leaks e jogos embargados.
+3. `source_breaker.pause_source_globally(source_id, reason)` marca a fonte como `pausada_por_claim` e trava imediatamente novos exports/Pacote do Dia.
 
-### Story 4.3: Filtro "Selo Verde 15s", Detector de "React Perigoso" e Guardião YPP + `pHash`
+### Story 4.2: Copy Hygiene por Rede, Cadência Anti-Spam, YPP/TikTok Score e Deduplicação `pHash` (Onda 4A)
 
 **Descrição:**
-Como operador, quero que os primeiros 15 segundos de todo corte recebam micro-bleep (`0,2s`) e `***` em palavrões severos e verificação visual contra violência gráfica, que trechos de react de navegador/terceiros sejam bloqueados e que apenas cortes com `ypp_score >= 70` e sem duplicidade de `pHash` entrem na fila.
+Como operador, quero sanitizar automaticamente legendas/títulos por plataforma (impedindo links concorrentes e `#shorts` no TikTok + alertando palavras de ícone amarelo), controlar cadência diária com Cool-Down 48h, auditar originalidade separadamente para YouTube YPP (`>=70`) e TikTok FYP, e bloquear cortes duplicados por `pHash` + texto.
 
 **Critérios de Aceite (AC):**
-1. `green_seal_15s.py` aplica atenuação/bleep nos timestamps de profanidade severa entre `0s` e `15s` e substitui a palavra por `***` na legenda `.ass`.
-2. `react_guard.py` detecta e bloqueia trechos onde a tela principal exibe navegador ou player de vídeo de terceiros (YouTube/TikTok).
-3. `ypp_guard.py` bloqueia cortes com `ypp_transform_score < 70` ou com similaridade `pHash`/transcrição `> 0.85` contra cortes anteriores no banco.
+1. `copy_guard.py` limpa/valida copy por plataforma (`youtube_shorts`, `tiktok`, `instagram_reels`, `facebook_reels`), removendo URLs rivais/`#shorts` no TikTok e sinalizando termos desmonetizáveis.
+2. `cadence_guard.py` consulta `publications`, aplica teto diário/espaçamento mínimo e respeita `cooldown_until` (48h) por rede.
+3. `ypp_guard.py` emite `ypp_score`, `tiktok_originality_score` (penalizando frames estáticos `> 4s` e marcas d'água), `audit_trail` JSON e deduplicação híbrida (`pHash` visual + 3-gramas de texto `> 0.85`, exceto `ab_variant` explícito).
+
+### Story 4.3: Cirurgia Seletiva de Música com `Demucs` na GPU (Onda 4B)
+
+**Descrição:**
+Como operador, quero detectar em CPU intervalos musicais (`>= 2,5s`) sob a fala e rodar `htdemucs` sob `vram_runner.py` apenas nessas janelas (chunks `<= 30s`), preservando a voz limpa com crossfade de `150 ms`, validação de SNR, cache de stems e degradação segura.
+
+**Critérios de Aceite (AC):**
+1. `music_surgeon.py` detecta intervalos musicais em CPU sem carregar GPU quando não há música.
+2. Em janelas musicais, executa `htdemucs` via `vram_runner.py`, aplica crossfade `150 ms` + limiter `-1,5 dBTP` e reutiliza cache por hash do trecho; sem `demucs` instalado, marca `NEEDS_HUMAN_AUDIO_CHECK` explicitamente.
+
+### Story 4.4: Selo Verde 15s (Áudio + Visão + Cold Open + Thumbnail) & Detector de React Perigoso (Onda 4B)
+
+**Descrição:**
+Como operador, quero aplicar censura cirúrgica (bleep/soft-mute com fade `15 ms` + `***`) em palavrões severos entre `0s` e `15s` e no teaser do Cold Open, barrar frames com gore/nudez nos primeiros 15s e na thumbnail, e bloquear trechos de react de navegador/player externo sem confundir menus/celular internos do jogo.
+
+**Critérios de Aceite (AC):**
+1. `green_seal_15s.py` aplica bleep/mute + `***` em léxico PT-BR/EN de 3 camadas com allowlist (sem falsos positivos como *"computador"*), protege o teaser do Cold Open e expõe scorer visual anti-gore/nudez consumido também por `thumbnail_factory.py`.
+2. `react_guard.py` detecta navegador/player externo nas bordas do 16:9 persistindo `>= 2,5s`, preservando menus e celulares in-game.
+
+### Story 4.5: Orquestrador `RiskShield`, Raio-X na UI, MCP e Suíte Adversarial (Onda 4B)
+
+**Descrição:**
+Como operador, quero um orquestrador único (`RiskVerdict` por rede) integrado a `ingest.py`, `render_clips.py`/`projects.py`, `publish_kit.py` e `dashboard.py`, com selos visuais na UI, controle de Cool-Down 48h, ferramentas MCP de auditoria/pausa e suíte adversarial de portões P1.
+
+**Critérios de Aceite (AC):**
+1. `orchestrator.py` produz `RiskVerdict` completo e persiste `risk_status`, `ypp_transform_score` e `phash_signature` no banco.
+2. UI exibe selo visual de risco + breakdown por portão + Cool-Down 48h por rede; MCP expõe `picorte_auditar_risco`, `picorte_politicas_jogo` e `picorte_pausar_fonte`.
+3. Suíte adversarial valida todos os 7 portões P1 ponta a ponta em Windows e Linux (`AD-11`).
 
 ---
 

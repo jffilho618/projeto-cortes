@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Escudo Anti-Strike P1 — Picorte / Bomba Clips · Artefato de Brainstorming</title>
+<style>
+  :root {
+    --bg-void: #06080d;
+    --bg-obsidian: #0b0f17;
+    --bg-panel: #111827;
+    --bg-panel-2: #161f30;
+    --bg-elevated: #1c273d;
+    --border-subtle: rgba(148, 163, 184, 0.14);
+    --border-strong: rgba(148, 163, 184, 0.28);
+
+    --red: #E11D2E;
+    --red-soft: rgba(225, 29, 46, 0.14);
+    --red-border: rgba(225, 29, 46, 0.42);
+    --orange: #FF4D1C;
+    --orange-soft: rgba(255, 77, 28, 0.14);
+    --orange-border: rgba(255, 77, 28, 0.42);
+    --amber: #F59E0B;
+    --amber-soft: rgba(245, 158, 11, 0.14);
+    --amber-border: rgba(245, 158, 11, 0.42);
+    --emerald: #22C55E;
+    --emerald-soft: rgba(34, 197, 94, 0.14);
+    --emerald-border: rgba(34, 197, 94, 0.42);
+    --cyan: #38BDF8;
+    --cyan-soft: rgba(56, 189, 248, 0.13);
+    --cyan-border: rgba(56, 189, 248, 0.36);
+
+    --text-primary: #F1F5F9;
+    --text-secondary: #CBD5E1;
+    --text-muted: #94A3B8;
+    --text-dim: #64748B;
+
+    --font-sans: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace;
+
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background: var(--bg-void);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse 80% 45% at 50% -10%, rgba(225, 29, 46, 0.18), transparent 65%),
+      radial-gradient(ellipse 55% 40% at 88% 12%, rgba(255, 77, 28, 0.12), transparent 60%),
+      radial-gradient(ellipse 60% 45% at 10% 85%, rgba(34, 197, 94, 0.08), transparent 65%),
+      var(--bg-void);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle tactical grid overlay */
+  .tactical-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(circle at 50% 25%, black 30%, transparent 90%);
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  code, .mono {
+    font-family: var(--font-mono);
+  }
+
+  .inline-code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(56, 189, 248, 0.1);
+    color: #BAE6FD;
+    border: 1px solid rgba(56, 189, 248, 0.22);
+    word-break: break-word;
+  }
+
+  mark.hl {
+    background: rgba(245, 158, 11, 0.35);
+    color: #FEF3C7;
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+
+  /* ================= HERO ================= */
+  header.hero {
+    padding: 48px 0 36px;
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 0.65fr;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .classification-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--orange);
+    background: rgba(255, 77, 28, 0.1);
+    border: 1px solid rgba(255, 77, 28, 0.35);
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 12px var(--red);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.35); opacity: 0.55; }
+  }
+
+  h1.hero-title {
+    font-size: clamp(2rem, 3.8vw, 3.25rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 55%, #FDA4AF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    max-width: 720px;
+    margin-bottom: 24px;
+  }
+
+  .hero-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .kpi-chip {
+    background: var(--bg-obsidian);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    min-width: 148px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-chip::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--accent, var(--red));
+  }
+
+  .kpi-value {
+    font-family: var(--font-mono);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .kpi-label {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  /* Shield Emblem Card */
+  .shield-console {
+    background: linear-gradient(160deg, rgba(17, 24, 39, 0.92), rgba(9, 13, 22, 0.96));
+    border: 1px solid rgba(225, 29, 46, 0.35);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    box-shadow: 0 0 40px rgba(225, 29, 46, 0.12), var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shield-console::after {
+    content: "HARD_GATE :: P1 > P5 IMMUTABLE";
+    position: absolute;
+    bottom: 10px;
+    right: 14px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: rgba(225, 29, 46, 0.75);
+  }
+
+  .shield-svg-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+
+  .shield-status-lines {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .shield-stat {
+    background: rgba(6, 8, 13, 0.75);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 7px 9px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .shield-stat span:first-child { color: var(--text-muted); }
+  .shield-stat strong { color: var(--emerald); font-weight: 700; }
+  .shield-stat strong.red { color: var(--red); }
+  .shield-stat strong.amber { color: var(--amber); }
+
+  /* ================= STICKY COMMAND BAR ================= */
+  .command-bar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(6, 8, 13, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border-strong);
+    padding: 12px 0;
+  }
+
+  .command-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .search-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 260px;
+    position: relative;
+  }
+
+  .search-box svg {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .search-box input {
+    width: 100%;
+    background: var(--bg-obsidian);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    color: var(--text-primary);
+    padding: 10px 76px 10px 38px;
+    font-size: 0.92rem;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+
+  .search-box input:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(255, 77, 28, 0.18);
+  }
+
+  .kbd-hint {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-subtle);
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg-panel);
+  }
+
+  .match-badge {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    padding: 8px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  .match-badge strong { color: var(--emerald); }
+
+  .btn-ghost, .btn-climax {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 8px 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.16s ease;
+    white-space: nowrap;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+  }
+
+  .btn-climax {
+    background: linear-gradient(135deg, rgba(225, 29, 46, 0.22), rgba(255, 77, 28, 0.22));
+    border-color: var(--orange-border);
+    color: #FED7AA;
+    font-weight: 700;
+  }
+
+  .btn-climax:hover {
+    background: linear-gradient(135deg, rgba(225, 29, 46, 0.35), rgba(255, 77, 28, 0.35));
+    color: #FFFFFF;
+  }
+
+  .pill-row {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .filter-pill {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: var(--bg-obsidian);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .filter-pill .cnt {
+    font-size: 0.68rem;
+    opacity: 0.78;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 1px 6px;
+    border-radius: 999px;
+  }
+
+  .filter-pill:hover {
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+
+  .filter-pill.active {
+    background: rgba(255, 77, 28, 0.18);
+    border-color: var(--orange);
+    color: #FFFFFF;
+  }
+
+  /* ================= SECTIONS ================= */
+  main {
+    padding: 36px 0 88px;
+  }
+
+  section.chamber {
+    margin-bottom: 64px;
+    scroll-margin-top: 132px;
+  }
+
+  section.chamber.hidden-section {
+    display: none;
+  }
+
+  .chamber-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .chamber-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .chamber-title {
+    font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+  }
+
+  .chamber-desc {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    max-width: 780px;
+    margin-top: 4px;
+  }
+
+  .chamber-count {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  /* ================= T1: FAILURE ANALYSIS (AUTOPSY CARDS) ================= */
+  .autopsy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(370px, 1fr));
+    gap: 16px;
+  }
+
+  .autopsy-card {
+    background: linear-gradient(180deg, #101522 0%, #0b0f18 100%);
+    border: 1px solid var(--border-subtle);
+    border-left: 4px solid var(--red);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow-card);
+    transition: transform 0.16s ease, border-color 0.16s ease;
+  }
+
+  .autopsy-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--red-border);
+  }
+
+  .autopsy-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .case-id {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: #FDA4AF;
+    background: var(--red-soft);
+    border: 1px solid var(--red-border);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .tag-pill {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .autopsy-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .autopsy-symptom {
+    font-size: 0.87rem;
+    color: #FCA5A5;
+    background: rgba(225, 29, 46, 0.07);
+    border: 1px dashed rgba(225, 29, 46, 0.28);
+    border-radius: 8px;
+    padding: 9px 11px;
+  }
+
+  .autopsy-symptom strong {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--red);
+    margin-bottom: 3px;
+  }
+
+  .autopsy-fix {
+    font-size: 0.88rem;
+    color: #DCFCE7;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    border-radius: 8px;
+    padding: 9px 11px;
+    margin-top: auto;
+  }
+
+  .autopsy-fix strong {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--emerald);
+    margin-bottom: 3px;
+  }
+
+  /* ================= T2: COURTROOM (PROSECUTION / DEFENSE SPLIT) ================= */
+  .court-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .court-row {
+    display: grid;
+    grid-template-columns: 1fr 44px 1.25fr;
+    align-items: stretch;
+    background: var(--bg-obsidian);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+  }
+
+  .court-prosecution {
+    background: linear-gradient(135deg, rgba(225, 29, 46, 0.12), rgba(15, 19, 30, 0.92));
+    padding: 16px 18px;
+    border-right: 1px solid rgba(225, 29, 46, 0.25);
+  }
+
+  .court-vs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--amber);
+    background: #0c111d;
+    letter-spacing: 0.06em;
+  }
+
+  .court-defense {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.09), rgba(11, 16, 26, 0.95));
+    padding: 16px 18px;
+    border-left: 1px solid rgba(34, 197, 94, 0.25);
+  }
+
+  .court-role {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .court-prosecution .court-role { color: #FB7185; }
+  .court-defense .court-role { color: var(--emerald); }
+
+  .court-quote {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #FFE4E6;
+    font-style: italic;
+  }
+
+  .court-rebuttal {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+
+  .verdict-banner {
+    margin-top: 18px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(17, 24, 39, 0.96) 55%, rgba(34, 197, 94, 0.12));
+    border: 1px solid var(--amber-border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    box-shadow: 0 0 36px rgba(245, 158, 11, 0.1);
+  }
+
+  .verdict-banner h3 {
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+
+  .verdict-states {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .state-chip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .st-pass { background: var(--emerald-soft); color: #86EFAC; border: 1px solid var(--emerald-border); }
+  .st-fix { background: var(--cyan-soft); color: #7DD3FC; border: 1px solid var(--cyan-border); }
+  .st-shift { background: rgba(168, 85, 247, 0.16); color: #D8B4FE; border: 1px solid rgba(168, 85, 247, 0.42); }
+  .st-review { background: var(--amber-soft); color: #FCD34D; border: 1px solid var(--amber-border); }
+  .st-block { background: var(--red-soft); color: #FDA4AF; border: 1px solid var(--red-border); }
+
+  /* ================= T3: LOTUS BLOSSOM (8-PETAL RADAR + PODS) ================= */
+  .lotus-matrix {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .lotus-cell {
+    background: var(--bg-obsidian);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-align: left;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .lotus-cell:hover {
+    border-color: var(--orange-border);
+    background: var(--bg-panel);
+    transform: translateY(-2px);
+  }
+
+  .lotus-cell.active-petal {
+    border-color: var(--orange);
+    background: linear-gradient(145deg, rgba(255, 77, 28, 0.18), rgba(17, 24, 39, 0.95));
+    box-shadow: 0 0 24px rgba(255, 77, 28, 0.18);
+  }
+
+  .lotus-center {
+    background: radial-gradient(circle at 50% 50%, rgba(225, 29, 46, 0.25), rgba(11, 15, 23, 0.96));
+    border: 1px solid var(--red-border);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .lotus-center strong {
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    color: #FFFFFF;
+    letter-spacing: 0.08em;
+  }
+
+  .lotus-center span {
+    font-size: 0.78rem;
+    color: #FDA4AF;
+  }
+
+  .petal-num {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--orange);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .petal-name {
+    font-size: 0.96rem;
+    font-weight: 700;
+  }
+
+  .petal-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .lotus-pods {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+  }
+
+  .petal-pod {
+    background: var(--bg-obsidian);
+    border: 1px solid var(--border-subtle);
+    border-top: 3px solid var(--petal-accent, var(--orange));
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .petal-pod.dimmed {
+    opacity: 0.35;
+  }
+
+  .petal-pod-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .petal-pod-head h3 {
+    font-size: 0.98rem;
+    font-weight: 700;
+  }
+
+  .petal-item {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .petal-item-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .petal-item-body {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+  }
+
+  /* ================= T4: TRIZ CONTRADICTION (DUAL-POLE TENSION BREAKERS) ================= */
+  .triz-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
+    gap: 16px;
+  }
+
+  .triz-card {
+    background: linear-gradient(180deg, #131a29 0%, #0b0f17 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .triz-poles {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .pole {
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 8px 10px;
+    border-radius: 8px;
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  .pole-a {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.36);
+    color: #FDE68A;
+  }
+
+  .pole-b {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.36);
+    color: #BAE6FD;
+  }
+
+  .triz-spark {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--amber);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid var(--amber-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .triz-resolution {
+    background: rgba(34, 197, 94, 0.08);
+    border-left: 3px solid var(--emerald);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    font-size: 0.87rem;
+    color: var(--text-secondary);
+  }
+
+  .triz-resolution strong {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--emerald);
+    margin-bottom: 3px;
+  }
+
+  /* ================= T5: CHAOS ENGINEERING (FAULT INJECTION) ================= */
+  .chaos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 14px;
+  }
+
+  .chaos-card {
+    background: #090d14;
+    border: 1px solid rgba(255, 77, 28, 0.28);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-card);
+  }
+
+  .chaos-bar {
+    background: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 77, 28, 0.16),
+      rgba(255, 77, 28, 0.16) 8px,
+      rgba(17, 24, 39, 0.9) 8px,
+      rgba(17, 24, 39, 0.9) 16px
+    );
+    border-bottom: 1px solid rgba(255, 77, 28, 0.35);
+    padding: 7px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: #FDBA74;
+  }
+
+  .chaos-body {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+
+  .chaos-attack {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: #FED7AA;
+    background: rgba(255, 77, 28, 0.07);
+    border: 1px solid rgba(255, 77, 28, 0.22);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .chaos-attack::before {
+    content: "$ inject-fault > ";
+    color: var(--orange);
+    font-weight: 700;
+  }
+
+  .chaos-shield {
+    font-size: 0.87rem;
+    color: var(--text-secondary);
+    padding-left: 10px;
+    border-left: 2px solid var(--emerald);
+  }
+
+  /* ================= T6: ASSUMPTION REVERSAL (BEFORE -> AFTER FLIP CARDS) ================= */
+  .flip-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
+
+  .reversal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 16px;
+  }
+
+  .flip-card {
+    background: var(--bg-obsidian);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .flip-card:hover {
+    border-color: var(--cyan-border);
+    transform: translateY(-2px);
+  }
+
+  .flip-card.flipped {
+    border-color: var(--emerald-border);
+    background: linear-gradient(155deg, rgba(34, 197, 94, 0.1), rgba(11, 15, 23, 0.96));
+  }
+
+  .flip-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .flip-id {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--cyan);
+  }
+
+  .flip-hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-subtle);
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+
+  .premise-old {
+    font-size: 0.86rem;
+    color: #FCA5A5;
+    text-decoration: line-through;
+    text-decoration-color: rgba(225, 29, 46, 0.7);
+    background: rgba(225, 29, 46, 0.08);
+    border: 1px solid rgba(225, 29, 46, 0.22);
+    border-radius: 8px;
+    padding: 8px 11px;
+    margin-bottom: 10px;
+    transition: opacity 0.2s;
+  }
+
+  .flip-card.flipped .premise-old {
+    opacity: 0.45;
+  }
+
+  .premise-arrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--emerald);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  .premise-new {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: #ECFDF5;
+    margin-bottom: 6px;
+  }
+
+  .premise-detail {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  /* ================= T7: MORPHOLOGICAL ANALYSIS (PIPELINE + CONTRACTS) ================= */
+  .pipeline-track {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+
+  .stage-card {
+    background: linear-gradient(160deg, #111a2c 0%, #0a0f18 100%);
+    border: 1px solid var(--cyan-border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    position: relative;
+  }
+
+  .stage-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .stage-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 5px;
+    background: var(--cyan-soft);
+    color: #7DD3FC;
+    border: 1px solid var(--cyan-border);
+  }
+
+  .stage-mod {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--amber);
+  }
+
+  .stage-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .stage-body {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+  }
+
+  .contracts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .contract-card {
+    background: #080c13;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+  }
+
+  .contract-card h4 {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--emerald);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .json-block {
+    font-family: var(--font-mono);
+    font-size: 0.77rem;
+    line-height: 1.5;
+    background: #05070c;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 11px 13px;
+    color: #CBD5E1;
+    overflow-x: auto;
+    margin-top: 8px;
+  }
+  .jk { color: #7DD3FC; }
+  .js { color: #86EFAC; }
+  .jv { color: #FCD34D; }
+
+  /* ================= CLIMAX: SYNTHESIS + 5-STORY EPIC 4 BLUEPRINT ================= */
+  .climax-section {
+    scroll-margin-top: 132px;
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.94) 0%, rgba(7, 10, 17, 0.98) 100%);
+    border: 1px solid rgba(255, 77, 28, 0.42);
+    border-radius: 22px;
+    padding: 36px 32px;
+    box-shadow: 0 0 60px rgba(225, 29, 46, 0.14), var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .climax-section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--red), var(--orange), var(--amber), var(--emerald));
+  }
+
+  .synthesis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 24px 0 36px;
+  }
+
+  .synth-card {
+    background: rgba(6, 8, 13, 0.8);
+    border: 1px solid var(--border-strong);
+    border-top: 3px solid var(--scolor, var(--orange));
+    border-radius: var(--radius-md);
+    padding: 18px;
+  }
+
+  .synth-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--scolor, var(--orange));
+    margin-bottom: 6px;
+  }
+
+  .synth-title {
+    font-size: 1.02rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #FFFFFF;
+  }
+
+  .synth-body {
+    font-size: 0.87rem;
+    color: var(--text-secondary);
+  }
+
+  .blueprint-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .blueprint-header h3 {
+    font-size: 1.35rem;
+    font-weight: 800;
+  }
+
+  .wave-legend {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .wave-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  .wave-4a { background: var(--cyan-soft); color: #7DD3FC; border: 1px solid var(--cyan-border); }
+  .wave-4b { background: var(--orange-soft); color: #FDBA74; border: 1px solid var(--orange-border); }
+
+  .stories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+    gap: 14px;
+  }
+
+  .story-card {
+    background: #090d16;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+  }
+
+  .story-card.w4a { border-left: 3px solid var(--cyan); }
+  .story-card.w4b { border-left: 3px solid var(--orange); }
+
+  .story-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .story-code {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #FFFFFF;
+  }
+
+  .story-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+
+  .story-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  .story-list li {
+    padding-left: 14px;
+    position: relative;
+  }
+
+  .story-list li::before {
+    content: "›";
+    position: absolute;
+    left: 0;
+    color: var(--emerald);
+    font-weight: 800;
+  }
+
+  .story-compat {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-subtle);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-muted);
+  }
+
+  .empty-state {
+    display: none;
+    text-align: center;
+    padding: 56px 24px;
+    background: var(--bg-obsidian);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    margin: 24px 0 48px;
+  }
+
+  .empty-state.visible {
+    display: block;
+  }
+
+  footer.colophon {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+
+  @media (max-width: 960px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .court-row { grid-template-columns: 1fr; }
+    .court-prosecution { border-right: none; border-bottom: 1px solid rgba(225, 29, 46, 0.25); }
+    .court-vs { padding: 6px; }
+    .court-defense { border-left: none; border-top: 1px solid rgba(34, 197, 94, 0.25); }
+    .lotus-matrix { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 14px; }
+    .autopsy-grid, .lotus-pods, .triz-grid, .chaos-grid, .reversal-grid, .pipeline-track {
+      grid-template-columns: 1fr;
+    }
+    .lotus-matrix { grid-template-columns: 1fr; }
+    .climax-section { padding: 22px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="tactical-bg" aria-hidden="true"></div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="classification-bar">
+          <span class="pulse-dot"></span>
+          <span>PICORTE // BOMBA CLIPS · ÉPICO 4 · SESSÃO AUTÔNOMA · 2026-11-19</span>
+        </div>
+        <h1 class="hero-title">Escudo Anti-Strike, Anti-Desmonetização &amp; Anti-Bloqueio (P1)</h1>
+        <p class="hero-subtitle">
+          Mapa completo de todos os vetores reais de risco em canais próprios de cortes de games
+          (YouTube Shorts/Longo, TikTok, Reels e Facebook) — consolidado antes da implementação do Épico 4 para blindar
+          a operação e eliminar retrabalho.
+        </p>
+        <div class="hero-meta-row">
+          <div class="kpi-chip" style="--accent: var(--red);">
+            <span class="kpi-value">100</span>
+            <span class="kpi-label">Ideias &amp; Defesas</span>
+          </div>
+          <div class="kpi-chip" style="--accent: var(--orange);">
+            <span class="kpi-value">7</span>
+            <span class="kpi-label">Técnicas de Guerra</span>
+          </div>
+          <div class="kpi-chip" style="--accent: var(--amber);">
+            <span class="kpi-value">8</span>
+            <span class="kpi-label">Pétalas do Escudo</span>
+          </div>
+          <div class="kpi-chip" style="--accent: var(--emerald);">
+            <span class="kpi-value">5</span>
+            <span class="kpi-label">Histórias E4 (4.1–4.5)</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="shield-console" aria-label="Painel tático do Escudo P1">
+        <div class="shield-svg-wrap">
+          <svg width="168" height="168" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Emblema do Escudo P1">
+            <circle cx="90" cy="90" r="82" stroke="rgba(225,29,46,0.28)" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <circle cx="90" cy="90" r="66" stroke="rgba(255,77,28,0.24)" stroke-width="1"/>
+            <path d="M90 18L148 40V88C148 125 123 151 90 164C57 151 32 125 32 88V40L90 18Z"
+                  fill="url(#shieldFill)" stroke="#E11D2E" stroke-width="2.2"/>
+            <path d="M90 30L136 47V87C136 117 116 138 90 149C64 138 44 117 44 87V47L90 30Z"
+                  fill="rgba(6,8,13,0.72)" stroke="rgba(255,77,28,0.65)" stroke-width="1.3"/>
+            <path d="M68 88L83 103L114 70" stroke="#22C55E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="90" y="132" text-anchor="middle" fill="#F8FAFC" font-family="monospace" font-size="11" font-weight="700" letter-spacing="2">P1 SHIELD</text>
+            <defs>
+              <linearGradient id="shieldFill" x1="32" y1="18" x2="148" y2="164" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#E11D2E" stop-opacity="0.34"/>
+                <stop offset="0.55" stop-color="#FF4D1C" stop-opacity="0.18"/>
+                <stop offset="1" stop-color="#0B0F17" stop-opacity="0.95"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="shield-status-lines">
+          <div class="shield-stat"><span>PRIORIDADE</span><strong class="red">P1 &gt; P5</strong></div>
+          <div class="shield-stat"><span>MODO GPU</span><strong class="amber">AD-3 SERIAL</strong></div>
+          <div class="shield-stat"><span>SISTEMA</span><strong>WIN + LINUX</strong></div>
+          <div class="shield-stat"><span>QUARENTENA</span><strong>POR REDE</strong></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</header>
+
+<nav class="command-bar" aria-label="Filtro e busca das 100 ideias">
+  <div class="wrap command-inner">
+    <div class="search-row">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input id="searchInput" type="search" autocomplete="off"
+               placeholder="Buscar nas 100 ideias (ex.: Demucs, GTA 6, TikTok, pHash, Whisper, Selo Verde, React, VRAM)..." />
+        <span class="kbd-hint">/ · ESC</span>
+      </div>
+      <div class="match-badge">Exibindo <strong id="visibleCount">100</strong> / 100 ideias</div>
+      <button id="resetBtn" type="button" class="btn-ghost">Limpar filtros</button>
+      <a href="#climax" class="btn-climax">↓ Síntese &amp; Blueprint E4</a>
+    </div>
+    <div class="pill-row" id="techniquePills" role="tablist"></div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div id="emptyState" class="empty-state">
+    <p style="font-size:1.1rem;font-weight:700;margin-bottom:8px;">Nenhuma ideia encontrada com esse filtro.</p>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:14px;">Tente outro termo ou limpe a busca para visualizar todas as 100 defesas do Escudo P1.</p>
+    <button type="button" class="btn-climax" id="emptyResetBtn">Mostrar todas as 100 ideias</button>
+  </div>
+
+  <!-- T1: FAILURE ANALYSIS -->
+  <section class="chamber" id="sec-t1" data-tech="t1">
+    <div class="chamber-header">
+      <div>
+        <div class="chamber-eyebrow" style="color: var(--red);">
+          <span>01 // FAILURE ANALYSIS (DEEP)</span>
+        </div>
+        <h2 class="chamber-title">Autópsia das Falhas Reais de Produção</h2>
+        <p class="chamber-desc">
+          Cada cartão disseca um incidente real observado ou mapeado em canais de cortes de games e crava a contramedida exata do Escudo E4.
+        </p>
+      </div>
+      <span class="chamber-count" id="cnt-t1">15 incidentes</span>
+    </div>
+    <div class="autopsy-grid" id="grid-t1"></div>
+  </section>
+
+  <!-- T2: DEVIL'S ADVOCATE COURTROOM -->
+  <section class="chamber" id="sec-t2" data-tech="t2">
+    <div class="chamber-header">
+      <div>
+        <div class="chamber-eyebrow" style="color: #FB7185;">
+          <span>02 // DEVIL'S ADVOCATE COURTROOM (THEATRICAL)</span>
+        </div>
+        <h2 class="chamber-title">Tribunal do Bomba Clips — Promotoria vs. Defesa E4</h2>
+        <p class="chamber-desc">
+          Julgamento implacável conduzido por promotores de YPP, Content ID, TikTok FYP, Publishers, Trust &amp; Safety, Anti-Spam e Criadores Originais.
+        </p>
+      </div>
+      <span class="chamber-count" id="cnt-t2">14 peças</span>
+    </div>
+    <div class="court-list" id="grid-t2"></div>
+    <div id="verdict-slot"></div>
+  </section>
+
+  <!-- T3: LOTUS BLOSSOM -->
+  <section class="chamber" id="sec-t3" data-tech="t3">
+    <div class="chamber-header">
+      <div>
+        <div class="chamber-eyebrow" style="color: var(--orange);">
+          <span>03 // LOTUS BLOSSOM (STRUCTURED)</span>
+        </div>
+        <h2 class="chamber-title">Flor de Lótus do Escudo P1 — 8 Pétalas de Defesa</h2>
+        <p class="chamber-desc">
+          Clique em qualquer pétala da matriz 3×3 para isolar sua camada de defesa ou clique no núcleo central para exibir todas as 8 pétalas.
+        </p>
+      </div>
+      <span class="chamber-count" id="cnt-t3">25 mecanismos</span>
+    </div>
+    <div class="lotus-matrix" id="lotusMatrix"></div>
+    <div class="lotus-pods" id="grid-t3"></div>
+  </section>
+
+  <!-- T4: TRIZ CONTRADICTION -->
+  <section class="chamber" id="sec-t4" data-tech="t4">
+    <div class="chamber-header">
+      <div>
+        <div class="chamber-eyebrow" style="color: var(--amber);">
+          <span>04 // TRIZ CONTRADICTION (DEEP)</span>
+        </div>
+        <h2 class="chamber-title">Quebradores de Tensão Técnica</h2>
+        <p class="chamber-desc">
+          12 contradições de engenharia resolvidas sem abrir mão do pilar P1, sem matar a retenção e respeitando os limites de hardware.
+        </p>
+      </div>
+      <span class="chamber-count" id="cnt-t4">12 contradições</span>
+    </div>
+    <div class="triz-grid" id="grid-t4"></div>
+  </section>
+
+  <!-- T5: CHAOS ENGINEERING -->
+  <section class="chamber" id="sec-t5" data-tech="t5">
+    <div class="chamber-header">
+      <div>
+        <div class="chamber-eyebrow" style="color: var(--orange);">
+          <span>05 // CHAOS ENGINEERING (WILD)</span>
+        </div>
+        <h2 class="chamber-title">Laboratório de Sabotagem &amp; Injeção de Falhas</h2>
+        <p class="chamber-desc">
+          Ataques deliberados ao Escudo E4 — áudio no 2º monitor, 4 palavrões em sequência, OOM de VRAM, acentos no Windows e revogação às 3h da manhã.
+        </p>
+      </div>
+      <span class="chamber-count" id="cnt-t5">14 cenários</span>
+    </div>
+    <div class="chaos-grid" id="grid-t5"></div>
+  </section>
+
+  <!-- T6: ASSUMPTION REVERSAL -->
+  <section class="chamber" id="sec-t6" data-tech="t6">
+    <div class="chamber-header">
+      <div>
+        <div class="chamber-eyebrow" style="color: var(--cyan);">
+          <span>06 // ASSUMPTION REVERSAL (DEEP)</span>
+        </div>
+        <h2 class="chamber-title">Inversão de Premissas Ocultas</h2>
+        <p class="chamber-desc">
+          10 viradas de mentalidade sobre como o Escudo P1 deve operar. Clique em um cartão para destacar o estado invertido.
+        </p>
+      </div>
+      <span class="chamber-count" id="cnt-t6">10 inversões</span>
+    </div>
+    <div class="flip-controls">
+      <button type="button" class="btn-ghost" id="toggleAllFlips">Alternar destaque em todos os cartões</button>
+    </div>
+    <div class="reversal-grid" id="grid-t6"></div>
+  </section>
+
+  <!-- T7: MORPHOLOGICAL ANALYSIS -->
+  <section class="chamber" id="sec-t7" data-tech="t7">
+    <div class="chamber-header">
+      <div>
+        <div class="chamber-eyebrow" style="color: var(--emerald);">
+          <span>07 // MORPHOLOGICAL ANALYSIS (DEEP)</span>
+        </div>
+        <h2 class="chamber-title">Matriz [Estágio × Severidade × Rede] &amp; Contrato RiskShield</h2>
+        <p class="chamber-desc">
+          Arquitetura ponta a ponta do Estágio 0 (Pre-Ingest) ao Estágio 5 (Pré-Publicação), contrato JSON unificado e pontos de integração no pipeline.
+        </p>
+      </div>
+      <span class="chamber-count" id="cnt-t7">10 especificações</span>
+    </div>
+    <div class="pipeline-track" id="grid-t7-stages"></div>
+    <div class="contracts-grid" id="grid-t7-contracts"></div>
+  </section>
+
+  <!-- CLIMAX: SYNTHESIS + 5-STORY EPIC 4 BLUEPRINT -->
+  <section class="climax-section" id="climax" aria-label="Síntese Estratégica e Blueprint do Épico 4">
+    <div class="chamber-eyebrow" style="color: var(--orange); margin-bottom: 8px;">
+      <span>CLÍMAX DA SESSÃO // SÍNTESE ESTRATÉGICA &amp; PLANO DE EXECUÇÃO</span>
+    </div>
+    <h2 class="chamber-title" style="font-size: clamp(1.55rem, 2.6vw, 2.2rem);">
+      As 4 Sínteses Decisivas &amp; Blueprint das 5 Histórias do Épico 4
+    </h2>
+    <p class="chamber-desc" style="max-width: 860px;">
+      Consolidação pronta para atualizar a seção E4 do Plano Mestre e iniciar o desenvolvimento sem retrabalho,
+      100% alinhada ao schema do Épico 2, à fila serial de VRAM da RTX 4060 Ti 8 GB (AD-3) e à compatibilidade Windows + Linux (AD-11).
+    </p>
+
+    <div class="synthesis-grid">
+      <article class="synth-card" style="--scolor: var(--red);">
+        <div class="synth-num">SÍNTESE 01 // OS 4 FUROS REAIS</div>
+        <h3 class="synth-title">4 Portões que o E4 Original Não Previa</h3>
+        <p class="synth-body">
+          O E4 original tinha 5 peças, mas os testes reais provaram 4 furos que causariam retrabalho imediato:
+          <strong>(1)</strong> Copy Hygiene Guard por rede (evitar bloqueio TikTok por URLs/concorrentes/<span class="inline-code">#shorts</span>);
+          <strong>(2)</strong> Cadence &amp; Warmup Guard anti-spam (evitar 0-views no YouTube e TikTok);
+          <strong>(3)</strong> Selo Verde também na Thumbnail e no Cold Open (evitar banho/nudez/palavrão na capa ou no teaser 0:00); e
+          <strong>(4)</strong> Exceção de UI in-game no React Guard (não confundir celular/menu do GTA 6 com navegador).
+        </p>
+      </article>
+
+      <article class="synth-card" style="--scolor: var(--amber);">
+        <div class="synth-num">SÍNTESE 02 // QUARENTENA GRANULAR</div>
+        <h3 class="synth-title">Veredito Independente por Plataforma</h3>
+        <p class="synth-body">
+          Em vez de um binário global “Passa/Bloqueia”, cada clipe recebe um <span class="inline-code">RiskVerdict</span>
+          com veredito independente por rede — por exemplo: <span class="inline-code">PASS</span> no YouTube Shorts,
+          <span class="inline-code">AUTO_FIXED</span> no áudio via Demucs e <span class="inline-code">HUMAN_REVIEW</span>
+          no TikTok por baixa variação visual — sem derrubar o projeto inteiro.
+        </p>
+      </article>
+
+      <article class="synth-card" style="--scolor: var(--emerald);">
+        <div class="synth-num">SÍNTESE 03 // AUTO-REMEDIATION + HARD GATE</div>
+        <h3 class="synth-title">Conserta o Seguro, Trava o Irreversível</h3>
+        <p class="synth-body">
+          Fonte desconhecida, lista negra, campanha vencida ou spoiler embargado geram <span class="inline-code">HARD_BLOCK</span>
+          imutável antes de baixar 1 byte (<span class="inline-code">P1 &gt; P5</span>). Já música licenciada, palavrão em 0–15s,
+          copy cruzada e frame NSFW de thumbnail viram <span class="inline-code">AUTO_FIX</span> auditado com trilha de evidência YPP.
+        </p>
+      </article>
+
+      <article class="synth-card" style="--scolor: var(--cyan);">
+        <div class="synth-num">SÍNTESE 04 // EXECUÇÃO EM 2 ONDAS</div>
+        <h3 class="synth-title">5 Histórias (4.1 a 4.5) Sem Retrabalho</h3>
+        <p class="synth-body">
+          Plano incremental dividido em <strong>Onda 4A</strong> (portões core leves em CPU/DB + UI) e
+          <strong>Onda 4B</strong> (cirurgia pesada de áudio/visão na GPU + suíte adversarial), preservando o schema
+          já criado no Épico 2, VRAM serial 8 GB (<span class="inline-code">AD-3</span>) e multiplataforma Windows+Linux (<span class="inline-code">AD-11</span>).
+        </p>
+      </article>
+    </div>
+
+    <div class="blueprint-header">
+      <h3>Blueprint Proposto — Épico 4 (Histórias 4.1 a 4.5)</h3>
+      <div class="wave-legend">
+        <span class="wave-tag wave-4a">Onda 4A · Portões Core (4.1 – 4.3)</span>
+        <span class="wave-tag wave-4b">Onda 4B · Cirurgia GPU/Visão &amp; Provas (4.4 – 4.5)</span>
+      </div>
+    </div>
+
+    <div class="stories-grid">
+      <article class="story-card w4a">
+        <div class="story-top">
+          <span class="story-code">HISTÓRIA 4.1</span>
+          <span class="wave-tag wave-4a">Onda 4A</span>
+        </div>
+        <h4 class="story-title">Policy Gate, Fontes, Publishers &amp; Disjuntor</h4>
+        <ul class="story-list">
+          <li><span class="inline-code">policy_gate.py</span> imutável (sem <span class="inline-code">--skip-p1</span>) no Pre-Ingest e Pre-Publish.</li>
+          <li>Sincronia <span class="inline-code">assets/streamers/registry.json</span> ↔ tabela <span class="inline-code">sources</span> + TTL automático de campanhas.</li>
+          <li>Catálogo <span class="inline-code">assets/policies/publishers.json</span> (Rockstar/GTA 6, Nintendo, Riot, Valve, Mojang, Epic, Sony) + janela de spoilers/leaks.</li>
+          <li><span class="inline-code">source_breaker.py</span> com <span class="inline-code">pause_source_globally(source_id, reason)</span> e fluxo de liberação consciente na UI.</li>
+        </ul>
+        <div class="story-compat">DB: sources · publisher_policies · claims_events</div>
+      </article>
+
+      <article class="story-card w4a">
+        <div class="story-top">
+          <span class="story-code">HISTÓRIA 4.2</span>
+          <span class="wave-tag wave-4a">Onda 4A</span>
+        </div>
+        <h4 class="story-title">Originalidade YPP/TikTok, Deduplicação 3D &amp; Copy Hygiene</h4>
+        <ul class="story-list">
+          <li><span class="inline-code">ypp_guard.py</span> com pontuação dupla (<span class="inline-code">ypp_score &gt;= 70</span> + <span class="inline-code">tiktok_originality_score</span>), perfis Short vs. Longo, Anti-Static (&gt;4s) e Anti-Watermark.</li>
+          <li>Certificado JSON (<span class="inline-code">audit_trail</span>) gravado em <span class="inline-code">clips</span>.</li>
+          <li>Deduplicação híbrida 3D (<span class="inline-code">pHash</span> 5 keyframes + n-gramas/Jaccard + janela) com exceção explícita para Reciclagem A/B.</li>
+          <li><span class="inline-code">copy_guard.py</span> sanitizando URLs/hashtags cruzadas, termos de ícone amarelo e crédito nativo por rede.</li>
+        </ul>
+        <div class="story-compat">DB: clips (risk_status, ypp_transform_score, phash_signature)</div>
+      </article>
+
+      <article class="story-card w4a">
+        <div class="story-top">
+          <span class="story-code">HISTÓRIA 4.3</span>
+          <span class="wave-tag wave-4a">Onda 4A</span>
+        </div>
+        <h4 class="story-title">Cadence Guard, Cool-Down 48h, Raio-X UI &amp; Pacote Blindado</h4>
+        <ul class="story-list">
+          <li><span class="inline-code">cadence_guard.py</span> com perfil de warmup (novo 2–3/dia gap &gt;=4h; aquecido 4–5/dia gap &gt;=2h) e <span class="inline-code">burst_lock</span>.</li>
+          <li>Botão “Modo Resfriamento 48h” por rede + semáforo de cadência na UI.</li>
+          <li>Raio-X Visual colorido por clipe (🟢 Blindado · 🟡 Ajustado Auto · 🟠 Revisão · 🔴 Bloqueado P1) com drawer detalhando cada portão.</li>
+          <li><span class="inline-code">export_daily_bundle</span> filtrando clipes bloqueados e respeitando cadência.</li>
+        </ul>
+        <div class="story-compat">Contrato: RiskVerdict JSON · Postgres + SQLite</div>
+      </article>
+
+      <article class="story-card w4b">
+        <div class="story-top">
+          <span class="story-code">HISTÓRIA 4.4</span>
+          <span class="wave-tag wave-4b">Onda 4B</span>
+        </div>
+        <h4 class="story-title">Music Surgeon (Demucs Cirúrgico) &amp; Selo Verde 15s (Áudio + Texto)</h4>
+        <ul class="story-list">
+          <li><span class="inline-code">music_surgeon.py</span> em 2 estágios: detector harmônico-percussivo CPU (&lt;2s, janelas &gt;=2.5s) → <span class="inline-code">htdemucs</span> sob <span class="inline-code">vram_runner.py</span> (chunks &lt;=30s, crossfade 150ms, peak-limiter -1.5 dBTP, cache de stems, SNR vocal).</li>
+          <li>Fallback explícito GTX 1650 4 GB (<span class="inline-code">segment=6, shifts=0</span>) / <span class="inline-code">NEEDS_HUMAN_AUDIO_CHECK</span> + <span class="inline-code">workdir/risk_tmp/</span> ASCII.</li>
+          <li>Léxico fuzzy PT-BR + EN em 3 camadas com allowlist, alinhamento por palavra Whisper (+40ms), fade 15ms + bleep suave/soft-mute + <span class="inline-code">***</span>.</li>
+          <li>Validação pós-Cold Open Reverso (nunca puxar palavrão para 0:00) + 2 zonas de rigor.</li>
+        </ul>
+        <div class="story-compat">AD-3 VRAM Serial 8 GB · AD-11 Windows + Linux</div>
+      </article>
+
+      <article class="story-card w4b">
+        <div class="story-top">
+          <span class="story-code">HISTÓRIA 4.5</span>
+          <span class="wave-tag wave-4b">Onda 4B</span>
+        </div>
+        <h4 class="story-title">React Guard, Selo Verde Visual/Thumb, Orquestrador, MCP &amp; Suíte Adversarial</h4>
+        <ul class="story-list">
+          <li><span class="inline-code">react_guard.py</span> (4 sinais OpenCV nas bordas externas &gt;=2.5s + gatilhos na transcrição + Trailer/Letterbox 21:9 + exceção UI in-game GTA 6).</li>
+          <li><span class="inline-code">green_seal_15s.py</span> visual (1 fps em 0–15s, 0.5 fps resto) para gore/nudez + integração com <span class="inline-code">thumbnail_factory</span> + auto-deslocamento seguro.</li>
+          <li>Orquestrador <span class="inline-code">picorte/risk_shield/orchestrator.py</span> em 3 pontos + 3 ferramentas MCP (<span class="inline-code">picorte_auditar_risco</span>, <span class="inline-code">picorte_politicas_jogo</span>, <span class="inline-code">picorte_pausar_fonte</span>).</li>
+          <li>Suíte Adversarial P1 com fixtures sintéticas reais de áudio, vídeo, profanidade PT-BR e duplicatas <span class="inline-code">pHash</span>.</li>
+        </ul>
+        <div class="story-compat">Entrega: Escudo P1 Completo &amp; Auditado</div>
+      </article>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <span>FONTE ÚNICA: brainstorm-epico-4-escudo-anti-strike-p1-2026-11-19/.memlog.md</span>
+    <span>PICORTE · BOMBA CLIPS · ESCUDO P1 · 100 IDEIAS + 4 SÍNTESES + BLUEPRINT E4</span>
+  </footer>
+</main>
+
+<script>
+(function() {
+  "use strict";
+
+  const TECHNIQUES = [
+    { id: "all", label: "Todas", count: 100 },
+    { id: "t1",  label: "01 Autópsia", count: 15 },
+    { id: "t2",  label: "02 Tribunal", count: 14 },
+    { id: "t3",  label: "03 Lótus", count: 25 },
+    { id: "t4",  label: "04 TRIZ", count: 12 },
+    { id: "t5",  label: "05 Caos", count: 14 },
+    { id: "t6",  label: "06 Inversões", count: 10 },
+    { id: "t7",  label: "07 Matriz", count: 10 }
+  ];
+
+  // T1: 15 Failure Analysis items
+  const T1_DATA = [
+    { id: "INC-01", tag: "TikTok · Copy", title: "TikTok Legenda Cruzada",
+      symptom: "Colar descrição de YouTube (youtube.com, twitch.tv, #shorts, 'canal de cortes') no TikTok disparou flag automático de 'Conteúdo não original'.",
+      fix: "Criar Copy Hygiene Guard por rede em risk_shield/copy_guard.py." },
+    { id: "INC-02", tag: "YouTube · TikTok", title: "Rajada YouTube & TikTok",
+      symptom: "Subir 15 Shorts no YouTube em 1 dia e 12 vídeos em minutos no TikTok disparou throttle anti-spam (0–3 views).",
+      fix: "Incluir Rate-Limit & Cadence Guard (P1/A2) no Escudo E4 antes mesmo do OAuth do E6." },
+    { id: "INC-03", tag: "GTA 6 · Visual", title: "GTA 6 Banho/Nudez na Thumb e Abertura",
+      symptom: "Cena do banho no chuveiro do GTA 6 entrou nos primeiros segundos e na thumbnail.",
+      fix: "Estender Selo Verde 15s para verificar TAMBÉM a thumbnail gerada (NSFW/pele excessiva/gore na capa)." },
+    { id: "INC-04", tag: "Whisper · PT-BR", title: "Palavrão na Transcrição Whisper",
+      symptom: "Whisper às vezes transcreve palavrões PT-BR com variações/erros ortográficos (ex.: 'porra'/'poha', 'caralho'/'krl', 'foder'/'fuder', 'desgraça', 'filho da puta').",
+      fix: "Léxico fonético/fuzzy PT-BR + EN de profanidade com 3 níveis (severo/moderado/leve)." },
+    { id: "INC-05", tag: "Content ID · GTA 6", title: "Corte com Rádio de Carro / Música de Cutscene",
+      symptom: "Músicas licenciadas tocam baixinho no fundo da fala e dão Content ID semanas depois.",
+      fix: "Music Detector em CPU (espectrograma harmônico/percussivo + energia musical sob voz) antes de chamar Demucs na GPU." },
+    { id: "INC-06", tag: "YouTube · YPP", title: "Rejeição YPP por Conteúdo Reutilizado",
+      symptom: "Canais de cortes que só recortam e colocam legenda simples perdem monetização no YouTube.",
+      fix: "YPP Transformation Score auditável com evidência gravada por clipe (layout + legenda + contexto + cold open + metadata nativa + ausência de marca d'água)." },
+    { id: "INC-07", tag: "TikTok · FYP", title: "TikTok 'Conteúdo Não Original' em Live Muito Cortada",
+      symptom: "Cenas idênticas de lives gigantes (Alanzoka GTA 6) são reconhecidas pelo fingerprinting do TikTok se não tiverem transformação visual/rítmica real.",
+      fix: "TikTok Originality Readiness Check separado do YPP Score." },
+    { id: "INC-08", tag: "Strike · Visão", title: "React de Terceiros Escondido",
+      symptom: "Streamer abre um vídeo do YouTube, TikTok, trailer oficial ou jornal dentro da live (mesmo por 8 segundos) -> strike seco de terceiro.",
+      fix: "React Guard com detecção de barra de browser, player YouTube/TikTok/X, barra de progresso vermelha e moldura de janela." },
+    { id: "INC-09", tag: "Áudio · Media Share", title: "Streamer Toca Música por Pedido do Chat",
+      symptom: "Música entra fora de gameplay durante conversa (Media Share / Donate).",
+      fix: "Music Surgeon precisa cobrir qualquer trecho do corte, não só quando há jogo na tela." },
+    { id: "INC-10", tag: "Áudio · Mixagem", title: "Micro-Bleep Estragando o Áudio",
+      symptom: "Mutar seco gera estalo digital (click/pop) ou silêncio estranho.",
+      fix: "Usar rampa de fade 15ms + opção configurável entre soft-mute (atenuação -36dB preservando o som ambiente do jogo quando possível) ou tom bleep suave -20 dBFS." },
+    { id: "INC-11", tag: "Campanhas · Policy", title: "Campanha Paga Expirada no Meio da Fila",
+      symptom: "Projeto preparado ontem com campanha ativa hoje já expirou.",
+      fix: "Revalidar policy_gate em DOIS momentos: Pre-Ingest (antes de baixar) E Pre-Publish/Pre-Export (antes de sair)." },
+    { id: "INC-12", tag: "Deduplicação", title: "Duplicação Disfarçada entre Lives/Partes",
+      symptom: "Mesmo lance viral aparece no VOD do Alanzoka, no canal de cortes e num clipe avulso.",
+      fix: "Deduplicação híbrida (pHash visual de 5 keyframes + n-gramas da transcrição + janela temporal) contra o banco inteiro." },
+    { id: "INC-13", tag: "RTX 4060 Ti · 8 GB", title: "Demucs Estourando 8 GB de VRAM",
+      symptom: "Rodar Demucs junto com Whisper ou em áudio de 5 min inteiro causa CUDA OOM.",
+      fix: "Sempre rodar Demucs sob vram_runner.py em modo serial e fatiado apenas nos intervalos musicais detectados (chunks <= 30s)." },
+    { id: "INC-14", tag: "Publisher · Embargo", title: "Spoiler de Jogo Recém-Lançado (Rockstar/GTA 6)",
+      symptom: "Publicar final da história ou cutscene embargada nos primeiros dias gera strike manual da publisher.",
+      fix: "Policy Registry por jogo com janela de datas (release_date + spoiler_window_days) e lista de termos/cenas proibidas." },
+    { id: "INC-15", tag: "Governança · P1", title: "Desligar Proteção por Pressa",
+      symptom: "Usuário ou script tenta pular P1 em um hype.",
+      fix: "Hard Gate imutável no código (sem flag --skip-p1) garantindo P1 > P5 sempre." }
+  ];
+
+  // T2: 14 Courtroom items (13 accusations + 1 jury verdict)
+  const T2_DATA = [
+    { id: "AC-01", prosecutor: "Promotor YouTube YPP", accusation: "“Seus 15 Shorts parecem saída de linha de montagem idêntica.”",
+      defense: "Exigir pontuação de variação editorial (título específico + contexto único + legenda sincronizada + recorte ativo) e alertar se >3 clipes seguidos tiverem mesma duração/estrutura exata." },
+    { id: "AC-02", prosecutor: "Promotor YouTube YPP", accusation: "“Você não prova que transformou a obra original.”",
+      defense: "Gerar um Certificado de Transformação JSON (audit_trail) salvo junto ao clipe no Postgres listando cada camada adicionada (facecam split, legenda ASS, badge contexto, cold open, copy nativa, áudio limpo)." },
+    { id: "AC-03", prosecutor: "Promotor YouTube Content ID", accusation: "“Tem 4 segundos de música do rádio no fundo do segundo 38.”",
+      defense: "Detector de música não deve ignorar trechos curtos (>= 2.5s de música reconhecível já acionam Demucs cirúrgico, pois Content ID pega a partir de 3–5s)." },
+    { id: "AC-04", prosecutor: "Promotor YouTube Content ID", accusation: "“A música de introdução/encerramento do streamer é licenciada.”",
+      defense: "Registrar em assets/streamers/registry.json se o streamer usa música licenciada em telas de espera/intro/outro e barrar trechos dessas telas automaticamente." },
+    { id: "AC-05", prosecutor: "Promotor TikTok FYP", accusation: "“Sua legenda tem link do YouTube e #shorts.”",
+      defense: "Copy Hygiene Guard bloqueia/limpa automaticamente qualquer URL externa, @concorrente ou hashtag de outra plataforma (#shorts no TikTok, #fyp/#tiktok no YouTube)." },
+    { id: "AC-06", prosecutor: "Promotor TikTok FYP", accusation: "“Seu vídeo tem marca d'água de outra rede ou logo de editor.”",
+      defense: "Watermark Guard verifica os 4 cantos por logos/marcas d'água de TikTok, Reels, Kwai, CapCut e barra antes de exportar." },
+    { id: "AC-07", prosecutor: "Promotor TikTok FYP", accusation: "“Esse vídeo tem partes paradas de menu sem movimento por 6 segundos.”",
+      defense: "Static-Frame Guard no YPP/TikTok check detecta trechos estáticos longos (>4s sem variação visual) que derrubam elegibilidade para FYP." },
+    { id: "AC-08", prosecutor: "Promotor Rockstar / Publisher", accusation: "“Você publicou vazamento (leak) ou música da trilha oficial do GTA 6.”",
+      defense: "Filtro lexical de vazamentos/embargos ('leak', 'vazado', 'datamine', 'final secreto', 'morte do', 'ending') cruzado com publisher_policies no banco." },
+    { id: "AC-09", prosecutor: "Promotor Rockstar / Publisher", accusation: "“O streamer está vendo o trailer oficial da Rockstar em tela cheia.”",
+      defense: "React Guard + Trailer Guard detecta barras pretas cinematográficas (letterbox 21:9) com player/overlay de vídeo ou menção a 'assistindo trailer' para exigir revisão humana ou bloquear." },
+    { id: "AC-10", prosecutor: "Promotor Trust & Safety (Anunciantes)", accusation: "“Nos primeiros 8 segundos tem palavrão pesado e sangue em close.”",
+      defense: "Selo Verde 15s com dupla camada (áudio bleep + legenda *** + detector visual de gore/nudez nos primeiros 15s + sugestão automática de deslocar início em +3s/+5s)." },
+    { id: "AC-11", prosecutor: "Promotor Trust & Safety", accusation: "“O título ou a faixa 2s têm palavras que dão ícone amarelo (matar, suicídio, droga, tiro, sangue, nudez).”",
+      defense: "Ad-Friendly Text Guard varre título, faixa 2s, descrição e 1º comentário contra termos sensíveis que desmonetizam (sugerindo sinônimos seguros)." },
+    { id: "AC-12", prosecutor: "Promotor Anti-Spam", accusation: "“Subiu 15 vídeos em 1 dia num canal parado.”",
+      defense: "Channel Warmup & Cadence Policy configurável por conta/rede (novo/retomando: max 2–3/dia, gap >= 4h; aquecido: max 4–5/dia, gap >= 2h; burst_lock impede marcar/agendar em rajada)." },
+    { id: "AC-13", prosecutor: "Promotor Criador Original", accusation: "“Você não deu crédito ou cortou streamer que proibiu cortes.”",
+      defense: "Source Registry com status explícito (liberada, contrato, campanha_ativa, gameplay_proprio, desconhecida, lista_negra, pausada_por_claim) + crédito obrigatório verificado no publish_kit." }
+  ];
+
+  const T2_VERDICT = {
+    id: "VEREDITO",
+    title: "Veredito do Júri — Princípio da Quarentena Granular",
+    body: "Um corte que falha só no TikTok ou só nos 15s NÃO deve derrubar o projeto inteiro — cada clipe recebe veredito por rede e ação clara."
+  };
+
+  // T3: 8 Petals, 25 ideas
+  const T3_PETALS = [
+    { key: "p1", num: "Pétala 1", name: "Fontes & Publishers", accent: "#E11D2E", sub: "Registry, TTL e políticas",
+      items: [
+        { title: "Sincronia Única Registry + Postgres", body: "Conectar assets/streamers/registry.json com a tabela sources no banco para que os 5 streamers cadastrados tenham permission_status explícito, sem divergência entre JSON e DB." },
+        { title: "Fluxo de Liberação Consciente na UI", body: "Ao colar URL de fonte desconhecida, a UI explica por que bloqueou e oferece 1 clique consciente para cadastrar permissão + evidência (URL de política/campanha/gameplay próprio) — nunca pula silenciosamente." },
+        { title: "Validade Automática de Campanha (TTL)", body: "Campanhas pagas com expires_at passado mudam automaticamente para expirada no policy_gate e travam novos downloads e publicações." },
+        { title: "Publisher Policies Pré-Populadas", body: "Seed inicial versionado com políticas reais de Rockstar/GTA 6, Nintendo (rigor extremo — bloqueio/revisão por padrão), Riot/Valorant, Valve/CS2, Mojang/Minecraft, Epic/Fortnite e Sony/Cutscenes." }
+      ]
+    },
+    { key: "p2", num: "Pétala 2", name: "Música & Demucs", accent: "#FF4D1C", sub: "CPU rápido -> GPU cirúrgico",
+      items: [
+        { title: "Detecção em 2 Estágios (Rápido CPU -> Cirúrgico GPU)", body: "Estágio 1 usa separação harmônico-percussiva leve em CPU + estabilidade tonal para achar janelas candidatas de música em <2s; estágio 2 chama htdemucs na GPU só nessas janelas." },
+        { title: "Proteção de Qualidade Vocal Pós-Demucs", body: "Medir SNR/clareza do stem vocals antes de aceitar a cirurgia; se o Demucs destruir a voz (música muito alta sobre fala sussurrada), marcar como HUMAN_REVIEW em vez de exportar áudio robótico." },
+        { title: "Crossfade Sem Costura (150ms)", body: "Aplicar equal-power crossfade na entrada e saída de cada trecho cirúrgico + normalização de loudness local para o espectador não notar degrau de volume." },
+        { title: "Cache de Stems por Trecho", body: "Se o usuário re-renderizar o clipe mudando legenda/título, reutilizar o áudio já limpo pelo Demucs (hash do trecho) para não rodar GPU de novo." },
+        { title: "Modo Fallback CPU / GTX 1650 (4 GB)", body: "No notebook Linux com 4 GB de VRAM, usar htdemucs com segment=6 e shifts=0 ou fallback explícito configurado no vram_runner.py (AD-11)." }
+      ]
+    },
+    { key: "p3", num: "Pétala 3", name: "Selo Verde 15s", accent: "#22C55E", sub: "Profanidade, gore e thumb",
+      items: [
+        { title: "Mapa de Profanidade em 3 Camadas", body: "Camada 1 (palavrões severos de desmonetização: bleep + *** obrigatório em 0–15s), Camada 2 (moderados: aviso/bleep opcional), Camada 3 (termos proibidos em qualquer segundo: discurso de ódio/autoagressão -> HARD_BLOCK)." },
+        { title: "Alinhamento Cirúrgico por Palavra do Whisper", body: "Usar start/end exato de cada palavra em transcript.json (+ margem de 40ms) para aplicar mute/bleep exatamente sobre o palavrão sem cortar a palavra seguinte." },
+        { title: "Visão Anti-Gore e Anti-Nudez (0–15s + Thumbnail)", body: "Detector leve analisando vermelho-sangue saturado concentrado + exposição excessiva de pele (ex.: cena de banho GTA 6) nos primeiros 15s E na thumbnail." },
+        { title: "Auto-Deslocamento Inteligente de Abertura", body: "Se detectar violência/nudez entre 0s e 4s e o clipe tiver folga, sugerir/aplicar deslocamento do início seguro (ou blur localizado suave) preservando o gancho." }
+      ]
+    },
+    { key: "p4", num: "Pétala 4", name: "React Perigoso", accent: "#F59E0B", sub: "Browser, player e UI do jogo",
+      items: [
+        { title: "Detector Multi-Sinal de Browser/Player", body: "Combinar 4 sinais baratos em OpenCV: barra de endereço/abas no topo, barra vermelha de player YouTube no rodapé, layout web claro/feed X/TikTok e transição abrupta de jogo para janela desktop." },
+        { title: "Sinais na Transcrição de React", body: "Detectar frases-gatilho próximas ('vamos ver esse vídeo', 'olha esse clipe do', 'toca o trailer', 'manda o link no chat', 'react de') para elevar sensibilidade do detector visual." },
+        { title: "Exceção Inteligente para UI do Próprio Jogo", body: "Calibrar React Guard para NÃO confundir o celular in-game do GTA 6 ou menu de pause/mapa do jogo com navegador de react externo." }
+      ]
+    },
+    { key: "p5", num: "Pétala 5", name: "Originalidade YPP & TikTok", accent: "#38BDF8", sub: "Scores separados e checklist",
+      items: [
+        { title: "Pontuação Dupla Transparente", body: "Calcular separadamente ypp_score (0–100, YouTube) e tiktok_originality_score (0–100, TikTok FYP), cada um com breakdown legível na UI." },
+        { title: "Checklist Auditável do YPP Score", body: "Facecam split/reframe (+20), legenda dinâmica ASS (+20), faixa de contexto 2s (+15), título/copy nativos (+15), Cold Open ou ritmo sem telas estáticas (+15), áudio limpo/sem marca d'água (+15) -> mínimo 70." },
+        { title: "Anti-Watermark & Anti-Static Check", body: "Penalizar automaticamente qualquer corte que tenha >4s de tela congelada/menu parado ou marca d'água nos cantos." }
+      ]
+    },
+    { key: "p6", num: "Pétala 6", name: "Copy Hygiene por Rede", accent: "#A855F7", sub: "Sanitizador e crédito nativo",
+      items: [
+        { title: "Sanitizador Nativo por Plataforma", body: "Validar título, descrição, hashtags e 1º comentário por rede — bloqueando/removendo links concorrentes no TikTok/Reels, #shorts fora do YouTube, spam >5 hashtags e termos de ícone amarelo." },
+        { title: "Aviso de Crédito Seguro por Rede", body: "YouTube recebe créditos completos + links + e-mail de remoção; TikTok/Reels recebem crédito limpo @handle sem URLs externas para não disparar filtro anti-importação." }
+      ]
+    },
+    { key: "p7", num: "Pétala 7", name: "Cadência & Anti-Spam", accent: "#EC4899", sub: "Semáforo e Cool-Down 48h",
+      items: [
+        { title: "Semáforo de Cadência na UI e no Pacote do Dia", body: "Consultar tabela publications para saber quantos vídeos já foram postados hoje em cada rede e avisar em âmbar/vermelho se passar do teto seguro ou intervalo < 3h." },
+        { title: "Modo Cool-Down de Recuperação", body: "Botão 'Modo Resfriamento 48h' por rede na UI (como hoje no YouTube/TikTok) que trava novas postagens/agendamentos naquela rede até vencer o relógio." }
+      ]
+    },
+    { key: "p8", num: "Pétala 8", name: "Deduplicação & Disjuntor", accent: "#14B8A6", sub: "pHash 3D e Emergency Pause",
+      items: [
+        { title: "Deduplicação Perceptual 3D", body: "Visual pHash + Texto SimHash/Jaccard + Janela Temporal: impede exportar/publicar duas vezes o mesmo momento mesmo vindo de URLs ou projetos diferentes." },
+        { title: "Infraestrutura de Disjuntor de Fonte (Emergency Pause)", body: "Função pause_source_globally(source_id, reason) já pronta no E4 (acionável pela UI/MCP manualmente agora e pelo monitor de claims no E6)." }
+      ]
+    }
+  ];
+
+  // T4: 12 TRIZ Contradictions
+  const T4_DATA = [
+    { id: "TRIZ-01", poleA: "Demucs removendo música", poleB: "Preservar som do jogo",
+      res: "Nos trechos musicais, preservar 100% do stem vocals e atenuar seletivamente apenas os stems musicais contínuos (other/bass/drums), mantendo SFX/ambiente intactos no restante do clipe." },
+    { id: "TRIZ-02", poleA: "Bleep nos primeiros 15s", poleB: "Não estragar a piada",
+      res: "Bleep cômico curto (1000 Hz suave -20 dBFS, 180ms) ou mute limpo com *** em amarelo na legenda — em humor/rage, o bleep sincronizado mantém o timing cômico sem desmonetizar." },
+    { id: "TRIZ-03", poleA: "Bloquear fonte desconhecida", poleB: "Fluxo ágil no Studio",
+      res: "Separar 'espiar metadados leves (título/canal)' de 'baixar mídia' — ao colar URL nova, checa o canal no banco e, se desconhecida, exibe card rápido 'Liberar esta fonte?' ANTES de baixar 1 byte." },
+    { id: "TRIZ-04", poleA: "Precisão de Visão", poleB: "Velocidade na RTX 4060 Ti",
+      res: "Analisar 1 fps nos primeiros 15s (15 frames) + 0.5 fps no resto do clipe, em lote, liberando VRAM antes do render." },
+    { id: "TRIZ-05", poleA: "Dar crédito obrigatório (P1)", poleB: "Filtro 'não original' TikTok",
+      res: "Crédito adaptado por rede — YouTube leva URLs + aviso legal; TikTok/Reels levam 'Créditos: @streamer' limpo sem citar concorrentes." },
+    { id: "TRIZ-06", poleA: "Alta produção em dia de hype", poleB: "Proteção anti-spam",
+      res: "Renderizar todos os 15 clipes hoje enquanto o VOD está quente, mas distribuir via Fila Espaçada (3/dia por rede, priorizando OURO primeiro)." },
+    { id: "TRIZ-07", poleA: "Bloquear React Perigoso", poleB: "Liberar celular/TV no GTA 6",
+      res: "Exigir que elementos de browser/player ocupem bordas externas do 16:9 (topo y < 12% ou base y > 88%) e persistam >= 2.5s consecutivos." },
+    { id: "TRIZ-08", poleA: "Rejeitar duplicatas", poleB: "Permitir Reciclagem A/B (E7)",
+      res: "pHash guarda parent_clip_id e ab_variant — barra duplicata acidental, mas libera explicitamente variante A/B marcada em rede diferente ou após janela de respiro." },
+    { id: "TRIZ-09", poleA: "Profanidade rigorosa 0–15s", poleB: "Transcrição imperfeita Whisper",
+      res: "Normalização sem acento + raízes cuidadosamente testadas com allowlist de falsos positivos (ex.: não censurar 'computador' por conter 'puta')." },
+    { id: "TRIZ-10", poleA: "Rigor máximo de copyright", poleB: "Zero falso positivo em gameplay próprio",
+      res: "Fontes gameplay_proprio usam perfil adaptado (dispensa crédito a terceiro, mas MANTÉM Selo Verde 15s, música licenciada e anti-spam)." },
+    { id: "TRIZ-11", poleA: "Detectar rádio do carro", poleB: "Ignorar efeito sonoro dramático",
+      res: "Exigir duração mínima tonal >= 2.5s + periodicidade rítmica para distinguir música de rádio/copyright de stinger de 0.8s de missão concluída." },
+    { id: "TRIZ-12", poleA: "Modelos pesados de áudio", poleB: "Multiplataforma Windows + Linux",
+      res: "Detectar torch/demucs no boot; se Demucs ausente, degradar explícito para NEEDS_HUMAN_AUDIO_CHECK quando detectar música (nunca fingir que limpou)." }
+  ];
+
+  // T5: 14 Chaos Engineering scenarios
+  const T5_DATA = [
+    { id: "CAOS-01", env: "AUDIO-BLIND", attack: "Streamer abre Spotify/YouTube Music no 2º monitor sem aparecer na tela.",
+      shield: "Visão não vê player, mas áudio tem música -> Music Detector baseado em ÁUDIO garante cobertura independente da visão." },
+    { id: "CAOS-02", env: "GPU-BURN", attack: "Live de 6 horas onde apenas 3 minutos têm música licenciada.",
+      shield: "Não rodar Demucs no VOD inteiro; o Escudo de Áudio roda SOMENTE nos clipes selecionados (20–90s), economizando 95% de GPU." },
+    { id: "CAOS-03", env: "BLEEP-FLOOD", attack: "Streamer xinga 4 vezes seguidas entre 0:02 e 0:06.",
+      shield: "Aplicar 4 bleeps seguidos deixa a abertura ininteligível -> regra de 'Densidade de Profanidade na Abertura': se >3 palavrões severos em 0–8s, sugerir SHIFT_START ou marcar HUMAN_REVIEW." },
+    { id: "CAOS-04", env: "CLIPPING", attack: "Áudio do clipe fica estourado/clipping após mixar bleep ou stem do Demucs.",
+      shield: "Aplicar peak-limiter (-1.5 dBTP) e validar nível RMS antes de salvar o WAV cirúrgico." },
+    { id: "CAOS-05", env: "LOCAL-MP4", attack: "Vídeo local sem URL (arquivo .mp4 arrastado pro estúdio).",
+      shield: "Se usuário não informar a fonte, policy_gate exige declarar se é 'gameplay_proprio' ou vincular a uma fonte cadastrada antes de liberar exportação/publicação." },
+    { id: "CAOS-06", env: "3AM-CLAIM", attack: "Streamer revoga permissão às 3h da manhã ou dá claim no YouTube.",
+      shield: "Botão/comando 'Pausar Fonte Agora' muda status para pausada_por_claim, cancela fila local e bloqueia re-exportação e Pacote do Dia daquela fonte instantaneamente." },
+    { id: "CAOS-07", env: "SILENT-CUTSCENE", attack: "Cutscene longa do GTA 6 onde o streamer fica 45s calado assistindo.",
+      shield: "Além de risco de política da Rockstar, falha no YPP Score (sem comentário/transformação) -> Silence/Cutscene Guard detecta baixa taxa de fala do streamer (<15% do clipe) + cutscene e barra/alerta." },
+    { id: "CAOS-08", env: "EDGE-CLAMP", attack: "Clipe de 10 segundos com 3 segundos de música no começo.",
+      shield: "Como 30% do áudio é música, Demucs + crossfade 150ms precisa respeitar bordas t=0 e t=dur sem crashar o filtro FFmpeg (clamp de timestamps)." },
+    { id: "CAOS-09", env: "DB-FALLBACK", attack: "Banco PostgreSQL offline ou fallback SQLite no notebook.",
+      shield: "Todos os módulos de risk_shield devem funcionar identicamente em Postgres e SQLite usando PicorteRepositories (zero SQL exclusivo de um banco)." },
+    { id: "CAOS-10", env: "WIN-ENCODING", attack: "Nome de arquivo com acento, cedilha ou espaço no Windows ao chamar Demucs/FFmpeg.",
+      shield: "Usar caminhos temporários curtos ASCII em workdir/risk_tmp/ para zero falha de encoding no Windows (AD-11)." },
+    { id: "CAOS-11", env: "CROSS-VOD", attack: "Mesma live processada duas vezes (ex.: Parte 1 no YouTube e VOD na Twitch).",
+      shield: "pHash visual dos 5 keyframes + Jaccard dos 3-gramas da transcrição detecta duplicata mesmo com URLs e horários diferentes." },
+    { id: "CAOS-12", env: "COLD-OPEN-TRAP", attack: "Cold Open Reverso puxando um palavrão do segundo 40 para o segundo 0:00.",
+      shield: "O Selo Verde 15s precisa rodar DEPOIS do planejamento do Cold Open (ou validar o segmento de teaser do Cold Open também!) para nunca copiar um palavrão pro segundo 0:00." },
+    { id: "CAOS-13", env: "SUB-ALERT", attack: "Streamer usa overlay de chat/alertas com sub-alert musical de 4s.",
+      shield: "Distinguir alerta curto repetitivo vs música licenciada contínua, mantendo lista de assinaturas/durações seguras." },
+    { id: "CAOS-14", env: "CUDA-OOM", attack: "Falha parcial no Demucs (ex.: OOM inesperado).",
+      shield: "Capturar RuntimeError/CUDA OOM, limpar torch.cuda.empty_cache(), registrar erro claro em risk_report e marcar clipe como BLOCKED_AUDIO_RETRY em vez de travar o lote inteiro." }
+  ];
+
+  // T6: 10 Assumption Reversals
+  const T6_DATA = [
+    { id: "INV-01", old: "P1 só bloqueia na saída", neu: "P1 guia a descoberta ANTES de gastar GPU",
+      detail: "Passar filtro barato de spoiler/react-trigger/fonte já na etapa select/discover para não gastar 30s de render num corte que vai ser bloqueado depois." },
+    { id: "INV-02", old: "Escudo é uma caixa preta que diz Sim/Não", neu: "Escudo é um Raio-X Visual na UI",
+      detail: "Cada clipe na UI ganha um selo visual colorido (🟢 Blindado / 🟡 Ajustado Auto / 🟠 Pede Revisão / 🔴 Bloqueado P1) com tooltip/drawer explicando exatamente cada portão (Fonte, Música, Selo 15s, React, YPP, TikTok, pHash, Copy)." },
+    { id: "INV-03", old: "Usuário corrige problemas na mão", neu: "Auto-Remediation Primeiro",
+      detail: "Sempre que houver correção segura e não-evasiva (limpar música via Demucs, bleep 0–15s + ***, sanitizar copy por rede, trocar frame NSFW da thumb), o E4 corrige sozinho e registra no relatório o que consertou." },
+    { id: "INV-04", old: "Thumbnail está fora do Escudo P1", neu: "Thumbnail passa pelo Selo Verde Visual",
+      detail: "O seletor de frame de thumbnail_factory consulta o score de segurança visual (rejeita frames com sangue/nudez/logo concorrente) antes de renderizar a capa." },
+    { id: "INV-05", old: "Políticas de publisher são código hardcoded", neu: "Catálogo Declarativo JSON/DB Editável",
+      detail: "Manter policies em assets/policies/publishers.json (sincronizado com tabela publisher_policies no DB), igual game_dossiers/, para atualizar regras de novos jogos sem tocar em código." },
+    { id: "INV-06", old: "Score YPP é igual para Shorts e Vídeo Longo", neu: "Perfis de Transformação por Formato",
+      detail: "Short 9:16 pontua facecam split + legenda + badge + loop; Vídeo Longo 16:9 (3–5 min) pontua capítulos/arco + legenda + thumbnail própria + contexto narrativo." },
+    { id: "INV-07", old: "Selo Verde é só pros primeiros 15 segundos", neu: "2 Zonas de Rigor",
+      detail: "Zona 0–15s (rigor máximo: zero palavrão severo, zero gore/nudez — janela crítica de anunciantes do YouTube); Zona 15s–fim (permite linguagem gamer moderada, mas ainda bloqueia violações graves de diretrizes da comunidade)." },
+    { id: "INV-08", old: "MCP só corta vídeos", neu: "MCP também audita P1",
+      detail: "Expor ferramentas MCP picorte_auditar_risco(clip_id), picorte_politicas_jogo(game_slug) e picorte_pausar_fonte(source_id) para Claude e Gemini operarem o escudo direto do chat." },
+    { id: "INV-09", old: "Pacote do Dia só copia arquivos", neu: "Pacote do Dia só inclui clipes Blindados + respeita Cadência",
+      detail: "export_daily_bundle filtra fora qualquer clipe com risk_status == blocked e respeita o limite/cool-down de cadência por rede." },
+    { id: "INV-10", old: "Testes de P1 são só unitários com mocks", neu: "Suíte Adversarial de Portões P1",
+      detail: "Criar fixtures sintéticas reais de áudio com música + voz, vídeo com barra de browser falsa, transcrição com palavrões PT-BR e duplicata pHash para provar que nenhum portão fura." }
+  ];
+
+  // T7: 10 Morphological Analysis items (6 stages + 4 contract/architecture cards)
+  const T7_STAGES = [
+    { id: "ESTÁGIO 0", mod: "policy_gate.py", title: "Pre-Ingest (Antes do Download)",
+      body: "Valida fonte (permission_status != desconhecida / lista_negra / pausada_por_claim), validade de campanha e embargo total do jogo ANTES de chamar yt-dlp." },
+    { id: "ESTÁGIO 1", mod: "policy_gate + green_seal_text", title: "Pre-Render / Candidato",
+      body: "Checa spoilers/leaks no texto, palavras de diretriz grave (HARD_BLOCK), profanidade 0–15s (planeja bleeps + ***) e risco de Cold Open puxar palavrão." },
+    { id: "ESTÁGIO 2", mod: "music_surgeon.py", title: "Áudio Pré-Render",
+      body: "Detecta intervalos musicais >= 2.5s em CPU; se houver música, roda htdemucs via vram_runner apenas nas janelas afetadas com crossfade 150ms + cache + validação de qualidade vocal." },
+    { id: "ESTÁGIO 3", mod: "react_guard.py + green_seal_15s.py", title: "Visão Pré-Render",
+      body: "Amostra 1 fps em 0–15s e 0.5 fps no resto; detecta react de browser/player externo (excluindo UI interna de jogo), gore/nudez em 0–15s e na thumbnail, e marcas d'água de outras redes." },
+    { id: "ESTÁGIO 4", mod: "ypp_guard.py + copy_guard.py", title: "Pós-Render / Pré-Saída",
+      body: "Calcula ypp_score (>=70) e tiktok_originality_score, checa static frames >4s, verifica pHash + texto contra banco (>0.85 bloqueia, exceto variante A/B explícita) e sanitiza copy por rede (zero URL/concorrente/#shorts no TikTok)." },
+    { id: "ESTÁGIO 5", mod: "cadence_guard.py + source_breaker.py", title: "Pré-Publicação / Distribuição",
+      body: "Verifica cota diária, espaçamento mínimo por rede, modo Cool-Down 48h e status vivo da fonte antes de liberar Pacote do Dia ou publicação OAuth (E6)." }
+  ];
+
+  const T7_CONTRACTS = [
+    { id: "CONTRATO", title: "Contrato Unificado RiskVerdict JSON", isJson: true,
+      body: "Payload único retornado pelo RiskShield para cada clipe, com decisão independente para as 5 redes.",
+      json: `{
+  "overall_status": "pass | auto_fixed | human_review | hard_block",
+  "per_platform": {
+    "youtube_shorts": "...", "youtube_long": "...",
+    "tiktok": "...", "instagram_reels": "...", "facebook_reels": "..."
+  },
+  "gates": [...],
+  "auto_fixes_applied": [...],
+  "audit_trail": {...},
+  "checked_at": "ISO-8601"
+}` },
+    { id: "PERSISTÊNCIA", title: "Tabela/Coluna de Persistência Limpa",
+      body: "Gravar risk_status, ypp_transform_score, phash_signature e risk_report_json em clips (compatível com schema já criado no Épico 2!) + tabelas claims_events e publisher_policies já prontas." },
+    { id: "ONDAS 4A/4B", title: "Separação em 2 Ondas no Épico 4 (Anti-Retrabalho)",
+      body: "Onda 4A (Portões Core): policy_gate + publisher_policies JSON/DB + copy_guard + cadence_guard + ypp_guard + pHash + UI badges. Onda 4B (Cirurgia Pesada GPU/Visão): music_surgeon Demucs + green_seal_15s áudio/visão/thumb + react_guard + suíte adversarial." },
+    { id: "ORQUESTRADOR", title: "Integração Transparente com o Pipeline Atual",
+      body: "Um único orquestrador picorte/risk_shield/orchestrator.py chamado em 3 pontos exatos: ingest.py (antes do download), render_clips.py / projects.py (durante o render) e publish_kit.py / dashboard.py (antes de exportar/postar)." }
+  ];
+
+  // State
+  let activeTech = "all";
+  let activePetal = "all";
+  let searchQuery = "";
+  let allFlipped = false;
+
+  // Helpers
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function highlight(text, q) {
+    const safe = escHtml(text);
+    if (!q) return safe;
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp("(" + escaped + ")", "gi");
+    return safe.replace(re, '<mark class="hl">$1</mark>');
+  }
+
+  function matches(haystack, q) {
+    if (!q) return true;
+    return haystack.toLowerCase().includes(q.toLowerCase());
+  }
+
+  // Render Pills
+  function renderPills(countsMap) {
+    const container = document.getElementById("techniquePills");
+    container.innerHTML = TECHNIQUES.map(t => {
+      const c = t.id === "all" ? countsMap.total : (countsMap[t.id] || 0);
+      const cls = activeTech === t.id ? "filter-pill active" : "filter-pill";
+      return `<button type="button" class="${cls}" data-tech-pill="${t.id}" role="tab" aria-selected="${activeTech === t.id}">
+        <span>${t.label}</span><span class="cnt">${c}</span>
+      </button>`;
+    }).join("");
+
+    container.querySelectorAll("[data-tech-pill]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeTech = btn.getAttribute("data-tech-pill");
+        renderAll();
+        if (activeTech !== "all") {
+          const sec = document.getElementById("sec-" + activeTech);
+          if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+  }
+
+  // Render Lotus 3x3 Nav
+  function renderLotusMatrix() {
+    const el = document.getElementById("lotusMatrix");
+    // Order: P1, P2, P3, P4, CENTER, P5, P6, P7, P8
+    const order = [0, 1, 2, 3, -1, 4, 5, 6, 7];
+    el.innerHTML = order.map(idx => {
+      if (idx === -1) {
+        const cls = activePetal === "all" ? "lotus-cell lotus-center active-petal" : "lotus-cell lotus-center";
+        return `<button type="button" class="${cls}" data-petal="all">
+          <strong>ESCUDO P1 CORE</strong>
+          <span>8 Pétalas · 25 Mecanismos</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:4px;">[Clique para ver todas]</span>
+        </button>`;
+      }
+      const p = T3_PETALS[idx];
+      const isAct = activePetal === p.key;
+      return `<button type="button" class="lotus-cell ${isAct ? "active-petal" : ""}" data-petal="${p.key}" style="border-top:2px solid ${p.accent};">
+        <span class="petal-num" style="color:${p.accent};">${p.num} · ${p.items.length} itens</span>
+        <span class="petal-name">${escHtml(p.name)}</span>
+        <span class="petal-sub">${escHtml(p.sub)}</span>
+      </button>`;
+    }).join("");
+
+    el.querySelectorAll("[data-petal]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-petal");
+        activePetal = (activePetal === key && key !== "all") ? "all" : key;
+        renderAll();
+      });
+    });
+  }
+
+  function renderAll() {
+    const q = searchQuery.trim();
+    const counts = { t1: 0, t2: 0, t3: 0, t4: 0, t5: 0, t6: 0, t7: 0, total: 0 };
+
+    // T1
+    const t1Filtered = T1_DATA.filter(d => matches(`${d.id} ${d.tag} ${d.title} ${d.symptom} ${d.fix}`, q));
+    counts.t1 = t1Filtered.length;
+    document.getElementById("cnt-t1").textContent = `${t1Filtered.length} / ${T1_DATA.length} incidentes`;
+    document.getElementById("grid-t1").innerHTML = t1Filtered.map(d => `
+      <article class="autopsy-card">
+        <div class="autopsy-top">
+          <span class="case-id">${escHtml(d.id)}</span>
+          <span class="tag-pill">${highlight(d.tag, q)}</span>
+        </div>
+        <h3 class="autopsy-title">${highlight(d.title, q)}</h3>
+        <div class="autopsy-symptom">
+          <strong>FALHA REAL DETECTADA</strong>
+          ${highlight(d.symptom, q)}
+        </div>
+        <div class="autopsy-fix">
+          <strong>CONTRAMEDIDA E4</strong>
+          ${highlight(d.fix, q)}
+        </div>
+      </article>
+    `).join("");
+
+    // T2
+    const t2Filtered = T2_DATA.filter(d => matches(`${d.id} ${d.prosecutor} ${d.accusation} ${d.defense}`, q));
+    const verdictHit = matches(`${T2_VERDICT.title} ${T2_VERDICT.body} PASS AUTO_FIX SHIFT_START HUMAN_REVIEW HARD_BLOCK`, q);
+    counts.t2 = t2Filtered.length + (verdictHit ? 1 : 0);
+    document.getElementById("cnt-t2").textContent = `${counts.t2} / ${T2_DATA.length + 1} peças`;
+    document.getElementById("grid-t2").innerHTML = t2Filtered.map(d => `
+      <article class="court-row">
+        <div class="court-prosecution">
+          <div class="court-role">⚖ ${escHtml(d.id)} · ${highlight(d.prosecutor, q)}</div>
+          <p class="court-quote">${highlight(d.accusation, q)}</p>
+        </div>
+        <div class="court-vs">VS</div>
+        <div class="court-defense">
+          <div class="court-role">🛡 DEFESA E4 — ESCUDO ATIVO</div>
+          <p class="court-rebuttal">${highlight(d.defense, q)}</p>
+        </div>
+      </article>
+    `).join("");
+
+    document.getElementById("verdict-slot").innerHTML = verdictHit ? `
+      <div class="verdict-banner">
+        <h3>⚖ ${highlight(T2_VERDICT.title, q)}</h3>
+        <p style="color:var(--text-primary);font-size:0.95rem;">${highlight(T2_VERDICT.body, q)}</p>
+        <div class="verdict-states">
+          <span class="state-chip st-pass">PASS</span>
+          <span class="state-chip st-fix">AUTO_FIX</span>
+          <span class="state-chip st-shift">SHIFT_START</span>
+          <span class="state-chip st-review">HUMAN_REVIEW</span>
+          <span class="state-chip st-block">HARD_BLOCK</span>
+        </div>
+      </div>
+    ` : "";
+
+    // T3
+    renderLotusMatrix();
+    let t3Count = 0;
+    const podsHtml = T3_PETALS.map(p => {
+      const matchedItems = p.items.filter(it => matches(`${p.num} ${p.name} ${p.sub} ${it.title} ${it.body}`, q));
+      t3Count += matchedItems.length;
+      if (matchedItems.length === 0) return "";
+      if (activePetal !== "all" && activePetal !== p.key) return "";
+      return `
+        <article class="petal-pod" style="--petal-accent: ${p.accent};">
+          <div class="petal-pod-head">
+            <div>
+              <span class="petal-num" style="color:${p.accent};">${escHtml(p.num)}</span>
+              <h3>${highlight(p.name, q)}</h3>
+            </div>
+            <span class="tag-pill">${matchedItems.length} itens</span>
+          </div>
+          ${matchedItems.map(it => `
+            <div class="petal-item">
+              <div class="petal-item-title">${highlight(it.title, q)}</div>
+              <p class="petal-item-body">${highlight(it.body, q)}</p>
+            </div>
+          `).join("")}
+        </article>
+      `;
+    }).join("");
+    counts.t3 = t3Count;
+    const visibleT3 = activePetal === "all"
+      ? t3Count
+      : (T3_PETALS.find(p => p.key === activePetal)?.items.filter(it => matches(`${it.title} ${it.body}`, q)).length || 0);
+    document.getElementById("cnt-t3").textContent = activePetal === "all"
+      ? `${t3Count} / 25 mecanismos`
+      : `${visibleT3} exibidos (${t3Count} no filtro)`;
+    document.getElementById("grid-t3").innerHTML = podsHtml;
+
+    // T4
+    const t4Filtered = T4_DATA.filter(d => matches(`${d.id} ${d.poleA} ${d.poleB} ${d.res}`, q));
+    counts.t4 = t4Filtered.length;
+    document.getElementById("cnt-t4").textContent = `${t4Filtered.length} / ${T4_DATA.length} contradições`;
+    document.getElementById("grid-t4").innerHTML = t4Filtered.map(d => `
+      <article class="triz-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span class="tag-pill" style="color:var(--amber);border-color:var(--amber-border);">${escHtml(d.id)}</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);">TENSÃO RESOLVIDA</span>
+        </div>
+        <div class="triz-poles">
+          <div class="pole pole-a">${highlight(d.poleA, q)}</div>
+          <div class="triz-spark" title="Contradição">⚡</div>
+          <div class="pole pole-b">${highlight(d.poleB, q)}</div>
+        </div>
+        <div class="triz-resolution">
+          <strong>RESOLUÇÃO TRIZ</strong>
+          ${highlight(d.res, q)}
+        </div>
+      </article>
+    `).join("");
+
+    // T5
+    const t5Filtered = T5_DATA.filter(d => matches(`${d.id} ${d.env} ${d.attack} ${d.shield}`, q));
+    counts.t5 = t5Filtered.length;
+    document.getElementById("cnt-t5").textContent = `${t5Filtered.length} / ${T5_DATA.length} cenários`;
+    document.getElementById("grid-t5").innerHTML = t5Filtered.map(d => `
+      <article class="chaos-card">
+        <div class="chaos-bar">
+          <span>FAULT://${escHtml(d.id)}</span>
+          <span>[${escHtml(d.env)}]</span>
+        </div>
+        <div class="chaos-body">
+          <div class="chaos-attack">${highlight(d.attack, q)}</div>
+          <div class="chaos-shield">${highlight(d.shield, q)}</div>
+        </div>
+      </article>
+    `).join("");
+
+    // T6
+    const t6Filtered = T6_DATA.filter(d => matches(`${d.id} ${d.old} ${d.neu} ${d.detail}`, q));
+    counts.t6 = t6Filtered.length;
+    document.getElementById("cnt-t6").textContent = `${t6Filtered.length} / ${T6_DATA.length} inversões`;
+    document.getElementById("grid-t6").innerHTML = t6Filtered.map(d => `
+      <article class="flip-card ${allFlipped ? "flipped" : ""}" tabindex="0" role="button" aria-pressed="${allFlipped}">
+        <div class="flip-top">
+          <span class="flip-id">${escHtml(d.id)}</span>
+          <span class="flip-hint">clique p/ inverter foco</span>
+        </div>
+        <div class="premise-old">ANTES: “${highlight(d.old, q)}”</div>
+        <div class="premise-arrow">↳ NOVO PARADIGMA P1</div>
+        <h3 class="premise-new">${highlight(d.neu, q)}</h3>
+        <p class="premise-detail">${highlight(d.detail, q)}</p>
+      </article>
+    `).join("");
+
+    document.querySelectorAll("#grid-t6 .flip-card").forEach(card => {
+      const toggle = () => {
+        const isF = card.classList.toggle("flipped");
+        card.setAttribute("aria-pressed", String(isF));
+      };
+      card.addEventListener("click", toggle);
+      card.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+      });
+    });
+
+    // T7
+    const t7Stages = T7_STAGES.filter(d => matches(`${d.id} ${d.mod} ${d.title} ${d.body}`, q));
+    const t7Contracts = T7_CONTRACTS.filter(d => matches(`${d.id} ${d.title} ${d.body} ${d.json || ""}`, q));
+    counts.t7 = t7Stages.length + t7Contracts.length;
+    document.getElementById("cnt-t7").textContent = `${counts.t7} / 10 especificações`;
+    document.getElementById("grid-t7-stages").innerHTML = t7Stages.map(d => `
+      <article class="stage-card">
+        <div class="stage-head">
+          <span class="stage-badge">${escHtml(d.id)}</span>
+          <span class="stage-mod">${highlight(d.mod, q)}</span>
+        </div>
+        <h3 class="stage-title">${highlight(d.title, q)}</h3>
+        <p class="stage-body">${highlight(d.body, q)}</p>
+      </article>
+    `).join("");
+
+    document.getElementById("grid-t7-contracts").innerHTML = t7Contracts.map(d => `
+      <article class="contract-card">
+        <h4>// ${escHtml(d.id)} · ${highlight(d.title, q)}</h4>
+        <p style="font-size:0.86rem;color:var(--text-secondary);">${highlight(d.body, q)}</p>
+        ${d.isJson ? `<pre class="json-block">${highlight(d.json, q)}</pre>` : ""}
+      </article>
+    `).join("");
+
+    counts.total = counts.t1 + counts.t2 + counts.t3 + counts.t4 + counts.t5 + counts.t6 + counts.t7;
+
+    // Show/hide sections
+    let shownTotal = 0;
+    ["t1", "t2", "t3", "t4", "t5", "t6", "t7"].forEach(tid => {
+      const sec = document.getElementById("sec-" + tid);
+      const shouldShow = (activeTech === "all" || activeTech === tid) && counts[tid] > 0;
+      sec.classList.toggle("hidden-section", !shouldShow);
+      if (shouldShow) shownTotal += counts[tid];
+    });
+
+    document.getElementById("visibleCount").textContent = String(shownTotal);
+    document.getElementById("emptyState").classList.toggle("visible", shownTotal === 0);
+    renderPills(counts);
+  }
+
+  // Controls
+  const searchInput = document.getElementById("searchInput");
+  searchInput.addEventListener("input", e => {
+    searchQuery = e.target.value;
+    renderAll();
+  });
+
+  function resetFilters() {
+    searchQuery = "";
+    activeTech = "all";
+    activePetal = "all";
+    searchInput.value = "";
+    renderAll();
+  }
+
+  document.getElementById("resetBtn").addEventListener("click", resetFilters);
+  document.getElementById("emptyResetBtn").addEventListener("click", resetFilters);
+  document.getElementById("toggleAllFlips").addEventListener("click", () => {
+    allFlipped = !allFlipped;
+    renderAll();
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "/" && document.activeElement !== searchInput) {
+      e.preventDefault();
+      searchInput.focus();
+    } else if (e.key === "Escape") {
+      if (searchQuery || activeTech !== "all" || activePetal !== "all") {
+        resetFilters();
+      }
+      searchInput.blur();
+    }
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

@@ -37,10 +37,12 @@ development_status:
   3-5-5-arcos-2-atos-compilacao-por-arquetipo-query-driven-deep-hunt-e-estilo-adaptado: done
   epic-3-5-retrospective: optional
 
-  epic-4: backlog
-  4-1-portao-de-status-da-fonte-e-politicas-por-publisher-jogo-policy-gate-py: backlog
-  4-2-cirurgia-seletiva-de-musica-com-demucs-na-gpu-music-surgeon-py: backlog
-  4-3-filtro-selo-verde-15s-detector-de-react-perigoso-e-guardiao-ypp-phash: backlog
+  epic-4: done
+  4-1-portao-de-fontes-politicas-de-publisher-e-disjuntor-de-emergencia: done
+  4-2-copy-hygiene-por-rede-cadencia-anti-spam-ypp-tiktok-score-e-phash: done
+  4-3-cirurgia-seletiva-de-musica-com-demucs-na-gpu-music-surgeon-py: done
+  4-4-selo-verde-15s-audio-visao-cold-open-thumb-e-react-guard: done
+  4-5-orquestrador-riskshield-raio-x-ui-mcp-e-suite-adversarial: done
   epic-4-retrospective: optional
 
   epic-5: backlog
