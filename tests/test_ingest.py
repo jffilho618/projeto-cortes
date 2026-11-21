@@ -74,7 +74,9 @@ def test_probe_url_estimates_best_video_plus_audio(monkeypatch):
     assert meta["duration"] == 7200
     assert meta["estimated_size"] >= 6 * 1024**3
     assert ingest.is_long_source(meta)
-    assert captured[0][2:5] == ["yt_dlp", "--dump-single-json", "--skip-download"]
+    # O comando base pode trazer "--js-runtimes node" (ytdlp_base_cmd); vale a presença, não a posição.
+    assert captured[0][2] == "yt_dlp"
+    assert "--dump-single-json" in captured[0] and "--skip-download" in captured[0]
 
 
 def test_probe_url_failure_stays_unknown(monkeypatch):
@@ -127,7 +129,9 @@ def test_download_visual_discovery_requests_lowest_video(monkeypatch, tmp_path):
     path = ingest.download_visual_discovery(
         "https://example.com/gameplay", tmp_path)
     assert path.is_file()
-    assert captured[0][captured[0].index("-f") + 1] == "worst[height<=360]/worst"
+    # YouTube atual não oferece formato combinado "worst": faixa só de vídeo em baixa resolução vem primeiro.
+    fmt = captured[0][captured[0].index("-f") + 1]
+    assert fmt.startswith("worstvideo[") and "height<=360" in fmt and fmt.endswith("/worst")
     assert captured[0][-1] == "https://example.com/gameplay"
 
 

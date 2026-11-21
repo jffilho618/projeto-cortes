@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 from typing import Any, Callable
+from picorte.config import ytdlp_base_cmd
 
 BLOCKED_PERMISSION_STATUSES = {"desconhecida", "lista_negra", "pausada_por_claim", "expirada"}
 TIMESTAMP_RE = re.compile(r"\b(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\b")
@@ -84,7 +85,7 @@ def mine_youtube_comments(
 
     exec_fn = runner or subprocess.run
     cmd = [
-        sys.executable, "-m", "yt_dlp",
+        *ytdlp_base_cmd(),
         "--dump-single-json", "--skip-download", "--no-playlist",
         "--write-comments",
         "--extractor-args", f"youtube:max_comments={int(max_comments)},all,0,0",
@@ -124,3 +125,51 @@ def mine_youtube_comments(
             "reason": f"Timestamp de comentário ({item['likes']} likes): {item['description']}"[:300],
         })
     return candidates
+
+
+COMMENTS_TIMEOUT = 5 * 60
+_YOUTUBE_HOSTS = ("youtube.com", "youtu.be")
+
+
+def save_comment_seeds(
+    url: str,
+    workdir: Any,
+    *,
+    permission_status: str = "desconhecida",
+    max_comments: int = 300,
+    timeout: float = COMMENTS_TIMEOUT,
+    on_status: Any = None,
+) -> Any:
+    """Liga o minerador (3.5.4) ao prepare: grava <workdir>/comment_seeds.json (cache), só YouTube, nunca fatal."""
+    from pathlib import Path
+    from urllib.parse import urlparse
+
+    report = on_status or (lambda status, detail="": None)
+    out = Path(workdir) / "comment_seeds.json"
+    if out.is_file():
+        report("ok", "comentários em cache")
+        return out
+    host = (urlparse(str(url)).netloc or "").lower()
+    if not any(h in host for h in _YOUTUBE_HOSTS):
+        report("na", "fonte não é YouTube")
+        return None
+    if str(permission_status or "").strip().lower() in BLOCKED_PERMISSION_STATUSES:
+        report("na", f"bloqueado pelo P1 (status {permission_status})")
+        return None
+
+    def _run_with_timeout(cmd, **kwargs):
+        return subprocess.run(cmd, timeout=timeout, **kwargs)
+
+    try:
+        seeds = mine_youtube_comments(url, permission_status=permission_status, runner=_run_with_timeout,
+                                      max_comments=max_comments)
+    except Exception as exc:
+        print(f"Comentários com timestamp indisponíveis ({type(exc).__name__}); seguindo sem eles.", flush=True)
+        report("failed", f"{type(exc).__name__}: {exc}")
+        return None
+    tmp = out.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(seeds, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(out)
+    report("ok" if seeds else "na", f"{len(seeds)} momentos marcados pelo público" if seeds else
+           "nenhum comentário com horário")
+    return out

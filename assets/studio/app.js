@@ -876,6 +876,7 @@ $("#create-form").addEventListener(
         ai_mode: $("#new-ai-mode")?.value || "heuristic",
         vision_preset: $("#new-vision-preset")?.value || "auto",
       };
+      if ($("#new-keyframes")?.checked) options.keyframes = true;
       const owner = $("#new-source-owner")?.value;
       if (owner) options.source_owner = owner;
       const result = await api("/api/batch", { sources, options });

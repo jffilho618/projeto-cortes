@@ -16,6 +16,7 @@ import tempfile
 import shutil
 from urllib.parse import urlparse
 from pathlib import Path
+from picorte.config import ytdlp_base_cmd
 
 TRANSCRIPT_VERSION = 2
 CHUNK_SECONDS = 1800
@@ -53,7 +54,7 @@ def _download(url, workdir):
     out_tmpl = workdir / "source.%(ext)s"
     # Highest quality: best video + best audio, merged to mp4 (needs ffmpeg on PATH).
     cmd = [
-        sys.executable, "-m", "yt_dlp",
+        *ytdlp_base_cmd(),
         "-f", "bestvideo*+bestaudio/best",
         "--merge-output-format", "mp4",
         "--no-playlist",

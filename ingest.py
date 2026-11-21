@@ -11,6 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
+from picorte.config import ytdlp_base_cmd
 
 LONG_SECONDS = 2 * 60 * 60
 LONG_BYTES = 8 * 1024**3
@@ -217,7 +218,7 @@ def _probe_url(url, run=None):
     }
     try:
         result = run([
-            sys.executable, "-m", "yt_dlp", "--dump-single-json",
+            *ytdlp_base_cmd(), "--dump-single-json",
             "--skip-download", "--no-playlist", url])
         data = json.loads(result.stdout or "{}")
     except (OSError, subprocess.SubprocessError, ValueError, TypeError):
@@ -338,8 +339,11 @@ def download_visual_discovery(url, workdir, runner=None):
     _remove_old(workdir, "discovery")
     try:
         run([
-            sys.executable, "-m", "yt_dlp",
-            "-f", "worst[height<=360]/worst", "--no-playlist",
+            *ytdlp_base_cmd(),
+            # YouTube atual entrega vídeo e áudio separados: "worst" (combinado) costuma não existir.
+            # A visão de games só precisa da faixa de vídeo em baixa resolução.
+            "-f", "worstvideo[height>=240][height<=360]/worstvideo[height<=480]/worst[height<=360]/worst",
+            "--no-playlist",
             "-o", str(workdir / "discovery.%(ext)s"), url])
     except (OSError, subprocess.SubprocessError) as exc:
         raise RuntimeError(
@@ -362,7 +366,7 @@ def download_discovery(url, workdir, meta=None, runner=None):
     if meta.get("has_audio") is not False:
         try:
             run([
-                sys.executable, "-m", "yt_dlp", "-f", "bestaudio/best",
+                *ytdlp_base_cmd(), "-f", "bestaudio/best",
                 "--no-playlist", "-o", str(workdir / "audio.%(ext)s"), url])
         except (OSError, subprocess.SubprocessError):
             pass
@@ -376,7 +380,7 @@ def download_discovery(url, workdir, meta=None, runner=None):
 def _download(url, out_path, fmt, runner=None, timeout=None, extra=()):
     """Run one yt-dlp download, converting a timeout into a clear error."""
     run = runner or _run
-    cmd = [sys.executable, "-m", "yt_dlp", "-f", fmt,
+    cmd = [*ytdlp_base_cmd(), "-f", fmt,
            "--merge-output-format", "mp4", "--no-playlist",
            "--force-overwrites", *extra, "-o", str(out_path), url]
     try:
@@ -456,3 +460,126 @@ def check_disk(path, required_bytes):
         print(f"Disk warning: {free / 1024**3:.1f} GB free, "
               f"estimated job size {float(required_bytes) / 1024**3:.1f} GB.",
               flush=True)
+
+
+CHAT_TIMEOUT = 20 * 60
+# Medido em 2026-11-20 (VOD real de 11h20 do Gameplayrj): 45s de download = 38 min de chat (~50x tempo real).
+CHAT_SPEED_FACTOR = 40.0
+
+
+def chat_timeout_for(duration_s):
+    """Limite do download de chat proporcional à duração do VOD (margem sobre ~50x o tempo real)."""
+    try:
+        dur = float(duration_s or 0.0)
+    except (TypeError, ValueError):
+        dur = 0.0
+    return max(CHAT_TIMEOUT, int(dur / CHAT_SPEED_FACTOR) + 5 * 60)
+_YOUTUBE_HOSTS = ("youtube.com", "youtu.be")
+
+
+def _chat_runs_text(runs):
+    parts = []
+    for run in runs or []:
+        if "text" in run:
+            parts.append(str(run["text"]))
+            continue
+        emoji = run.get("emoji") or {}
+        eid = str(emoji.get("emojiId") or "")
+        # Emoji Unicode vem no emojiId; emoji de canal (custom) só tem o atalho legível (ex.: ":_alanKEKW:").
+        if eid and not emoji.get("isCustomEmoji") and "/" not in eid and len(eid) <= 8:
+            parts.append(eid)
+        elif emoji.get("shortcuts"):
+            parts.append(str(emoji["shortcuts"][0]))
+    return "".join(parts).strip()
+
+
+def parse_youtube_live_chat(path):
+    """Converte o .live_chat.json (NDJSON aninhado do yt-dlp) em [{'t': s, 'text': str}] ordenado."""
+    messages = []
+    # Linha a linha: o bruto de uma live de 11h passa de 300 MB (nunca carregar inteiro na memória).
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        rows = (line for line in fh if line.strip())
+        for line in rows:
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            messages.extend(_live_chat_row_messages(row))
+    messages.sort(key=lambda m: m["t"])
+    return messages
+
+
+def _live_chat_row_messages(row):
+    out = []
+    replay = row.get("replayChatItemAction") or {}
+    try:
+        t = float(replay.get("videoOffsetTimeMsec")) / 1000.0
+    except (TypeError, ValueError):
+        return out
+    for action in replay.get("actions") or []:
+        item = (action.get("addChatItemAction") or {}).get("item") or {}
+        renderer = item.get("liveChatTextMessageRenderer") or item.get("liveChatPaidMessageRenderer")
+        if not renderer:
+            continue
+        text = _chat_runs_text((renderer.get("message") or {}).get("runs"))
+        if text:
+            out.append({"t": round(t, 3), "text": text})
+    return out
+
+
+def download_live_chat(url, workdir, runner=None, timeout=CHAT_TIMEOUT, on_status=None):
+    """Baixa o chat do replay de live do YouTube (só metadados, nenhum vídeo) para <workdir>/chat.json.
+
+    Opcional e nunca fatal: fonte que não é YouTube, VOD sem chat ou falha do yt-dlp retornam None.
+    Deve ser chamado só DEPOIS do portão P1 Pre-Ingest.
+    """
+    report = on_status or (lambda status, detail="": None)
+    workdir = Path(workdir)
+    out = workdir / "chat.json"
+    if out.is_file():
+        report("ok", "chat em cache")
+        return out
+    host = (urlparse(str(url)).netloc or "").lower()
+    if not any(h in host for h in _YOUTUBE_HOSTS):
+        report("na", "fonte não é YouTube")
+        return None
+    run = runner or _run
+    template = workdir / "chatsrc.%(ext)s"
+    cmd = [*ytdlp_base_cmd(), "--skip-download", "--write-subs", "--sub-langs", "live_chat",
+           "--no-playlist", "-o", str(template), str(url)]
+    partial = False
+    raw = workdir / "chatsrc.live_chat.json"
+    try:
+        run(cmd, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        # Estourou o tempo: aproveita o que já foi baixado (o yt-dlp grava o chat aos poucos em .part).
+        part = workdir / "chatsrc.live_chat.json.part"
+        if part.is_file():
+            part.replace(raw)
+            partial = True
+        else:
+            report("failed", f"tempo esgotado ({int(timeout)}s) sem nenhum chat baixado")
+            return None
+    except (subprocess.SubprocessError, OSError) as exc:
+        print(f"Chat da live indisponível ({type(exc).__name__}); seguindo sem Sismógrafo.", flush=True)
+        report("failed", f"{type(exc).__name__}: {exc}")
+        return None
+    if not raw.is_file():
+        report("na", "vídeo sem chat salvo (upload comum ou replay sem chat)")
+        return None
+    try:
+        messages = parse_youtube_live_chat(raw)
+    finally:
+        for leftover in workdir.glob("chatsrc*"):
+            leftover.unlink(missing_ok=True)
+    if not messages:
+        report("na", "chat vazio")
+        return None
+    tmp = out.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(messages, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(out)
+    if partial:
+        report("ok", f"parcial: {len(messages)} mensagens até {messages[-1]['t'] / 60:.0f} min (tempo esgotado)")
+    else:
+        report("ok", f"{len(messages)} mensagens")
+    return out

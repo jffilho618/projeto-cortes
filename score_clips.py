@@ -1698,6 +1698,11 @@ def apply_4d_and_snap(
             "visual_games": s_vis,
             "hud": s_hud,
         })
+        # Marca o que foi MEDIDO de fato (sem isso visual_games herda a nota geral e engana o Editor-Chefe).
+        if vis_entry:
+            ev["vision_measured"] = True
+        if chat_seismic:
+            ev["chat_measured"] = True
         rec["evidence"] = ev
         out.append(rec)
     return out
@@ -1779,6 +1784,56 @@ def _load_optional_chat_seismic(workdir: Path, source: str | None, duration_s: f
                 _write_json(seismic_cache, seismic)
                 return seismic
     return None
+
+
+def _keyframe_video(workdir):
+    for cand in sorted(Path(workdir).glob("discovery.*")):
+        if cand.suffix.lower() in {".mp4", ".mkv", ".webm", ".mov"} and cand.is_file():
+            return cand
+    try:
+        video = Path(json.loads((Path(workdir) / "transcript.json").read_text(encoding="utf-8")).get("video") or "")
+    except (OSError, ValueError):
+        return None
+    if video.is_file() and video.suffix.lower() in {".mp4", ".mkv", ".mov", ".m4v", ".avi"}:
+        return video
+    return None
+
+
+def _attach_keyframe_descriptions(workdir, pool):
+    """Keyframes (3.5.4, opcional): Claude Sonnet descreve o que está na tela; falha nunca derruba a seleção."""
+    from picorte.engine import health as _health
+    from picorte.engine import multimodal_keyframes as _mk
+
+    video = _keyframe_video(workdir)
+    if video is None:
+        _health.record(workdir, "keyframes", "na", "sem vídeo local (fonte só de áudio)")
+        return pool
+    try:
+        res = _mk.describe_keyframes_batch(pool, str(video), Path(workdir) / "keyframes")
+    except Exception as exc:
+        _health.record(workdir, "keyframes", "failed", f"{type(exc).__name__}: {exc}")
+        return pool
+    _health.record(workdir, "keyframes", "ok",
+                   f"{res['described']} candidatos descritos · consumo reportado ~US$ {res['cost_usd']}")
+    return res["candidates"]
+
+
+def merge_comment_seeds(candidates, seeds, sentences):
+    """Comentários com timestamp viram candidatos com a FALA real do trecho; o comentário fica como pista."""
+    out = list(candidates)
+    for seed in seeds or []:
+        s, e = float(seed.get("start") or 0.0), float(seed.get("end") or 0.0)
+        if e <= s:
+            continue
+        spoken = " ".join(str(x.get("text") or "").strip() for x in sentences or []
+                          if float(x.get("end") or 0.0) > s and float(x.get("start") or 0.0) < e).strip()
+        rec = dict(seed)
+        rec["comment_hint"] = str(seed.get("text") or "")[:180]
+        rec["comment_likes"] = int((seed.get("score_parts") or {}).get("comment_likes") or 0)
+        rec["text"] = spoken or rec["comment_hint"]
+        rec["evidence"] = dict(seed.get("evidence") or {})
+        out.append(rec)
+    return out
 
 
 def discover(workdir, min_len=15, max_len=300, preferred_len=None,
@@ -1933,6 +1988,16 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
                     "reason": f"Pico sísmico do chat (z={pk.get('vel_zscore')}, emotes={pk.get('emote_burst')})",
                 })
 
+    # Comentários com timestamp do YouTube (3.5.4): o público marcou estes momentos.
+    comment_seeds = []
+    seeds_path = workdir / "comment_seeds.json"
+    if seeds_path.is_file():
+        try:
+            comment_seeds = json.loads(seeds_path.read_text(encoding="utf-8")) or []
+        except (OSError, ValueError):
+            comment_seeds = []
+        candidates = merge_comment_seeds(candidates, comment_seeds, sentences)
+
     visual_scores: dict[tuple[float, float], dict[str, float]] = {}
     if visual_media and Path(visual_media).is_file() and Path(visual_media).suffix.lower() in {".mp4", ".mkv", ".mov", ".avi", ".m4v", ".webm"} and candidates:
         # Só roda análise visual de vídeo se o arquivo possuir stream de vídeo (evita audio.webm)
@@ -1967,6 +2032,34 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
             visual_scores=visual_scores,
         )
 
+    # Prosódia (3.5.4): riso 3–6 Hz, susto e ritmo de fala nos melhores candidatos (CPU, não fatal).
+    from picorte.engine import health as _health
+    if source and Path(source).is_file() and candidates:
+        from picorte.engine.prosody_events import attach_prosody_evidence
+        candidates = attach_prosody_evidence(candidates, source, sentences)
+        measured = sum(1 for c in candidates if "laugh" in (c.get("evidence") or {}))
+        _health.record(workdir, "prosody", "ok" if measured else "failed",
+                       f"{measured} candidatos medidos" if measured else "nenhum trecho de áudio decodificado")
+    else:
+        _health.record(workdir, "prosody", "na", "sem áudio local ou sem candidatos")
+
+    # Saúde dos sinais (W9): o painel do E6 só exibe; aqui nada mais falha em silêncio.
+    _health.record(workdir, "chat", "ok" if chat_seismic else "na",
+                   f"{len((chat_seismic or {}).get('peaks') or [])} picos" if chat_seismic else "sem log de chat")
+    _health.record(workdir, "heatmap", "ok" if heatmap_peaks else "na",
+                   f"{len(heatmap_peaks)} picos do Most Replayed" if heatmap_peaks else "vídeo sem heatmap")
+    _health.record(workdir, "comment_seeds", "ok" if comment_seeds else "na",
+                   f"{len(comment_seeds)} momentos" if comment_seeds else "sem comentários com horário")
+    has_video = bool(visual_media and Path(visual_media).is_file()
+                     and Path(visual_media).suffix.lower() in {".mp4", ".mkv", ".mov", ".avi", ".m4v", ".webm"}
+                     and not Path(visual_media).name.startswith("audio."))
+    if not has_video:
+        _health.record(workdir, "vision", "na", "fonte só de áudio (sem proxy visual)")
+    elif visual_scores or sections:
+        _health.record(workdir, "vision", "ok", f"{len(visual_scores)} candidatos com MAR/HUD")
+    else:
+        _health.record(workdir, "vision", "failed", "vídeo presente, mas nenhuma análise visual concluída")
+
     warnings = []
     if visual_ranges and source and Path(source).is_file() and not sections:
         warnings.append(
@@ -1978,6 +2071,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
         "vision_preset": resolved_vp["preset"],
         "vision_models": resolved_vp["models"],
         "chat_seismic_peaks": len((chat_seismic or {}).get("peaks") or []),
+        "comment_seeds": len(comment_seeds),
         "evidence_available": {
             "audio": audio_usable,
             "visual": baseline is not None or bool(sections) or bool(visual_scores),
@@ -2001,7 +2095,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
            band=None, llm=None, host=OLLAMA_HOST, mode="heuristic",
            ai_mode="heuristic", ai_filter="ollama", ai_companion="claude",
-           query=None, hunt_mode="fast"):
+           query=None, hunt_mode="fast", keyframes=False):
     """Read candidates.json, write segments.json and selection.json."""
     workdir = Path(workdir)
     candidates, discovery = load_candidates(workdir)
@@ -2013,7 +2107,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
     if ai_mode and ai_mode != "heuristic":
         import ingest as _ingest
         from picorte.ai.game_dossiers.loader import load_dossier_for_source
-        from picorte.ai.llm_router import LLMRouter, load_golden_examples
+        from picorte.ai.llm_router import EditorChiefUnavailable, LLMRouter, load_golden_examples
         from picorte.ai.llm_scout import query_vod_clips, scout_full_vod
         from picorte.engine.multitrack import build_multitrack_pool
 
@@ -2059,8 +2153,10 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                         companion_provider=ai_companion,
                         model=llm,
                     )
-            except Exception:
+            except Exception as scout_exc:
                 scout_cands = []
+                from picorte.engine import health as _health
+                _health.record(workdir, "full_vod_scout", "failed", f"{type(scout_exc).__name__}: {scout_exc}")
 
         if hunt_mode == "deep" and sentences:
             try:
@@ -2079,6 +2175,9 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
             max_total=55 if hunt_mode == "deep" else 45,
         ) or deduped
 
+        if keyframes:
+            multitrack_pool = _attach_keyframe_descriptions(workdir, multitrack_pool)
+
         try:
             routed = router.rerank_candidates(
                 multitrack_pool,
@@ -2095,9 +2194,16 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
             )
             adjusted = routed["candidates"]
             used_mode = routed["llm_mode_used"]
+        except EditorChiefUnavailable as exc:
+            from picorte.engine import health as _health
+            _health.record(workdir, "editor", "failed", str(exc.reason))
+            raise  # Decisão B: nunca seguir sem IA em silêncio
         except Exception as exc:
-            print(f"AI router fallback ({exc}) -> deterministic scores", flush=True)
-            adjusted, used_mode = None, "heuristic"
+            from picorte.engine import health as _health
+            _health.record(workdir, "editor", "failed", f"{type(exc).__name__}: {exc}")
+            raise EditorChiefUnavailable(ai_mode, f"erro inesperado: {type(exc).__name__}: {exc}") from exc
+        from picorte.engine import health as _health
+        _health.record(workdir, "editor", "ok", f"modo {used_mode}")
         if adjusted:
             by_key = {_candidate_key(item): item for item in adjusted}
             updated_cands = [

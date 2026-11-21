@@ -28,7 +28,7 @@ DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "hunt_mode": "fast",
                    "embed_model": "nomic-embed-text", "brand": None,
                    "layout": "single", "centers": [0.25, 0.75], "caption": None,
-                   "source_owner": None}
+                   "source_owner": None, "keyframes": False}
 
 
 def digest(value):
@@ -122,6 +122,8 @@ def validate_options(options):
     if result["source_owner"] is not None and (
             not isinstance(result["source_owner"], str) or len(result["source_owner"]) > 64):
         raise ValueError("source_owner must be 'proprio' or a registered streamer slug.")
+    if not isinstance(result["keyframes"], bool):
+        raise ValueError("keyframes must be true or false.")
     return result
 
 
@@ -142,7 +144,8 @@ def score_keys(transcript_key, data, options):
                             visual.FEATURE_VERSION])
     selection_options = {
         key: options.get(key, DEFAULT_OPTIONS.get(key))
-        for key in ("min_score", "max_clips", "llm", "ai_mode", "ai_filter", "ai_companion", "vision_preset", "query", "hunt_mode")
+        for key in ("min_score", "max_clips", "llm", "ai_mode", "ai_filter", "ai_companion", "vision_preset", "query", "hunt_mode",
+                    "keyframes")
     }
     selection_key = digest([discovery_key, selection_options])
     return discovery_key, selection_key
@@ -414,12 +417,28 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                     if (is_url and long and media_kind == "audio"
                             and options.get("layout") == "games"
                             and meta.get("has_video")):
+                        from picorte.engine import health as _health
                         visual_proxy = ingest._find_media(path, "discovery")
                         if visual_proxy is None:
                             try:
                                 visual_proxy = ingest.download_visual_discovery(source_input, path)
+                                _health.record(path, "visual_proxy", "ok", Path(visual_proxy).name)
                             except Exception as vis_exc:
                                 print(f"Visual proxy skipped ({vis_exc})", flush=True)
+                                _health.record(path, "visual_proxy", "failed", str(vis_exc))
+                    if is_url:
+                        # Sismógrafo do Chat (3.1): chat do replay da live (YouTube), opcional e não fatal.
+                        from picorte.engine import health as _health
+                        ingest.download_live_chat(
+                            source_input, path, timeout=ingest.chat_timeout_for(meta.get("duration")),
+                            on_status=_health.recorder(path, "chat_download"))
+                        # Comentários com timestamp (3.5.4): só YouTube, respeita o status P1 da fonte.
+                        from picorte.engine import comments_miner as _comments
+                        _comments.save_comment_seeds(
+                            source_input, path,
+                            permission_status=(state.get("source_gate") or {}).get("permission_status")
+                            or "desconhecida",
+                            on_status=_health.recorder(path, "comments_download"))
                     score_clips.discover(
                         path, min_len=options["min_len"], max_len=options["max_len"],
                         preferred_len=options["preferred_len"],
@@ -441,7 +460,8 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         ai_filter=options.get("ai_filter", "ollama"),
                         ai_companion=options.get("ai_companion", "claude"),
                         query=options.get("query"),
-                        hunt_mode=options.get("hunt_mode", "fast"))
+                        hunt_mode=options.get("hunt_mode", "fast"),
+                        keyframes=bool(options.get("keyframes", False)))
                     state["cache"]["selection"] = selection_key
                     save_project(path, state)
 
@@ -627,6 +647,9 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                             render_clips.write_meta(enriched_seg, Path(output), source_meta=sm_proj)
                     except Exception as thumb_exc:
                         print(f"Thumbnail warning: {thumb_exc}", flush=True)
+                        from picorte.engine import health as _health
+                        _health.record(path, "thumbnail", "failed",
+                                       f"{Path(output).stem}: {type(thumb_exc).__name__}: {thumb_exc}")
                     if not preview:
                         # Thumbnail pode falhar (inclusive pelo Selo Verde): o .meta.json com crédito à fonte
                         # é gravado mesmo assim, e todo corte final recebe o veredito P1 (RiskShield).

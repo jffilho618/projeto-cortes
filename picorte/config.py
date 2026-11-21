@@ -231,3 +231,13 @@ def resolve_vision_preset(
 
 
 ensure_venv_on_path()
+
+
+def ytdlp_base_cmd() -> list[str]:
+    """Comando base do yt-dlp. Com `node` no PATH, resolve o desafio JS do YouTube (yt-dlp-ejs) — sem avisos
+    de "some formats may be missing". Sem `node` (ex.: notebook Linux), segue sem a flag (AD-11)."""
+    cmd = [sys.executable, "-m", "yt_dlp"]
+    if shutil.which("node"):
+        cmd += ["--js-runtimes", "node"]
+    return cmd
+

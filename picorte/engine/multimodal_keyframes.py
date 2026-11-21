@@ -120,3 +120,80 @@ def describe_candidate_keyframes(
         return None
     cleaned = str(resp or "").strip()
     return cleaned or None
+
+
+# ---- Ligação ao pipeline (etapa 1b, 2026-11-20): opcional, Claude Sonnet, uma chamada por VOD ----
+KEYFRAMES_MODEL = "sonnet"  # Haiku alucinou no teste real; Sonnet descreveu fielmente
+KEYFRAMES_TIMEOUT = 300
+_UNCERTAIN = {"", "incerto", "n/a", "na", "nada", "desconhecido"}
+
+
+def build_claude_vision_cmd(cli: str, prompt: str, workdir: str | Path, *, model: str = KEYFRAMES_MODEL) -> list[str]:
+    """`claude -p` com acesso SOMENTE de leitura à pasta dos frames."""
+    return [cli, "-p", prompt, "--model", model, "--allowedTools", "Read", "--add-dir", str(workdir),
+            "--output-format", "json"]
+
+
+def claude_vision_runner(prompt: str, workdir: str | Path) -> tuple[str, float]:
+    import json
+    import subprocess
+
+    from picorte.config import resolve_cli_binary
+
+    cli = resolve_cli_binary("claude")
+    if not cli:
+        raise RuntimeError("CLI 'claude' não encontrada no PATH.")
+    res = subprocess.run(build_claude_vision_cmd(cli, prompt, workdir), cwd=str(workdir), capture_output=True,
+                         text=True, encoding="utf-8", errors="replace", timeout=KEYFRAMES_TIMEOUT, check=True)
+    data = json.loads(res.stdout or "{}")
+    return str(data.get("result") or ""), float(data.get("total_cost_usd") or 0.0)
+
+
+def describe_keyframes_batch(
+    candidates: list[dict[str, Any]],
+    video_path: str | Path,
+    out_dir: str | Path,
+    *,
+    runner: Callable[[str, Path], tuple[str, float]] | None = None,
+    frame_sampler: Callable[[str | Path, float, float], list[np.ndarray]] | None = None,
+    max_candidates: int = 5,
+) -> dict[str, Any]:
+    """Escolhe os candidatos que dependem da tela, extrai 3 frames de cada e pede ao Claude, numa chamada só,
+    UMA frase do que é visível. Respostas "incerto" não viram descrição (nada de inventar)."""
+    from picorte.ai.llm_router import _extract_json_array
+
+    out = [dict(c) for c in candidates]
+    chosen = select_candidates_for_keyframes(out, max_candidates=max_candidates)
+    folder = Path(out_dir)
+    folder.mkdir(parents=True, exist_ok=True)
+    blocks: list[str] = []
+    targets: list[dict[str, Any]] = []
+    for cand in chosen:
+        frames = extract_selective_keyframes(video_path, cand, folder, frame_sampler=frame_sampler)
+        if not frames:
+            continue
+        idx = len(targets)
+        targets.append(cand)
+        fala = str(cand.get("text") or "")[:240]
+        blocks.append(f'[{idx}] fala: "{fala}" | frames: ' + " ".join(str(p) for p in frames))
+    if not targets:
+        return {"candidates": out, "described": 0, "cost_usd": 0.0}
+
+    prompt = (
+        "Você vai ler frames (início, meio, fim) de trechos de uma live de games. Abra cada arquivo listado. "
+        "Para cada trecho, descreva em UMA frase curta em português SOMENTE o que está visível na tela. "
+        'Não invente ação que não aparece nos frames; se não der para ver, responda "incerto". '
+        'Responda APENAS um array JSON: [{"index": int, "visao": str}].\n\n' + "\n".join(blocks)
+    )
+    raw, cost = (runner or claude_vision_runner)(prompt, folder)
+    described = 0
+    for entry in _extract_json_array(raw) or []:
+        try:
+            idx = int(entry.get("index"))
+        except (TypeError, ValueError):
+            continue
+        text = str(entry.get("visao") or "").strip()
+        if 0 <= idx < len(targets) and text.lower().strip(" .") not in _UNCERTAIN:
+            targets[idx]["visual_description"] = text[:240]
+            described += 1
+    return {"candidates": out, "described": described, "cost_usd": round(float(cost or 0.0), 4)}

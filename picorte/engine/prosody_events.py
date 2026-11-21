@@ -142,3 +142,74 @@ def detect_nonverbal_audio_events(
         "yamnet_available": yamnet_available,
         "yamnet_events": yamnet_events,
     }
+
+
+LAUGH_MIN = 0.35
+PROSODY_BONUS = {"laugh": 0.6, "jumpscare": 0.8, "fast_panic": 0.3}
+
+
+def _ffmpeg_window(audio_path: Any, start: float, end: float, sample_rate: int = 16000) -> np.ndarray:
+    import subprocess
+
+    from picorte.config import resolve_cli_binary
+
+    proc = subprocess.run(
+        [resolve_cli_binary("ffmpeg") or "ffmpeg", "-v", "error", "-ss", f"{max(0.0, start):.3f}",
+         "-t", f"{max(0.1, end - start):.3f}", "-i", str(audio_path), "-vn", "-ac", "1",
+         "-ar", str(sample_rate), "-f", "f32le", "-"],
+        capture_output=True, check=True,
+    )
+    return np.frombuffer(proc.stdout, dtype=np.float32)
+
+
+def attach_prosody_evidence(
+    candidates: list[dict[str, Any]],
+    audio_path: Any,
+    sentences: list[dict[str, Any]] | None,
+    *,
+    limit: int = 40,
+    decoder: Callable[[Any, float, float], np.ndarray] | None = None,
+    sample_rate: int = 16000,
+) -> list[dict[str, Any]]:
+    """Liga a prosódia (3.5.4) à descoberta: riso 3–6 Hz, susto e ritmo de fala nos `limit` melhores candidatos.
+
+    Grava `evidence.laugh`, `evidence.jumpscare_db`, `evidence.speech_rate` e soma um bônus modesto em
+    `overall` (registrado em `score_parts.prosody_bonus`). Falha ao decodificar um trecho não derruba nada.
+    """
+    out = [dict(c, evidence=dict(c.get("evidence") or {}), score_parts=dict(c.get("score_parts") or {}))
+           for c in candidates]
+    decode = decoder or (lambda p, s, e: _ffmpeg_window(p, s, e, sample_rate))
+    anomalies = compute_speech_rate_anomalies(sentences or [])
+    sent_list = list(sentences or [])
+    ranked = sorted(range(len(out)), key=lambda i: -float(out[i].get("overall") or 0.0))[: max(0, int(limit))]
+    for i in ranked:
+        cand = out[i]
+        s, e = float(cand.get("start") or 0.0), float(cand.get("end") or 0.0)
+        try:
+            samples = decode(audio_path, s, e)
+        except Exception:
+            continue
+        laugh = detect_laugh_rhythm_cpu(samples, sample_rate=sample_rate)
+        scare = detect_jumpscare_spike(samples, sample_rate=sample_rate)
+        rate = None
+        for idx, info in anomalies.items():
+            sent = sent_list[idx]
+            if float(sent.get("end") or 0.0) > s and float(sent.get("start") or 0.0) < e:
+                if info["kind"] == "fast_panic" or rate is None:
+                    rate = info["kind"]
+        bonus = 0.0
+        if laugh >= LAUGH_MIN:
+            bonus += PROSODY_BONUS["laugh"]
+        if scare["detected"]:
+            bonus += PROSODY_BONUS["jumpscare"]
+        if rate == "fast_panic":
+            bonus += PROSODY_BONUS["fast_panic"]
+        cand["evidence"].update({
+            "laugh": laugh,
+            "jumpscare_db": float(scare["jump_db"]) if scare["detected"] else 0.0,
+            "speech_rate": rate,
+        })
+        if bonus:
+            cand["score_parts"]["prosody_bonus"] = round(bonus, 2)
+            cand["overall"] = round(min(10.0, float(cand.get("overall") or 0.0) + bonus), 2)
+    return out

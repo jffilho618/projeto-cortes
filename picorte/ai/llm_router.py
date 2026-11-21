@@ -207,6 +207,43 @@ def _default_ollama_model() -> str:
     return "qwen2.5:3b" if prof["tier"] == "notebook_4gb" else "qwen2.5:7b"
 
 
+def _measured_signals(ev: dict[str, Any]) -> dict[str, Any]:
+    """Sinais não verbais MEDIDOS do candidato para o Editor-Chefe (riso, susto, ritmo, chat, facecam, HUD).
+
+    Só entra o que foi medido de verdade: valores herdados da nota geral nunca são enviados como medição.
+    """
+    out: dict[str, Any] = {}
+    if ev.get("laugh") is not None and float(ev["laugh"]) >= 0.2:
+        out["riso"] = round(float(ev["laugh"]), 2)
+    if float(ev.get("jumpscare_db") or 0.0) > 0.0:
+        out["susto_db"] = round(float(ev["jumpscare_db"]), 1)
+    if ev.get("speech_rate"):
+        out["fala"] = str(ev["speech_rate"])
+    if ev.get("chat_measured"):
+        out["chat"] = round(float(ev.get("chat") or 0.0), 1)
+    if ev.get("vision_measured"):
+        out["facecam"] = round(float(ev.get("visual_games") or 0.0), 1)
+        out["hud"] = round(float(ev.get("hud") or 0.0), 1)
+    return out
+
+
+class EditorChiefUnavailable(RuntimeError):
+    """Decisão B (2026-11-20): o Editor-Chefe falhou — o Picorte PARA em vez de seguir sem IA em silêncio."""
+
+    def __init__(self, provider: str, reason: str) -> None:
+        self.provider = str(provider)
+        self.reason = str(reason)
+        super().__init__(
+            f"[Editor-Chefe] {self.provider} indisponível ({self.reason}). A seleção foi interrompida para não "
+            "escolher cortes sem IA (sem arquétipos, tiers nem títulos). Download, transcrição e descoberta "
+            "ficaram salvos. Para continuar: troque o Motor de IA (ex.: Claude) e rode \"preparar\" de novo, "
+            "ou escolha \"Determinístico (sem LLM)\" para seguir sem IA de propósito."
+        )
+
+
+EDITOR_ATTEMPTS_PER_BATCH = 2
+
+
 class LLMRouter:
     """Roteia seleção e copywriting entre Ollama, Claude, Gemini ou Modo Dupla."""
 
@@ -499,6 +536,14 @@ class LLMRouter:
                 row["track_origin"] = item["track_origin"]
             if item.get("has_visual_deictic"):
                 row["has_visual_deictic"] = True
+            if item.get("visual_description"):
+                row["visao"] = str(item["visual_description"])[:240]
+            if item.get("comment_hint"):
+                likes = int(item.get("comment_likes") or 0)
+                row["comentario_publico"] = f"{str(item['comment_hint'])[:140]} ({likes} likes)"
+            sinais = _measured_signals(item.get("evidence") or {})
+            if sinais:
+                row["sinais"] = sinais
             if include_triage and item.get("reason"):
                 row["triagem_filtro"] = str(item["reason"])[:180]
             return row
@@ -547,17 +592,30 @@ class LLMRouter:
             )
             total_batches = len(payloads)
             for b_idx, payload in enumerate(payloads, 1):
-                print(f"  [editor {provider_name} lote {b_idx}/{total_batches}] avaliando candidatos...", flush=True)
-                raw = self.provider_runner(provider_name, model_name, system_prompt, payload)
-                parsed = _extract_json_array(raw)
-                if parsed:
-                    all_entries.extend(parsed)
+                last_problem = "resposta sem JSON válido"
+                for attempt in range(1, EDITOR_ATTEMPTS_PER_BATCH + 1):
+                    print(f"  [editor {provider_name} lote {b_idx}/{total_batches}] avaliando candidatos"
+                          f"{' (nova tentativa)' if attempt > 1 else ''}...", flush=True)
+                    try:
+                        raw = self.provider_runner(provider_name, model_name, system_prompt, payload)
+                    except Exception as exc:  # cota, timeout, CLI ausente...
+                        last_problem = f"{type(exc).__name__}: {exc}"
+                        continue
+                    parsed = _extract_json_array(raw)
+                    if parsed:
+                        all_entries.extend(parsed)
+                        break
+                    last_problem = "resposta sem JSON válido"
+                else:
+                    raise EditorChiefUnavailable(
+                        provider_name, f"lote {b_idx}/{total_batches} falhou {EDITOR_ATTEMPTS_PER_BATCH}x: "
+                        f"{last_problem}"[:400])
             return all_entries
 
         if ai_mode in VALID_PROVIDERS:
             parsed = _call_batched(ai_mode, model, COMPANION_SYSTEM_PROMPT, ranked, include_triage=False, include_context=True)
             if not parsed:
-                return {"candidates": [dict(c) for c in candidates], "llm_mode_used": "heuristic"}
+                raise EditorChiefUnavailable(ai_mode, "nenhuma avaliação válida")
             updated = self._apply_entries(ranked, parsed, mode_label=ai_mode, source_duration=source_duration)
             if max_per_archetype is not None and any(c.get("archetype") for c in updated):
                 updated = mmr_diversify(updated, max_per_archetype=max_per_archetype, keep_overflow=keep_overflow)
@@ -571,10 +629,9 @@ class LLMRouter:
 
         mode_label = f"dupla:{filter_provider}->{companion_provider}"
         parsed_filter = _call_batched(filter_provider, None, FILTER_SYSTEM_PROMPT, ranked, include_triage=False, include_context=False)
-        if parsed_filter:
-            after_filter = self._apply_entries(ranked, parsed_filter, mode_label=filter_provider, accumulate=False, source_duration=source_duration)
-        else:
-            after_filter = [dict(c) for c in ranked]
+        if not parsed_filter:
+            raise EditorChiefUnavailable(filter_provider, "filtro inicial sem avaliação válida")
+        after_filter = self._apply_entries(ranked, parsed_filter, mode_label=filter_provider, accumulate=False, source_duration=source_duration)
 
         top_filtered = sorted(
             after_filter, key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0)))
@@ -588,12 +645,11 @@ class LLMRouter:
             include_triage=True,
             include_context=True,
         )
-        if parsed_companion:
-            final_list = self._apply_entries(
-                top_filtered, parsed_companion, mode_label=mode_label, accumulate=True, source_duration=source_duration
-            )
-        else:
-            final_list = [dict(c, llm_mode_used=mode_label) for c in top_filtered]
+        if not parsed_companion:
+            raise EditorChiefUnavailable(companion_provider, "nenhuma avaliação válida")
+        final_list = self._apply_entries(
+            top_filtered, parsed_companion, mode_label=mode_label, accumulate=True, source_duration=source_duration
+        )
 
         if max_per_archetype is not None and any(c.get("archetype") for c in final_list):
             final_list = mmr_diversify(final_list, max_per_archetype=max_per_archetype)
