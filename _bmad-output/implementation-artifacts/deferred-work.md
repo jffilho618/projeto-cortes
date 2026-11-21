@@ -14,3 +14,14 @@
 - **W8 · Keyframes (LLM vê 3 frames) com Gemini** — Gemini sem cota em 2026-11-20; testar o mesmo fluxo quando voltar e comparar fidelidade/consumo com o Sonnet (A6 da auditoria).
 - **W9 · Painel "Saúde do motor" → Épico 6 (Story 6.3, painel web)** — decisão do dono em 2026-11-20. Mostrar, por projeto, o estado de cada parte do motor (✅ funcionou · ➖ não se aplica · ⚠️ falhou + motivo): download, transcrição, portão P1, Editor-Chefe/LLM (incl. lote parcial), Full-VOD Scout, visão de games (proxy/MAR/HUD), prosódia, comentários, chat, heatmap/capítulos, dossiê/exemplos ouro, thumbnail, render e escudo P1. Somar atualização diária do `yt-dlp` (`yt-dlp[default]`) e um canário semanal contra um VOD conhecido que alerta quando um sinal que funcionava para. Motivo: a visão de games ficou desligada em todos os projetos sem nenhum aviso (A1 da auditoria). Os dados de saúde devem ser gravados no `project.json` desde já, para o painel do E6 só exibir.
 - **W6 · Falso positivo do detector de sangue em cenas dominadas por vermelho-escuro saturado** — a thumbnail falha fechada (sem thumb automática) nesses casos. Aceito por P1 > P3; revisitar com modelo próprio no Épico 7.
+
+## Do brainstorming 2b do motor de seleção, sem destino na leva 1 (2026-11-21)
+
+Fonte: `_bmad-output/brainstorming/brainstorm-arquetipos-e-motor-de-selecao-2026-11-21/` e `sprint-change-proposal-2026-11-21.md`.
+
+- **W10** — Arquétipos `wholesome` (momento fofo, gratidão, marco de inscritos) e `licao_dica` (dica/tutorial para Longo): avaliar com o gabarito da 3.6.1 se estão sendo perdidos.
+- **W11** — Arquétipo `perda_dramatica` (perde o personagem do RP, run de anos): hoje cai em `rage_tilt`/`clutch_fail`; criar só se o gabarito mostrar perda.
+- **W12** — Separar o riso do streamer do riso de convidado/jogo (diarização leve) na prosódia.
+- **W13** — Casar fala com chat: detectar quando o streamer lê uma mensagem do chat em voz alta (sinal de `chat_trolagem` ou filtro de leitura chata).
+- **W14** — Cota de diversidade por arquétipo por canal/dia na fila de publicação (Épico 6).
+- **W15** — Telas de morte/WASTED/game over no dossiê de cada jogo como sinal visual de nobada.

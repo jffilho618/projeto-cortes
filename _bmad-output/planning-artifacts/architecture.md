@@ -177,6 +177,7 @@ flowchart TD
 | --- | --- |
 | **Idioma (UI, logs de usuário, docs, código)** | Interface, mensagens de erro ao usuário, prompts de copywriting e documentação sempre em **português do Brasil**. Identificadores de código, tabelas e colunas SQL em `snake_case` (inglês técnico consistente com a base do `chopify`). |
 | **Datas e Fuso Horário** | Timestamps gravados no PostgreSQL sempre em `TIMESTAMPTZ` (UTC) e exibidos na UI e no MCP no fuso `America/Sao_Paulo` (Brasília). |
+| **Sinal só vale se medido (2026-11-21)** | Todo sinal do motor de seleção registra `ok`/`na`/`failed` em `<projeto>/engine_health.json` (`picorte/engine/health.py`) e só chega ao Editor-Chefe quando foi medido. Toda mudança no motor de seleção exige Precision@K antes e depois (`picorte/engine/benchmark.py`, Épico 3.6). |
 | **Configuração e Segredos** | Variáveis em `.env` (lidas por `picorte/config.py`), nunca commitadas. Segredos OAuth cifrados no banco (`crypto_vault.py`). |
 
 ## Stack

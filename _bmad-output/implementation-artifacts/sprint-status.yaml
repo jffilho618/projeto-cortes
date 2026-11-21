@@ -2,7 +2,7 @@
 # Gerado em conformidade com sprint-status-template.yaml do BMAD v6.12.4
 
 generated: 11-18-2026 03:36
-last_updated: 11-19-2026 02:55
+last_updated: 11-21-2026 02:30
 project: projeto-cortes
 project_key: PICORTE
 tracking_system: file-system
@@ -44,6 +44,23 @@ development_status:
   4-4-selo-verde-15s-audio-visao-cold-open-thumb-e-react-guard: done
   4-5-orquestrador-riskshield-raio-x-ui-mcp-e-suite-adversarial: done
   epic-4-retrospective: optional
+
+  epic-3-6: backlog
+  3-6-1-gabarito-automatico-e-baseline-de-precision-at-k: backlog
+  3-6-2-sismografo-2-atraso-compensado-anti-ruido-e-tipo-de-reacao: backlog
+  3-6-3-arquetipos-nobada-vacilo-e-mico-constrangimento: backlog
+  3-6-4-bordas-por-frase-fim-apos-o-riso-e-editor-chefe-sem-vies-de-ordem: backlog
+  3-6-5-silencio-digital-ouro-com-2-sinais-e-nota-de-confianca: backlog
+  3-6-6-pesos-calibrados-pelo-gabarito: backlog
+  epic-3-6-retrospective: optional
+
+  epic-3-7: backlog
+  3-7-1-cold-open-reverso-e-seamless-loop-renderizados: backlog
+  3-7-2-layout-dinamico-e-sniper-crop-no-render: backlog
+  3-7-3-par-short-longo-com-sobreposicao-e-versao-tiktok-60s: backlog
+  3-7-4-arcos-de-2-atos-e-compilacao-por-arquetipo-renderizados: backlog
+  3-7-5-variacao-de-template-por-arquetipo-e-freeze-seta: backlog
+  epic-3-7-retrospective: optional
 
   epic-5: backlog
   5-1-radar-de-tendencias-calendario-de-eventos-campanhas-cpm-e-limpeza-de-30-dias: backlog

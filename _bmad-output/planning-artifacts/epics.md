@@ -232,6 +232,104 @@ Como operador, quero montar arcos de 2 atos (*setup → payoff* distantes), comp
 
 ---
 
+## Epic 3.6: Motor Calibrado e Medido — Sismógrafo 2.0, Nobada/Mico, Bordas e Juiz Confiável (Leva 1)
+
+**Objetivo:** corrigir a calibração do motor de seleção com base em evidência (auditoria E3 de 2026-11-20, pesquisa 2a e medição própria do atraso do chat de 2026-11-21) e **provar a melhora com números** antes de retomar o Épico 5.
+**Origem:** [`sprint-change-proposal-2026-11-21.md`](sprint-change-proposal-2026-11-21.md) (veredito dos pilares: SEGUE).
+**Regras de Arquitetura:** `AD-1`, `AD-4`, `AD-11` + convenção "Sinal só vale se medido".
+**Ordem obrigatória:** a 3.6.1 (baseline) vem antes de qualquer outra; cada história re-mede a Precision@K ao terminar.
+
+### Story 3.6.1: Gabarito Automático e Baseline de Precision@K
+
+**Descrição:**
+Como operador, quero medir quantos dos cortes escolhidos pelo motor batem com os momentos que o público marcou (comentários com horário e heatmap do YouTube), para saber se cada mudança melhora ou piora a seleção.
+
+**Critérios de Aceite (AC):**
+1. `picorte/engine/benchmark.py` monta um gabarito fraco por VOD a partir de `comment_seeds.json` e do heatmap (sem anotação manual) e calcula Precision@K (K=5,10) contra o acaso (K/N).
+2. Baseline gravado **antes** de qualquer mudança do Épico 3.6 em 3 VODs reais já processados e re-medido ao fim de cada história; resultado em `benchmarks/<data>.json`.
+3. VOD sem comentários com horário nem heatmap é marcado "sem gabarito" e fica fora da média.
+4. Custo zero: só dados já baixados; nenhuma chamada nova a LLM. O gabarito de cada VOD processado fica guardado para a 3.6.6.
+
+### Story 3.6.2: Sismógrafo 2.0 — Atraso Compensado, Anti-Ruído e Tipo de Reação
+
+**Descrição:**
+Como operador, quero que o pico do chat aponte para o momento que o causou (não para a reação ~30 s depois), ignore bots e sorteios e diga que tipo de reação foi, para que os cortes semeados pelo chat comecem no lance certo.
+
+**Critérios de Aceite (AC):**
+1. Para cada pico de chat em t, a causa é procurada em [t−45 s, t−15 s], ancorada no evento de prosódia mais forte da faixa; a semente e `score_chat_window` usam essa janela deslocada (hoje `[pico−6 s, pico+8 s]`, `chat_seismic.py:148`).
+2. Auto-calibração por VOD: correlação cruzada prosódia↔chat no `discover`, limitada a 15–45 s; atraso usado e força da correlação vão para `engine_health.json` (fraca = "chat pouco confiável"; sem correlação usa 30 s, medido em 2026-11-21 no VOD `x50ONQrBPRM`).
+3. Anti-ruído: descarta comandos (`!sorteio`, `!pix`…), links e mensagens idênticas repetidas; o pico pesa mais quando vem de muitos autores e quando as mensagens são curtas e parecidas (concordância).
+4. Tipo de reação por pico via léxico de emotes/palavras PT-BR (riso, hype, susto, cringe, luto/F, amor), salvo no pico e repassado ao Editor-Chefe; pedido explícito de corte no chat ("CLIPA", "clip it", "corta essa") é o tipo de maior peso.
+5. Chat com menos de 20 msg/min: Sismógrafo desliga e a saúde registra "chat pequeno demais".
+6. Teste com o chat real de `x50ONQrBPRM`; Precision@K re-medido.
+
+### Story 3.6.3: Arquétipos `nobada_vacilo` e `mico_constrangimento` (10 → 12 rótulos)
+
+**Descrição:**
+Como operador, quero que o motor reconheça vacilos bobos e micos/constrangimentos, tipos de momento que viralizam em lives e que não existem entre os 16 tipos do brainstorming de 2026-11-19 (o `clutch_fail` busca o fail cinematográfico).
+
+**Critérios de Aceite (AC):**
+1. `CANONICAL_ARCHETYPES` passa de 10 para 12 com `nobada_vacilo` (erro bobo de execução) e `mico_constrangimento` (vergonha social, piada que não colou, silêncio constrangedor); prompt do Editor-Chefe, `golden_examples.json` (≥ 2 exemplos de cada) e validação atualizados.
+2. Nova pista "Vacilo" no `multitrack.py` com cota própria, semeada por léxico PT-BR autodepreciativo ("burro demais", "não acredito que eu fiz isso", "volta, volta", "que vergonha"), pelo streamer anunciando o corte ("isso vai virar corte", "clipa isso", "manda pro TikTok"), "silêncio de choque" (1–3 s sem fala após evento forte, seguido de riso), riso do streamer na prosódia e pico de chat do tipo riso/cringe (3.6.2).
+3. Mapa emote/palavra → arquétipo também nos comentários com horário ("kkkk 12:34" → nobada; "que vergonha 1:02:10" → mico).
+4. Silêncio só conta como mico/choque se precedido de fala/evento e seguido de reação.
+5. Só sinais baratos já medidos; keyframes (opcional) só confirmam candidatos a nobada. Nenhum custo novo por padrão.
+6. Testes com transcrições sintéticas dos dois casos + Precision@K re-medido.
+
+### Story 3.6.4: Bordas por Frase, Fim Após o Riso e Editor-Chefe sem Viés de Ordem
+
+**Descrição:**
+Como operador, quero que os cortes comecem no setup e terminem depois da reação, e que a nota do Editor-Chefe não dependa da ordem em que os candidatos chegam.
+
+**Critérios de Aceite (AC):**
+1. Editor-Chefe ajusta bordas por frases (`extend_sentences_before/after`) em vez de segundos (`expand_start_sec`/`expand_end_sec`); o motor converte pelos timestamps de palavra do Whisper (como o `llm_scout` faz com `sentence_id`).
+2. Pré-roll de setup: semente de reação (chat, riso, susto) recua até o começo da frase do setup, 3–8 s antes da causa.
+3. Fim nunca no meio de um riso: riso cruzando o fim avança o fim até o riso terminar (+1 s), respeitando a duração máxima do formato.
+4. Ordem dos candidatos embaralhada (semente gravada para reproduzir) em toda passada; 2ª passada, com outra ordem, só nos ~15 finalistas. Diferença de nota > 1,5 entre passadas marca `confianca_baixa` e impede `ouro`.
+5. Custo da 2ª passada: +1 chamada por VOD com ~15 candidatos (~6–10 mil tokens de entrada); Gemini dentro da cota gratuita; Claude (assinatura) ~US$ 0,05–0,15 de limite por VOD; modo `heuristic` sem chamadas.
+6. Testes: conversão frase→tempo, riso cruzando o fim, reprodutibilidade da ordem; Precision@K re-medido.
+
+### Story 3.6.5: Detector de Silêncio Digital, Tier Ouro com 2 Sinais e Nota de Confiança
+
+**Descrição:**
+Como operador, quero que o motor não escolha trechos mudos (música removida pelo YouTube ou queda da live), que o tier ouro exija prova de mais de um sinal e que cada projeto diga quanto dá para confiar na seleção.
+
+**Critérios de Aceite (AC):**
+1. Trechos de silêncio digital (≤ −90 dB por ≥ 2 s) são marcados; candidato com > 20% de silêncio digital é descartado e a saúde registra "trecho mutado/sem áudio" (P1).
+2. Silêncio digital seguido de chat "caiu"/"travou"/"F" vira a tag `falha_tecnica` em `chat_trolagem` (#16 bastidores ao vivo), sem arquétipo novo.
+3. Tier `ouro` exige ≥ 2 sinais independentes medidos concordando; senão `forte`.
+4. Nota `standalone` (0–10) do Editor-Chefe ("dá para entender sem conhecer o streamer?"); abaixo de 5 o corte não vai para Short isolado (fica para Longo/compilação).
+5. `engine_health.json` ganha `confianca_projeto` (quais sinais rodaram de verdade) para o painel do Épico 6 (W9).
+6. Heatmap ("mais repetidos") rebaixado a bônus fraco em Shorts (hoje +1,2 e semente obrigatória) e usado principalmente para escolher o miolo do Longo de 3–5 min (a pesquisa mostrou que é ruidoso).
+7. Testes com áudio sintético mudo e candidatos de 1 vs 2 sinais.
+
+### Story 3.6.6: Pesos Calibrados pelo Gabarito (degrau 2)
+
+**Descrição:**
+Como operador, quero trocar os pesos escolhidos "a olho" por pesos aprendidos dos momentos que o público marcou, quando houver dados suficientes, sem nunca piorar a seleção.
+
+**Critérios de Aceite (AC):**
+1. Só começa quando houver **≥ 20 VODs com gabarito** acumulados pela 3.6.1.
+2. Regressão logística por pares (trecho marcado pelo público × trecho comum do mesmo VOD) sobre os sinais já medidos, local em CPU, com pesos legíveis por sinal.
+3. Validação cruzada por VOD; os pesos novos só entram se ganharem do baseline em Precision@K; senão ficam os atuais.
+4. Pesos versionados (`weights/<data>.json`) com o resultado da medição; o Bandit do Épico 7 (degrau 3: desempenho real dos cortes publicados) parte deles.
+
+---
+
+## Epic 3.7: Formato que Retém — Cold Open, Loop, Layout Dinâmico, Par Short↔Longo e Arcos (Leva 2)
+
+**Objetivo:** renderizar de verdade as alavancas de formato que a auditoria achou só planejadas (A8, A9, A11, A12). **Só começa depois do Épico 3.6 medido**, para separar o efeito da seleção do efeito do formato. Critérios de aceite detalhados escritos ao iniciar a leva.
+**Origem:** [`sprint-change-proposal-2026-11-21.md`](sprint-change-proposal-2026-11-21.md).
+
+### Story 3.7.1: Cold Open Reverso 1,5s e Seamless Loop renderizados de verdade (A9)
+### Story 3.7.2: Layout dinâmico + Sniper Crop ligados ao render de games (A8)
+### Story 3.7.3: Par Short↔Longo só com sobreposição real + versão TikTok 60–75s do mesmo momento (A11)
+Ressalva do portão de pilares (A2): replay em câmera lenta só como recurso editorial pontual, nunca no corte inteiro.
+### Story 3.7.4: Renderizar arcos de 2 atos e compilação por arquétipo, incl. "top vacilos" (A12)
+### Story 3.7.5: Variação de template por arquétipo + freeze/seta no momento-chave (P2: regra do YouTube de 2026-10 contra "template em massa")
+
+---
+
 ## Epic 4: Escudo Anti-Strike, Anti-Desmonetização e Anti-Bloqueio (P1 Inegociável — Ampliado)
 
 **Objetivo:** Implementar o escudo completo em quarentena granular por rede (`RiskVerdict`) cobrindo todos os portões automáticos do pilar **P1**: bloqueio Pre-Ingest/Pre-Export de fonte `desconhecida`/campanha vencida, políticas declarativas por publisher/jogo (`assets/policies/publishers.json` + DB), Disjuntor de Fonte, Copy Hygiene por rede (TikTok/Reels/Shorts), Cadência Anti-Spam + Cool-Down 48h, pontuação dupla YPP (`>=70`) + TikTok Originality + deduplicação híbrida `pHash`, cirurgia seletiva de música `Demucs` na GPU, Selo Verde 15s (áudio + visão + Cold Open + Thumbnail), React Guard com exceção de UI in-game, Raio-X na UI e ferramentas MCP.
@@ -327,6 +425,8 @@ Como operador, quero buscar automaticamente *Twitch Clips* virais recentes das f
 2. `storyline_detector.py` identifica citações nominais entre streamers cadastrados e agrupa os trechos relacionados para compilação.
 3. Quando 3 ou mais fontes monitoradas reagem ao mesmo evento/detalhe do jogo em 24h, `storyline_detector.py` aplica boost automático de prioridade na fila e sugere compilação cross-streamer.
 
+**Nota (2026-11-21, correct-course):** a treta **entre streamers** fica nesta história; treta dentro da mesma live continua no arquétipo `rage_tilt`. Quando a fonte for a Twitch, os clipes criados por espectadores (API oficial `Get Clips`, `vod_offset`) também alimentam o gabarito da 3.6.1.
+
 ### Story 5.4: Perfis Adaptativos e Memória de Piadas Internas (`streamer_profiles.py`)
 
 **Descrição:**
@@ -336,6 +436,8 @@ Como operador, quero manter um perfil adaptativo por fonte autorizada contendo b
 1. `streamer_profiles.py` persiste e consulta o perfil por `source_id` no PostgreSQL e injeta automaticamente suas piadas internas e tom habitual no prompt do Scout e do Editor-Chefe v2.
 2. Permite cadastrar/editar piadas internas via CLI/MCP e sugerir novas entradas de forma incremental a partir de cortes aprovados.
 
+
+**Nota (2026-11-21, correct-course):** bordões e piadas internas (`lore_bordao`) e o perfil do streamer ficam aqui; incluir os emotes próprios do canal (7TV/BTTV/canal) no perfil, alimentando o léxico do Sismógrafo 2.0 (3.6.2).
 ---
 
 ## Epic 6: Publicação Assistida e OAuth nas 5 Redes, Disjuntor de Claims e Painel "Estúdio do Criador"
@@ -379,6 +481,8 @@ Como operador, quero operar a fila, o Seletor de IA (`Ollama` / `Claude` / `Gemi
 3. A Fila exibe e permite filtrar os **10 arquétipos** e os **3 tiers (`Ouro / Forte / Experimental`)** com ícone + texto acessíveis (WCAG AA), além da galeria/preview de thumbnails (`_thumb.png`) e do botão de 1 clique **"Salvar como Exemplo Ouro"** (`golden_examples.json`).
 4. O painel oferece campo de **Busca por Pergunta Livre (*Query-Driven Clipping*)**, alternador para **Modo Caça Profunda (*Deep Hunt*)** e editor simples para **`game_dossiers/`** e perfis de piadas internas (`streamer_profiles`).
 
+
+**Nota (2026-11-21, correct-course):** inclui o painel "Saúde do motor" (W9) com `confianca_projeto` (3.6.5) e botões 👍/👎 por corte, que viram rótulo para a 3.6.6 e o Épico 7.
 ---
 
 ## Epic 7: O Cérebro que Aprende — Snapshots 1h/24h/7d, Bandit com Esquecimento, Reciclagem A/B e Active Learning
@@ -405,6 +509,8 @@ Como operador, quero que o Bandit aprenda separadamente o peso de cada variável
 1. `contextual_bandit.py` atualiza `bandit_state` usando `archetype` (os 10 arquétipos do Épico 3.5) e `tier` com decaimento exponencial $\gamma \in [0.85, 0.92]$, reserva ~20% para exploração e reordena a fila de produção.
 2. `ab_recycler.py` detecta cortes com retenção pós-5s alta e retenção 3s baixa e cria automaticamente o job `ab_variant = 2` trocando o Cold Open de 1,5s, a faixa de contexto e o título sem violar o estilo editorial do arquétipo.
 
+**Nota (2026-11-21, correct-course):** passa a usar os **12** arquétipos (3.6.3) e parte dos pesos calibrados pela 3.6.6 (degrau 2) quando existirem.
+
 ### Story 7.3: Autocaptura de Dataset Rotulado (`active_learning.py`) e Pré-Classificador Local de Arquétipos na RTX 4060 Ti
 
 **Descrição:**
@@ -413,3 +519,5 @@ Como operador, quero que cortes campeões (`>= 2.5x` mediana) e fracassos (`<= 0
 **Critérios de Aceite (AC):**
 1. `active_learning.py` exporta `features.npz`, `keyframes/` e `label.json` (incluindo `archetype` e `tier`) para `dataset_rotulado/<clip_id>/`, registra em `dataset_samples` e gera sugestão de promoção de campeões para `golden_examples.json`.
 2. `train_local_scorer.py` roda sob o `vram_runner.py` (preferencialmente no Modo Madrugada), treina o calibrador de pesos e o **Pré-Classificador Local de Arquétipos** sobre os exemplos acumulados e atualiza os pesos/probabilidades consumidos pelo `score_clips.py`.
+
+**Nota (2026-11-21, correct-course):** o dataset rotulado também consome o gabarito automático da 3.6.1 e os 👍/👎 do Estúdio (6.3).
