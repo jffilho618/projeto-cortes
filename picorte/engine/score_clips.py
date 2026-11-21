@@ -1741,6 +1741,26 @@ def temporal_nms(candidates, *, iou_threshold=0.35, min_center_gap_sec=20.0, lim
     return kept
 
 
+def _benchmark_blind(workdir) -> bool:
+    """Modo cego (3.6.1): no conjunto de prova o motor não vê o gabarito (comentários com horário e heatmap)."""
+    proj_path = Path(workdir) / "project.json"
+    if not proj_path.is_file():
+        return False
+    try:
+        data = json.loads(proj_path.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return False
+    return bool(((data or {}).get("options") or {}).get("benchmark_blind"))
+
+
+def _gabarito_heatmap_peaks(workdir, source_meta: dict) -> list:
+    """Picos do heatmap como sinal do motor — vazio em projeto cego, que usa o heatmap só como gabarito."""
+    if _benchmark_blind(workdir):
+        return []
+    import ingest as _ingest
+    return _ingest.extract_heatmap_peaks((source_meta or {}).get("heatmap"))
+
+
 def _load_source_meta(workdir: Path) -> dict:
     """Lê source_meta salvo em project.json quando existir."""
     proj_path = Path(workdir) / "project.json"
@@ -1902,7 +1922,8 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
     resolved_vp = resolve_vision_preset(vision_preset)
     chat_seismic = _load_optional_chat_seismic(workdir, source, source_duration)
     source_meta = _load_source_meta(workdir)
-    heatmap_peaks = _ingest.extract_heatmap_peaks(source_meta.get("heatmap"))
+    blind = _benchmark_blind(workdir)
+    heatmap_peaks = _gabarito_heatmap_peaks(workdir, source_meta)
 
     # Marca candidatos com dêiticos visuais ('olha isso', 'olha a mão', 'espera')
     for cand in candidates:
@@ -1991,7 +2012,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
     # Comentários com timestamp do YouTube (3.5.4): o público marcou estes momentos.
     comment_seeds = []
     seeds_path = workdir / "comment_seeds.json"
-    if seeds_path.is_file():
+    if seeds_path.is_file() and not blind:
         try:
             comment_seeds = json.loads(seeds_path.read_text(encoding="utf-8")) or []
         except (OSError, ValueError):
@@ -2046,10 +2067,14 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
     # Saúde dos sinais (W9): o painel do E6 só exibe; aqui nada mais falha em silêncio.
     _health.record(workdir, "chat", "ok" if chat_seismic else "na",
                    f"{len((chat_seismic or {}).get('peaks') or [])} picos" if chat_seismic else "sem log de chat")
-    _health.record(workdir, "heatmap", "ok" if heatmap_peaks else "na",
-                   f"{len(heatmap_peaks)} picos do Most Replayed" if heatmap_peaks else "vídeo sem heatmap")
-    _health.record(workdir, "comment_seeds", "ok" if comment_seeds else "na",
-                   f"{len(comment_seeds)} momentos" if comment_seeds else "sem comentários com horário")
+    if blind:
+        _health.record(workdir, "heatmap", "na", "escondido do motor pelo modo cego (só gabarito, 3.6.1)")
+        _health.record(workdir, "comment_seeds", "na", "escondidos do motor pelo modo cego (só gabarito, 3.6.1)")
+    else:
+        _health.record(workdir, "heatmap", "ok" if heatmap_peaks else "na",
+                       f"{len(heatmap_peaks)} picos do Most Replayed" if heatmap_peaks else "vídeo sem heatmap")
+        _health.record(workdir, "comment_seeds", "ok" if comment_seeds else "na",
+                       f"{len(comment_seeds)} momentos" if comment_seeds else "sem comentários com horário")
     has_video = bool(visual_media and Path(visual_media).is_file()
                      and Path(visual_media).suffix.lower() in {".mp4", ".mkv", ".mov", ".avi", ".m4v", ".webm"}
                      and not Path(visual_media).name.startswith("audio."))
@@ -2072,6 +2097,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
         "vision_models": resolved_vp["models"],
         "chat_seismic_peaks": len((chat_seismic or {}).get("peaks") or []),
         "comment_seeds": len(comment_seeds),
+        "modo_cego": blind,
         "evidence_available": {
             "audio": audio_usable,
             "visual": baseline is not None or bool(sections) or bool(visual_scores),
@@ -2115,7 +2141,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         source_meta = _load_source_meta(workdir)
         dossier = load_dossier_for_source(source_meta)
         golden_examples = load_golden_examples()
-        heatmap_peaks = _ingest.extract_heatmap_peaks(source_meta.get("heatmap"))
+        heatmap_peaks = _gabarito_heatmap_peaks(workdir, source_meta)
 
         sentences = []
         tr_path = workdir / "transcript.json"

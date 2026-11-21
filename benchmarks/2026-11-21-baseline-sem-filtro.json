@@ -1,0 +1,75 @@
+{
+  "data": "2026-11-21",
+  "label": "baseline",
+  "conjunto": "benchmarks/conjunto.json",
+  "tol_s": 10.0,
+  "ks": [
+    5,
+    10
+  ],
+  "custo": "zero (só arquivos locais; nenhuma chamada a LLM)",
+  "media": {
+    "vods_com_gabarito": 1,
+    "k": {
+      "5": {
+        "precisao": 0.4,
+        "precisao_acaso": 0.1202,
+        "lift": 3.3291,
+        "recall": 0.0741,
+        "recall_acaso": 0.0239,
+        "vods_acima_do_acaso": 1
+      },
+      "10": {
+        "precisao": 0.2,
+        "precisao_acaso": 0.1096,
+        "lift": 1.8248,
+        "recall": 0.0741,
+        "recall_acaso": 0.0429,
+        "vods_acima_do_acaso": 1
+      }
+    }
+  },
+  "vods": [
+    {
+      "projeto": "b273d9db8c56",
+      "video_id": "w546blqOvVU",
+      "titulo": "GTA 6 GAMEPLAY ATÉ EU NÃO AGUENTAR MAIS",
+      "duracao_s": 15036.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 27,
+        "heatmap": 0
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 23,
+        "momentos": 27,
+        "k": {
+          "5": {
+            "k_efetivo": 5,
+            "acertos": 2,
+            "precisao": 0.4,
+            "precisao_acaso": 0.1202,
+            "lift": 3.3291,
+            "recall": 0.0741,
+            "recall_acaso": 0.0239,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 2,
+            "precisao": 0.2,
+            "precisao_acaso": 0.1096,
+            "lift": 1.8248,
+            "recall": 0.0741,
+            "recall_acaso": 0.0429,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      }
+    }
+  ],
+  "sem_gabarito": [],
+  "duplicados_ignorados": []
+}

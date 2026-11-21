@@ -1,0 +1,59 @@
+{
+  "criterios": {
+    "min_momentos_gabarito": 3,
+    "min_chat_msgs_min": 20.0
+  },
+  "vods": [
+    {
+      "url": "https://www.youtube.com/watch?v=w546blqOvVU",
+      "video_id": "w546blqOvVU",
+      "aprovado": true,
+      "motivos": [],
+      "triagem": false,
+      "projeto": "b273d9db8c56",
+      "status": "failed",
+      "erro": "[Editor-Chefe] gemini indisponível (lote 2/2 falhou 2x: CalledProcessError: Command '['C:\\\\Users\\\\jffil\\\\.gemini\\\\bin\\\\agy.exe', '-p', 'Você é o Editor-Chefe v2 de cortes extraordinários de games em português do Brasil (Picorte). Avalie cada candidato usando o Conselho de 4 Caçadores Especialistas: "
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=5P8qh7jZti8",
+      "video_id": "5P8qh7jZti8",
+      "aprovado": true,
+      "motivos": [],
+      "triagem": false,
+      "projeto": "ae5f08feaaa0",
+      "status": "failed",
+      "erro": "[P1:pre_ingest] Fonte desconhecida: 'BisteconeLive' não está entre os streamers cadastrados. Nada foi baixado. Cadastre e libere a fonte antes de processar."
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=VpK0u6MhVvY",
+      "video_id": "VpK0u6MhVvY",
+      "aprovado": true,
+      "motivos": [],
+      "triagem": false,
+      "projeto": "bd4a2463b200",
+      "status": "failed",
+      "erro": "[Editor-Chefe] gemini indisponível (lote 1/2 falhou 2x: CalledProcessError: Command '['C:\\\\Users\\\\jffil\\\\.gemini\\\\bin\\\\agy.exe', '-p', 'Você é o Editor-Chefe v2 de cortes extraordinários de games em português do Brasil (Picorte). Avalie cada candidato usando o Conselho de 4 Caçadores Especialistas: "
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=4Lo5m9WlD6w",
+      "video_id": "4Lo5m9WlD6w",
+      "aprovado": true,
+      "motivos": [],
+      "triagem": false,
+      "projeto": "c433780dc1e0",
+      "status": "failed",
+      "erro": "[P1:pre_ingest] Fonte desconhecida: 'BisteconeLive' não está entre os streamers cadastrados. Nada foi baixado. Cadastre e libere a fonte antes de processar."
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=x50ONQrBPRM",
+      "video_id": "x50ONQrBPRM",
+      "aprovado": true,
+      "motivos": [],
+      "triagem": false,
+      "projeto": "2905f8cc8241",
+      "status": "failed",
+      "erro": "[Editor-Chefe] gemini indisponível (lote 1/3 falhou 2x: CalledProcessError: Command '['C:\\\\Users\\\\jffil\\\\.gemini\\\\bin\\\\agy.exe', '-p', 'Você é o Editor-Chefe v2 de cortes extraordinários de games em português do Brasil (Picorte). Avalie cada candidato usando o Conselho de 4 Caçadores Especialistas: "
+    }
+  ],
+  "descartados": []
+}

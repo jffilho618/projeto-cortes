@@ -114,6 +114,7 @@ def mine_youtube_comments(
             "start": round(start, 2),
             "end": round(end, 2),
             "duration": round(end - start, 2),
+            "timestamp_s": t,  # horário bruto do comentário (gabarito da 3.6.1)
             "hook": item["description"][:70] or f"Comentário em {int(t)}s",
             "text": item["description"],
             "overall": round(7.4 + like_bonus, 2),

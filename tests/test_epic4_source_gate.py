@@ -258,3 +258,35 @@ def test_project_options_accept_source_owner():
     assert projects.validate_options({"source_owner": "proprio"})["source_owner"] == "proprio"
     with pytest.raises(ValueError):
         projects.validate_options({"source_owner": 123})
+
+
+# ---- 3.6.1: canal oficial extra (ex.: o canal de lives "BisteconeLive" do Bistecone), liberado pelo dono
+
+def _registry_with_extra(tmp_path: Path, extra: list[str] | None) -> Path:
+    st = {"slug": "bistecone", "display_name": "BISTECONE", "aliases": ["bistecone"],
+          "twitch": "https://www.twitch.tv/bisteconee", "youtube": "https://www.youtube.com/@bistecone",
+          "handle": "@bistecone"}
+    if extra is not None:
+        st["extra_channels"] = extra
+    path = tmp_path / "registry.json"
+    path.write_text(json.dumps({"streamers": [st]}), encoding="utf-8")
+    return path
+
+
+def test_extra_official_channel_is_recognized_by_channel_id(tmp_path: Path):
+    from picorte.risk_shield.source_resolver import match_registered_streamer
+
+    reg = _registry_with_extra(tmp_path, ["https://www.youtube.com/channel/UCxu6ptkyCUoZj7rsrYYB0GA"])
+    st = match_registered_streamer(channel="BisteconeLive", source_url="https://www.youtube.com/watch?v=x",
+                                   channel_url="https://www.youtube.com/channel/UCxu6ptkyCUoZj7rsrYYB0GA",
+                                   registry_path=reg)
+    assert st is not None and st["slug"] == "bistecone"
+
+
+def test_unlisted_second_channel_stays_blocked(tmp_path: Path):
+    from picorte.risk_shield.source_resolver import match_registered_streamer
+
+    reg = _registry_with_extra(tmp_path, None)
+    assert match_registered_streamer(channel="BisteconeLive", source_url="https://www.youtube.com/watch?v=x",
+                                     channel_url="https://www.youtube.com/channel/UCxu6ptkyCUoZj7rsrYYB0GA",
+                                     registry_path=reg) is None

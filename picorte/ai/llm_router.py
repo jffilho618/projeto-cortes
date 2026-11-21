@@ -202,6 +202,11 @@ def _extract_json_array(raw_text: str) -> list[dict[str, Any]] | None:
     return parsed if isinstance(parsed, list) else None
 
 
+OLLAMA_NUM_CTX = 16384
+OLLAMA_THINKING_FAMILIES = ("qwen3", "deepseek-r1")
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+
 def _default_ollama_model() -> str:
     prof = detect_gpu_profile()
     return "qwen2.5:3b" if prof["tier"] == "notebook_4gb" else "qwen2.5:7b"
@@ -263,14 +268,19 @@ class LLMRouter:
     def _run_provider(self, provider: str, model: str | None, system_prompt: str, user_prompt: str) -> str:
         if provider == "ollama":
             chosen_model = model or self.ollama_model
-            payload = json.dumps({
+            body: dict[str, Any] = {
                 "model": chosen_model,
                 "stream": False,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-            }).encode("utf-8")
+                # O padrão do Ollama (2–4 mil tokens) cortaria em silêncio o prompt do Editor-Chefe (~6 mil).
+                "options": {"num_ctx": OLLAMA_NUM_CTX},
+            }
+            if str(chosen_model).lower().startswith(OLLAMA_THINKING_FAMILIES):
+                body["think"] = False  # sem bloco de pensamento: resposta direta em JSON e mais rápida
+            payload = json.dumps(body).encode("utf-8")
 
             def _call_ollama() -> str:
                 req = urllib.request.Request(
@@ -281,7 +291,8 @@ class LLMRouter:
                 )
                 with urllib.request.urlopen(req, timeout=180) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
-                return str((data.get("message") or {}).get("content") or "")
+                content = str((data.get("message") or {}).get("content") or "")
+                return _THINK_BLOCK_RE.sub("", content).strip()
 
             return self.vram_runner.run_stage("ollama_rerank", _call_ollama)
 

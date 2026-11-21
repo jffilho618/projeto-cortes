@@ -64,7 +64,10 @@
       "accent_hex": "#EA580C",
       "twitch": "https://www.twitch.tv/bisteconee",
       "youtube": "https://www.youtube.com/@bistecone",
-      "handle": "@bistecone"
+      "handle": "@bistecone",
+      "extra_channels": [
+        "https://www.youtube.com/channel/UCxu6ptkyCUoZj7rsrYYB0GA"
+      ]
     },
     {
       "slug": "brksedu",

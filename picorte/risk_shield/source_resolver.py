@@ -44,6 +44,8 @@ def _url_identity(url: str | None) -> str:
         return "" if parts[0].lower() in _TWITCH_RESERVED else _key(parts[0])
     if "youtube.com" in host and parts[0].startswith("@"):
         return _key(parts[0][1:])
+    if "youtube.com" in host and parts[0] == "channel" and len(parts) > 1:
+        return "ytchannel:" + parts[1].strip()  # ID do canal (UC...), exato
     return ""
 
 
@@ -55,6 +57,8 @@ def _streamer_identities(st: dict[str, Any]) -> set[str]:
         _url_identity(st.get("youtube")),
         _url_identity(st.get("twitch")),
     }
+    # Canais oficiais extras do mesmo streamer (ex.: canal só de lives), liberados pelo dono.
+    ids.update(_url_identity(url) for url in st.get("extra_channels") or [])
     return {i for i in ids if i}
 
 

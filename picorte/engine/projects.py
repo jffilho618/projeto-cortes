@@ -28,7 +28,8 @@ DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "hunt_mode": "fast",
                    "embed_model": "nomic-embed-text", "brand": None,
                    "layout": "single", "centers": [0.25, 0.75], "caption": None,
-                   "source_owner": None, "keyframes": False}
+                   "source_owner": None, "keyframes": False,
+                   "benchmark_blind": False}
 
 
 def digest(value):
@@ -124,6 +125,8 @@ def validate_options(options):
         raise ValueError("source_owner must be 'proprio' or a registered streamer slug.")
     if not isinstance(result["keyframes"], bool):
         raise ValueError("keyframes must be true or false.")
+    if not isinstance(result["benchmark_blind"], bool):
+        raise ValueError("benchmark_blind must be true or false.")
     return result
 
 
@@ -139,6 +142,8 @@ def score_keys(transcript_key, data, options):
     discovery_options = {key: options[key] for key in (
         "search", "semantic", "embed_model", "min_len", "max_len",
         "preferred_len")}
+    if options.get("benchmark_blind"):  # modo cego (3.6.1): só entra na chave quando ligado
+        discovery_options["benchmark_blind"] = True
     discovery_key = digest([transcript_key, data, discovery_options,
                             evidence.EVIDENCE_VERSION,
                             visual.FEATURE_VERSION])
