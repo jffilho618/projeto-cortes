@@ -9,27 +9,105 @@
   ],
   "custo": "zero (só arquivos locais; nenhuma chamada a LLM)",
   "media": {
-    "vods_com_gabarito": 1,
+    "vods_com_gabarito": 4,
     "k": {
       "5": {
-        "precisao": 0.4,
-        "precisao_acaso": 0.0944,
-        "lift": 4.2382,
-        "recall": 0.1,
-        "recall_acaso": 0.0243,
-        "vods_acima_do_acaso": 1
+        "precisao": 0.25,
+        "precisao_acaso": 0.1204,
+        "lift": 2.0768,
+        "recall": 0.0944,
+        "recall_acaso": 0.046,
+        "vods_acima_do_acaso": 3
       },
       "10": {
-        "precisao": 0.2,
-        "precisao_acaso": 0.0855,
-        "lift": 2.3404,
-        "recall": 0.1,
-        "recall_acaso": 0.0434,
-        "vods_acima_do_acaso": 1
+        "precisao": 0.225,
+        "precisao_acaso": 0.1048,
+        "lift": 2.1466,
+        "recall": 0.156,
+        "recall_acaso": 0.075,
+        "vods_acima_do_acaso": 4
       }
     }
   },
   "vods": [
+    {
+      "projeto": "2905f8cc8241",
+      "video_id": "x50ONQrBPRM",
+      "titulo": "GTA 6 É AGORA , O INICIO DA GAMEPLAY",
+      "duracao_s": 40815.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 42,
+        "heatmap": 0
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 27,
+        "momentos": 42,
+        "k": {
+          "5": {
+            "k_efetivo": 5,
+            "acertos": 0,
+            "precisao": 0.0,
+            "precisao_acaso": 0.0735,
+            "lift": 0.0,
+            "recall": 0.0,
+            "recall_acaso": 0.0095,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 1,
+            "precisao": 0.1,
+            "precisao_acaso": 0.0728,
+            "lift": 1.3741,
+            "recall": 0.0238,
+            "recall_acaso": 0.0186,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      }
+    },
+    {
+      "projeto": "ae5f08feaaa0",
+      "video_id": "5P8qh7jZti8",
+      "titulo": "🔴AO VIVO BISTECONE🔴 O PROTAGONISTA VOLTOU!!! JOGANDO GRANNY NOVAMENTE",
+      "duracao_s": 6350.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 5,
+        "heatmap": 1
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 26,
+        "momentos": 6,
+        "k": {
+          "5": {
+            "k_efetivo": 5,
+            "acertos": 1,
+            "precisao": 0.2,
+            "precisao_acaso": 0.0816,
+            "lift": 2.4517,
+            "recall": 0.1667,
+            "recall_acaso": 0.0662,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 2,
+            "precisao": 0.2,
+            "precisao_acaso": 0.0735,
+            "lift": 2.7216,
+            "recall": 0.3333,
+            "recall_acaso": 0.116,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      }
+    },
     {
       "projeto": "b273d9db8c56",
       "video_id": "w546blqOvVU",
@@ -64,6 +142,45 @@
             "lift": 2.3404,
             "recall": 0.1,
             "recall_acaso": 0.0434,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      }
+    },
+    {
+      "projeto": "c433780dc1e0",
+      "video_id": "4Lo5m9WlD6w",
+      "titulo": "POPPY PLAY TIME AO VIVO",
+      "duracao_s": 9802.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 14,
+        "heatmap": 4
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 23,
+        "momentos": 18,
+        "k": {
+          "5": {
+            "k_efetivo": 5,
+            "acertos": 2,
+            "precisao": 0.4,
+            "precisao_acaso": 0.2321,
+            "lift": 1.7234,
+            "recall": 0.1111,
+            "recall_acaso": 0.0841,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 4,
+            "precisao": 0.4,
+            "precisao_acaso": 0.1876,
+            "lift": 2.1327,
+            "recall": 0.1667,
+            "recall_acaso": 0.122,
             "semeados_pelo_gabarito": 0
           }
         }

@@ -1,0 +1,168 @@
+{
+  "video_id": "4Lo5m9WlD6w",
+  "projeto": "c433780dc1e0",
+  "titulo": "POPPY PLAY TIME AO VIVO",
+  "duracao_s": 9802.0,
+  "medido_em": "2026-11-21",
+  "status": "ok",
+  "momentos": [
+    {
+      "fonte": "comentario",
+      "a": 111.0,
+      "b": 111.0,
+      "t": 111.0,
+      "likes": 4,
+      "texto": "começa"
+    },
+    {
+      "fonte": "comentario",
+      "a": 172.0,
+      "b": 172.0,
+      "t": 172.0,
+      "likes": 0,
+      "texto": "IAE"
+    },
+    {
+      "fonte": "comentario",
+      "a": 229.0,
+      "b": 229.0,
+      "t": 229.0,
+      "likes": 0,
+      "texto": "Se loco não compenso"
+    },
+    {
+      "fonte": "comentario",
+      "a": 1244.0,
+      "b": 1244.0,
+      "t": 1244.0,
+      "likes": 0,
+      "texto": "Vaga bumda"
+    },
+    {
+      "fonte": "comentario",
+      "a": 1782.0,
+      "b": 1782.0,
+      "t": 1782.0,
+      "likes": 0,
+      "texto": "Oi"
+    },
+    {
+      "fonte": "comentario",
+      "a": 2423.0,
+      "b": 2423.0,
+      "t": 2423.0,
+      "likes": 0,
+      "texto": "Eita o Biseteca da estresatinho  e  😁😏🤣😂"
+    },
+    {
+      "fonte": "comentario",
+      "a": 2937.0,
+      "b": 2937.0,
+      "t": 2937.0,
+      "likes": 0,
+      "texto": "Oi\n\n"
+    },
+    {
+      "fonte": "comentario",
+      "a": 2958.0,
+      "b": 2958.0,
+      "t": 2958.0,
+      "likes": 0,
+      "texto": "Oi"
+    },
+    {
+      "fonte": "comentario",
+      "a": 4522.0,
+      "b": 4522.0,
+      "t": 4522.0,
+      "likes": 2,
+      "texto": "hoje ele é burro, antigamente ele não tinha limite pra burrice 😅😅😅😅😅😅😅😅"
+    },
+    {
+      "fonte": "heatmap",
+      "a": 5587.71,
+      "b": 5685.74,
+      "t": 5636.73,
+      "valor": 0.7411
+    },
+    {
+      "fonte": "heatmap",
+      "a": 5783.77,
+      "b": 5881.8,
+      "t": 5832.78,
+      "valor": 0.8373
+    },
+    {
+      "fonte": "comentario",
+      "a": 5933.0,
+      "b": 5933.0,
+      "t": 5933.0,
+      "likes": 1,
+      "texto": "eu to com medo meu deusss😢"
+    },
+    {
+      "fonte": "heatmap",
+      "a": 6077.86,
+      "b": 6175.89,
+      "t": 6126.88,
+      "valor": 0.7863
+    },
+    {
+      "fonte": "comentario",
+      "a": 7234.0,
+      "b": 7234.0,
+      "t": 7234.0,
+      "likes": 0,
+      "texto": "psicopata"
+    },
+    {
+      "fonte": "heatmap",
+      "a": 7352.25,
+      "b": 7450.28,
+      "t": 7401.26,
+      "valor": 1.0
+    },
+    {
+      "fonte": "comentario",
+      "a": 7463.0,
+      "b": 7463.0,
+      "t": 7463.0,
+      "likes": 1,
+      "texto": "O kid bengala ta la fora😂"
+    },
+    {
+      "fonte": "comentario",
+      "a": 7592.0,
+      "b": 7592.0,
+      "t": 7592.0,
+      "likes": 0,
+      "texto": "😂😂😂😂kk"
+    },
+    {
+      "fonte": "comentario",
+      "a": 7890.0,
+      "b": 7890.0,
+      "t": 7890.0,
+      "likes": 0,
+      "texto": "kkkkkkk😂😂😂😂😂😂"
+    }
+  ],
+  "fontes": {
+    "comentarios": 14,
+    "heatmap": 4
+  },
+  "removidos": [
+    {
+      "t": 1089.0,
+      "texto": "18:09",
+      "likes": 0,
+      "motivo": "sem_texto"
+    },
+    {
+      "t": 4380.0,
+      "texto": "1:13:00",
+      "likes": 0,
+      "motivo": "sem_texto"
+    }
+  ]
+}

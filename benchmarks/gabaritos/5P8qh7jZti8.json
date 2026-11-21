@@ -1,0 +1,93 @@
+{
+  "video_id": "5P8qh7jZti8",
+  "projeto": "ae5f08feaaa0",
+  "titulo": "🔴AO VIVO BISTECONE🔴 O PROTAGONISTA VOLTOU!!! JOGANDO GRANNY NOVAMENTE",
+  "duracao_s": 6350.0,
+  "medido_em": "2026-11-21",
+  "status": "ok",
+  "momentos": [
+    {
+      "fonte": "heatmap",
+      "a": 0.0,
+      "b": 63.5,
+      "t": 31.75,
+      "valor": 1.0
+    },
+    {
+      "fonte": "comentario",
+      "a": 322.0,
+      "b": 322.0,
+      "t": 322.0,
+      "likes": 1,
+      "texto": "Momento esquizofrenia kkkkk"
+    },
+    {
+      "fonte": "comentario",
+      "a": 1201.0,
+      "b": 1201.0,
+      "t": 1201.0,
+      "likes": 0,
+      "texto": "GG"
+    },
+    {
+      "fonte": "comentario",
+      "a": 2393.0,
+      "b": 2393.0,
+      "t": 2393.0,
+      "likes": 3,
+      "texto": "\"haaaaaaaa😰😰😰\" \"haaaaa HA HA HA 😈\" rachei"
+    },
+    {
+      "fonte": "comentario",
+      "a": 3957.0,
+      "b": 3957.0,
+      "t": 3957.0,
+      "likes": 2,
+      "texto": "😂😂😂😂😂😂😂"
+    },
+    {
+      "fonte": "comentario",
+      "a": 6173.0,
+      "b": 6173.0,
+      "t": 6173.0,
+      "likes": 2,
+      "texto": "Melhor parte"
+    }
+  ],
+  "fontes": {
+    "comentarios": 5,
+    "heatmap": 1
+  },
+  "removidos": [
+    {
+      "t": 786.0,
+      "texto": "13:06",
+      "likes": 4,
+      "motivo": "sem_texto"
+    },
+    {
+      "t": 29.0,
+      "texto": "0:29",
+      "likes": 0,
+      "motivo": "sem_texto"
+    },
+    {
+      "t": 360.0,
+      "texto": "autismo?",
+      "likes": 0,
+      "motivo": "pergunta"
+    },
+    {
+      "t": 2460.0,
+      "texto": "41:00 41:00 41:00 41:00 41:00",
+      "likes": 0,
+      "motivo": "sem_texto"
+    },
+    {
+      "t": 3900.0,
+      "texto": "1:05:00",
+      "likes": 0,
+      "motivo": "sem_texto"
+    }
+  ]
+}
