@@ -246,6 +246,7 @@ def load_project(workdir: Any) -> dict[str, Any] | None:
         "modo_ia": selection.get("mode") or (state.get("options") or {}).get("ai_mode"),
         "modo_cego": bool((state.get("options") or {}).get("benchmark_blind")),
         "segments": segments,
+        "candidates": list((_read_json(d / "candidates.json", {}) or {}).get("candidates") or []),
         "seeds": seeds if isinstance(seeds, list) else [],
         "heatmap": heatmap if isinstance(heatmap, list) else [],
     }
@@ -268,12 +269,33 @@ def _write_json(path: Path, data: Any) -> None:
     tmp.replace(path)
 
 
-def _average(vods: list[dict[str, Any]], ks) -> dict[str, Any]:
+PRE_EDITOR_KS = (10, 20)
+
+
+def evaluate_pre_editor(candidates, gabarito: dict[str, Any], duration: float, ks=PRE_EDITOR_KS,
+                        tol: float = DEFAULT_TOL) -> dict[str, Any] | None:
+    """Mede a lista de candidatos da descoberta (ordem pela nota do motor), ANTES do Editor-Chefe — sem sorteio de LLM.
+
+    `cobertura` = fração dos momentos do público que têm ao menos um candidato em cima (o teto do que o juiz pode achar).
+    """
+    cands = [c for c in candidates or [] if isinstance(c, dict) and "start" in c and "end" in c]
+    if not cands or gabarito.get("status") != "ok":
+        return None
+    out = evaluate_vod(cands, gabarito, duration, ks=ks, tol=tol)
+    moments = gabarito["momentos"]
+    out["candidatos"] = len(cands)
+    out["cobertura"] = sum(1 for m in moments if any(clip_hits(c["start"], c["end"], [m], tol) for c in cands)) \
+        / len(moments)
+    return out
+
+
+def _average(vods: list[dict[str, Any]], ks, key: str = "resultado") -> dict[str, Any]:
+    vods = [v for v in vods if v.get(key)]
     media: dict[str, Any] = {"vods_com_gabarito": len(vods), "k": {}}
     if not vods:
         return media
     for k in ks:
-        rows = [v["resultado"]["k"][str(k)] for v in vods]
+        rows = [v[key]["k"][str(k)] for v in vods]
         prec = sum(r["precisao"] for r in rows) / len(rows)
         acaso = sum(r["precisao_acaso"] for r in rows) / len(rows)
         media["k"][str(k)] = {
@@ -319,7 +341,8 @@ def run_benchmark(projects_dir: Any, out_dir: Any, *, date: str | None = None, l
                            "sem gabarito (sem comentários com horário nem heatmap)")
             continue
         resultado = evaluate_vod(proj["segments"], gab, proj["duracao"], ks=ks, tol=tol)
-        vods.append({**base, "resultado": resultado})
+        pre = evaluate_pre_editor(proj["candidates"], gab, proj["duracao"], tol=tol)
+        vods.append({**base, "resultado": resultado, "pre_editor": pre})
         _write_json(out_dir / "gabaritos" / f"{proj['video_id'] or proj['projeto']}.json", _rounded({
             "video_id": proj["video_id"], "projeto": proj["projeto"], "titulo": proj["titulo"],
             "duracao_s": proj["duracao"], "medido_em": date, **gab}))
@@ -334,6 +357,7 @@ def run_benchmark(projects_dir: Any, out_dir: Any, *, date: str | None = None, l
         "ks": list(ks),
         "custo": "zero (só arquivos locais; nenhuma chamada a LLM)",
         "media": _average(vods, ks),
+        "media_pre_editor": _average(vods, PRE_EDITOR_KS, key="pre_editor"),
         "vods": vods,
         "sem_gabarito": sem,
         "duplicados_ignorados": duplicados,

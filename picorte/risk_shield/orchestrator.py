@@ -74,6 +74,7 @@ def audit_clip_risk(
     music_result: dict[str, Any] | None = None,
     ab_variant: int = 1,
     parent_clip_id: str | None = None,
+    family_clip_ids: Any = None,
     cadence_profile: str = "warmup",
     cadence_state_path: Path | str | None = None,
     today: date | None = None,
@@ -159,6 +160,7 @@ def audit_clip_risk(
         ab_variant=ab_variant,
         parent_clip_id=parent_clip_id,
         current_clip_id=clip_id,
+        family_clip_ids=family_clip_ids,  # 3.7.3: Short/TikTok/Longo do mesmo momento não são duplicata
     )
     gates["ypp_and_dedup"] = ypp_res
 

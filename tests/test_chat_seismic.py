@@ -68,10 +68,12 @@ def test_analyze_chat_seismic_detects_peaks_and_emote_bursts():
     peak = result["peaks"][0]
     assert peak["vel_zscore"] >= 3.5
     assert peak["emote_burst"] > 0.0
-    assert peak["start"] <= 92.0 and peak["end"] >= 96.0
+    # 3.6.2: a janela do chat continua em volta do pico; a da semente começa no lance ~30 s antes.
+    assert peak["chat_start"] <= 92.0 and peak["chat_end"] >= 96.0
+    assert peak["start"] <= 92.0 - 15.0
 
-    # Window around peak scores significantly higher than quiet baseline
-    hot_score = score_chat_window(result, 88.0, 102.0)
+    # O trecho que causou o pico (antes dele) pontua bem acima do chat parado
+    hot_score = score_chat_window(result, 58.0, 72.0)
     quiet_score = score_chat_window(result, 10.0, 30.0)
     assert hot_score >= 7.0
     assert quiet_score < hot_score

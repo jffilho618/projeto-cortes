@@ -102,9 +102,11 @@ def test_editor_chief_receives_only_measured_nonverbal_signals():
     ]
     LLMRouter(provider_runner=fake).rerank_candidates(cands, ai_mode="gemini")
     payload = prompts[0]
-    rows = json.loads(payload[payload.index("["):])
-    assert rows[0]["sinais"] == {"riso": 0.62, "fala": "fast_panic", "chat": 7.5, "facecam": 8.1, "hud": 3.0}
-    assert "sinais" not in rows[1]
+    # 3.6.4: os candidatos chegam embaralhados ao Editor-Chefe — achar a linha pelo texto, não pela posição
+    rows = {r["text"]: r for r in json.loads(payload[payload.index("["):])}
+    assert rows["kkkk caiu"]["sinais"] == {"riso": 0.62, "fala": "fast_panic", "chat": 7.5, "facecam": 8.1,
+                                           "hud": 3.0}
+    assert "sinais" not in rows["sem medição"]
 
 
 def test_discover_attaches_prosody_on_real_audio(tmp_path: Path):

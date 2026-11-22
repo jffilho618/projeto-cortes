@@ -523,7 +523,12 @@ def _live_chat_row_messages(row):
             continue
         text = _chat_runs_text((renderer.get("message") or {}).get("runs"))
         if text:
-            out.append({"t": round(t, 3), "text": text})
+            msg = {"t": round(t, 3), "text": text}
+            # 3.6.2: autor (ID do canal) para o Sismógrafo pesar picos vindos de muitos autores diferentes.
+            author = renderer.get("authorExternalChannelId") or (renderer.get("authorName") or {}).get("simpleText")
+            if author:
+                msg["author"] = str(author)
+            out.append(msg)
     return out
 
 

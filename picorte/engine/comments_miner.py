@@ -29,6 +29,20 @@ def parse_timestamp_to_seconds(ts_str: str) -> float | None:
     return float(hours * 3600 + minutes * 60 + seconds)
 
 
+COMMENT_REACTION_TO_ARCHETYPE = {"riso": "nobada_vacilo", "cringe": "mico_constrangimento"}
+
+
+def archetype_hint_from_comment(text: str) -> str | None:
+    """3.6.3 (AC3): 'kkkk 12:34' → nobada_vacilo; 'que vergonha 1:02:10' → mico_constrangimento.
+
+    Reusa o léxico de reação do chat (3.6.2). É só dica para o Editor-Chefe, nunca rótulo final.
+    """
+    from picorte.engine.chat_seismic import classify_reaction
+
+    kind = classify_reaction([str(text or "")]).get("tipo")
+    return COMMENT_REACTION_TO_ARCHETYPE.get(kind or "")
+
+
 def extract_comment_timestamps(
     comments: list[dict[str, Any]],
     *,

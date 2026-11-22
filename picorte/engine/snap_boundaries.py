@@ -115,3 +115,29 @@ def snap_window_to_words_and_silences(
     if e <= s:
         e = s + 0.5
     return round(s, 3), round(e, 3)
+
+
+def setup_preroll_start(
+    sentences: list[dict[str, Any]],
+    cause_s: float,
+    *,
+    min_back: float = 3.0,
+    max_back: float = 8.0,
+    max_reach: float = 15.0,
+) -> float | None:
+    """3.6.4 (AC2): começo da frase do SETUP de uma semente de reação, 3–8 s antes da causa.
+
+    Usa a frase mais antiga que começa em [causa−8, causa−3]; se nenhuma começa ali, o começo da frase
+    que cobre causa−3, desde que esteja a no máximo 15 s da causa. Sem frase utilizável → None
+    (a janela da semente fica como estava).
+    """
+    lo, hi = float(cause_s) - float(max_back), float(cause_s) - float(min_back)
+    starts = sorted(float(s.get("start") or 0.0) for s in sentences or []
+                    if lo <= float(s.get("start") or 0.0) <= hi)
+    if starts:
+        return starts[0]
+    for s in sentences or []:
+        st, en = float(s.get("start") or 0.0), float(s.get("end") or 0.0)
+        if st <= hi <= en and float(cause_s) - st <= float(max_reach):
+            return st
+    return None

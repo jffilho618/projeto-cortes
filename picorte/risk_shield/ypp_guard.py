@@ -159,8 +159,14 @@ def evaluate_ypp_and_dedup(
     ab_variant: int = 1,
     parent_clip_id: str | None = None,
     current_clip_id: str | None = None,
+    family_clip_ids: Any = None,
 ) -> dict[str, Any]:
-    """Calcula YPP Score (YouTube), TikTok Originality Score, Audit Trail e Deduplicação Híbrida (pHash + texto)."""
+    """Calcula YPP Score (YouTube), TikTok Originality Score, Audit Trail e Deduplicação Híbrida (pHash + texto).
+
+    `family_clip_ids` (3.7.3): Short, versão TikTok e Longo do MESMO momento são família, não reupload — os
+    cortes da família não entram como referência de duplicata.
+    """
+    family = {str(x) for x in (family_clip_ids or [])}
     max_static_sec = measure_max_static_seconds(frames, fps_sampled=fps_sampled)
     phash_sig = compute_video_phash(frames)
     n_valid_frames = len([f for f in frames if f is not None and getattr(f, "size", 0) > 0])
@@ -209,7 +215,7 @@ def evaluate_ypp_and_dedup(
         )
         for row in existing_clips:
             cid = str(row.get("id") or "")
-            if current_clip_id and cid == current_clip_id:
+            if (current_clip_id and cid == current_clip_id) or cid in family:
                 continue
             p_sim = phash_similarity(phash_sig, row.get("phash_signature"))
             row_txt = f"{row.get('proposed_title') or ''} {row.get('context_banner_2s') or ''}"

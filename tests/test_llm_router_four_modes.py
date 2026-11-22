@@ -3,6 +3,12 @@ import json
 import unittest
 
 
+def _index_of(user_prompt: str, needle: str) -> int:
+    """3.6.4: os candidatos chegam embaralhados — o falso responde pelo CONTEÚDO, não pela posição."""
+    rows = json.loads(user_prompt[user_prompt.index("[{"):])
+    return next(r["index"] for r in rows if needle in r["text"])
+
+
 class TestLLMRouterFourModes(unittest.TestCase):
     def _sample_candidates(self):
         return [
@@ -20,7 +26,7 @@ class TestLLMRouterFourModes(unittest.TestCase):
             calls.append((provider, model))
             return json.dumps([
                 {
-                    "index": 0,
+                    "index": _index_of(user_prompt, "carro voando"),
                     "adjustment": 0.8,
                     "reason": f"Aprovado via {provider}",
                     "proposed_title": "Bug absurdo do carro voando no GTA 6",
@@ -52,14 +58,14 @@ class TestLLMRouterFourModes(unittest.TestCase):
             if provider == "ollama":
                 # Filtro mantém os 2 primeiros e penaliza o 3º (inventário)
                 return json.dumps([
-                    {"index": 0, "adjustment": 0.4, "reason": "Reação forte"},
-                    {"index": 1, "adjustment": 0.3, "reason": "Tiro impossível"},
-                    {"index": 2, "adjustment": -0.9, "reason": "Sem graça"},
+                    {"index": _index_of(user_prompt, "carro voando"), "adjustment": 0.4, "reason": "Reação forte"},
+                    {"index": _index_of(user_prompt, "acertou"), "adjustment": 0.3, "reason": "Tiro impossível"},
+                    {"index": _index_of(user_prompt, "inventário"), "adjustment": -0.9, "reason": "Sem graça"},
                 ])
             # Acompanhante (claude) recebe os filtrados e lapida o campeão
             return json.dumps([
                 {
-                    "index": 0,
+                    "index": _index_of(user_prompt, "carro voando"),
                     "adjustment": 0.5,
                     "reason": "Gancho imediato de bug",
                     "proposed_title": "CARRO VOOU DO NADA NO GTA 6!",

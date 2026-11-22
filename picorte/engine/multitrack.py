@@ -19,6 +19,9 @@ CANONICAL_ARCHETYPES: tuple[str, ...] = (
     "susto_tensao",
     "deadpan_karma",
     "chat_trolagem",
+    # 3.6.3: vacilo bobo de execução e vergonha social (≠ fail cinematográfico do clutch_fail)
+    "nobada_vacilo",
+    "mico_constrangimento",
 )
 
 CANONICAL_TIERS: tuple[str, ...] = ("ouro", "forte", "experimental")
@@ -29,6 +32,7 @@ TRACK_NAMES: tuple[str, ...] = (
     "serio_polemica_silence",
     "deictic_detective_callback",
     "coop_payoff_nontextual",
+    "vacilo_mico",
 )
 
 DEFAULT_TRACK_QUOTAS: dict[str, int] = {
@@ -37,7 +41,35 @@ DEFAULT_TRACK_QUOTAS: dict[str, int] = {
     "serio_polemica_silence": 8,
     "deictic_detective_callback": 8,
     "coop_payoff_nontextual": 8,
+    "vacilo_mico": 6,
 }
+
+# 3.6.3 — frases já normalizadas (minúsculas, sem pontuação; ver _norm_text), com e sem acento.
+VACILO_LEXICON_PTBR: tuple[str, ...] = (
+    "burro demais", "que burro", "como eu sou burro", "sou muito burro", "não acredito que eu fiz isso",
+    "nao acredito que eu fiz isso", "volta volta", "que vacilo", "vacilei", "errei feio", "que noob",
+    "nobada", "apertei errado", "apertei o botão errado", "apertei o botao errado", "esqueci de",
+    "caí sozinho", "cai sozinho", "morri sozinho", "eu sou muito ruim",
+    "que ódio de mim", "que odio de mim",
+)
+MICO_LEXICON_PTBR: tuple[str, ...] = (
+    "que vergonha", "que mico", "paguei mico", "passei vergonha", "constrangedor", "que cringe",
+    "ninguém riu", "ninguem riu", "foi mal gente", "esquece o que eu falei", "finge que não viu",
+    "finge que nao viu", "piada ruim", "climão", "climao", "que vexame",
+)
+ANUNCIO_CORTE_PTBR: tuple[str, ...] = (
+    "isso vai virar corte", "vai virar corte", "clipa isso", "clipa aí", "clipa ai", "manda pro tiktok",
+    "manda pro tik tok", "isso é corte", "isso e corte", "já virou corte", "ja virou corte",
+)
+# 2.0 (e não 1.5): uma frase sozinha (1.5) precisa de outro sinal junto. Na olhada nas 4 lives do conjunto
+# (2026-11-22), frases genéricas sozinhas ("não era pra", "esqueci de") marcavam trechos que não eram vacilo.
+VACILO_MICO_MIN_SCORE = 2.0
+
+# 3.6.5 (AC6): heatmap "mais repetidos" rebaixado — a pesquisa mostrou que é ruidoso para escolher Shorts.
+HEATMAP_BONUS_SHORT = 0.3
+HEATMAP_BONUS_LONG = 1.2
+LONG_MIN_S = 180.0
+SHOCK_GAP_MIN_S, SHOCK_GAP_MAX_S = 1.0, 3.0
 
 ARCHETYPE_LEXICON_PTBR: dict[str, tuple[str, ...]] = {
     "detective_callback": (
@@ -104,6 +136,76 @@ def detect_collective_echo(text: str) -> bool:
 def _lexicon_hits(text: str, phrases: tuple[str, ...]) -> int:
     low = f" {(text or '').lower()} "
     return sum(1 for phrase in phrases if phrase in low)
+
+
+_NON_WORD_RE = re.compile(r"[^\wÀ-ÿ]+")
+
+
+def _norm_text(text: str) -> str:
+    """Minúsculas, pontuação vira espaço: 'Volta, volta!' → 'volta volta'."""
+    return " ".join(_NON_WORD_RE.sub(" ", str(text or "").lower()).split())
+
+
+def _phrase_hits(text: str, phrases: tuple[str, ...]) -> int:
+    low = f" {_norm_text(text)} "
+    return sum(1 for phrase in phrases if f" {phrase} " in low)
+
+
+def _text_reacts(text: str) -> bool:
+    """A fala/legenda mostra reação: riso escrito (kkk, haha) ou frase de vacilo/mico."""
+    from picorte.engine.chat_seismic import REACTION_LEXICON
+
+    return bool(REACTION_LEXICON["riso"].search(str(text or ""))
+                or _phrase_hits(text, VACILO_LEXICON_PTBR) or _phrase_hits(text, MICO_LEXICON_PTBR))
+
+
+def detect_shock_silence(sentences: list[dict[str, Any]], start: float, end: float) -> bool:
+    """Silêncio de choque (3.6.3, AC4): vão de 1–3 s com fala antes e reação escrita logo depois.
+
+    Silêncio sem reação depois não conta: pausa para pensar não é mico nem vacilo.
+    """
+    inside = sorted(
+        (s for s in sentences or [] if float(s.get("end") or 0.0) > start and float(s.get("start") or 0.0) < end),
+        key=lambda s: float(s.get("start") or 0.0),
+    )
+    for prev, nxt in zip(inside, inside[1:]):
+        gap = float(nxt.get("start") or 0.0) - float(prev.get("end") or 0.0)
+        if SHOCK_GAP_MIN_S <= gap <= SHOCK_GAP_MAX_S and str(prev.get("text") or "").strip() \
+                and _text_reacts(str(nxt.get("text") or "")):
+            return True
+    return False
+
+
+def vacilo_mico_score(cand: dict[str, Any], sentences: list[dict[str, Any]]) -> tuple[float, str | None]:
+    """Nota da pista "vacilo_mico" e a dica de arquétipo (3.6.3). Só sinais baratos já medidos.
+
+    Exige ao menos um sinal ESPECÍFICO (frase de vacilo/mico, anúncio de corte, silêncio de choque, chat
+    'cringe' ou dica do comentário): riso sozinho não qualifica, senão todo riso viraria vacilo.
+    """
+    from picorte.engine.prosody_events import LAUGH_MIN
+
+    text = str(cand.get("text") or "")
+    ev = cand.get("evidence") or {}
+    s = float(cand.get("start") or 0.0)
+    e = float(cand.get("end") or s)
+    nob_hits = _phrase_hits(text, VACILO_LEXICON_PTBR)
+    mico_hits = _phrase_hits(text, MICO_LEXICON_PTBR)
+    anuncio = _phrase_hits(text, ANUNCIO_CORTE_PTBR)
+    shock = detect_shock_silence(sentences, s, e)
+    chat = str(ev.get("chat_reaction") or "")
+    comment_hint = str(cand.get("archetype_hint") or "")
+
+    nob = 1.5 * nob_hits + (1.0 if chat == "riso" else 0.0) + (1.5 if comment_hint == "nobada_vacilo" else 0.0)
+    mico = 1.5 * mico_hits + (1.2 if chat == "cringe" else 0.0) \
+        + (1.5 if comment_hint == "mico_constrangimento" else 0.0)
+    neutral = 1.2 * anuncio + (1.2 if shock else 0.0) \
+        + (1.0 if float(ev.get("laugh") or 0.0) >= LAUGH_MIN else 0.0)
+    specific = nob_hits or mico_hits or anuncio or shock or chat == "cringe" \
+        or comment_hint in ("nobada_vacilo", "mico_constrangimento")
+    if not specific:
+        return 0.0, None
+    hint = "mico_constrangimento" if mico > nob else "nobada_vacilo"
+    return round(nob + mico + neutral, 2), hint
 
 
 def compute_local_tfidf(sentences: list[dict[str, Any]]) -> dict[int, float]:
@@ -281,6 +383,7 @@ def build_multitrack_pool(
     pista_serio: list[tuple[float, dict[str, Any]]] = []
     pista_detective: list[tuple[float, dict[str, Any]]] = []
     pista_coop: list[tuple[float, dict[str, Any]]] = []
+    pista_vacilo: list[tuple[float, dict[str, Any]]] = []
 
     heatmap_centers = [float(p.get("center", 0.0)) for p in (heatmap_peaks or [])]
 
@@ -293,9 +396,15 @@ def build_multitrack_pool(
         s = float(cand.get("start") or 0.0)
         e = float(cand.get("end") or s)
         near_heatmap = any(s - 10.0 <= hc <= e + 10.0 for hc in heatmap_centers)
+        # 3.6.5 (AC6): o heatmap é ruidoso — bônus fraco em Short; forte só no Longo (3–5 min), para achar o miolo
+        heat_bonus = 0.0
+        if near_heatmap or cand.get("seed_kind") == "heatmap_peak":
+            heat_bonus = HEATMAP_BONUS_LONG if (e - s) >= LONG_MIN_S else HEATMAP_BONUS_SHORT
+            cand["near_heatmap"] = True
+            cand["heatmap_bonus"] = heat_bonus
 
         # Pista 1: Energia / Chat / Heatmap
-        e_score = overall + (1.2 if near_heatmap or cand.get("seed_kind") in ("chat_peak", "heatmap_peak") else 0.0)
+        e_score = overall + heat_bonus + (1.2 if cand.get("seed_kind") == "chat_peak" else 0.0)
         pista_energy.append((e_score, cand))
 
         # Pista 3: Sério / Polêmica / Silêncio Magnético
@@ -319,7 +428,14 @@ def build_multitrack_pool(
         if c_score >= 1.2:
             pista_coop.append((c_score, cand))
 
+        # Pista 6 (3.6.3): Vacilo / Mico — a dica vale para o candidato seja qual for a pista que o pegar
+        v_score, v_hint = vacilo_mico_score(cand, sents)
+        if v_hint and v_score >= VACILO_MICO_MIN_SCORE:
+            cand["archetype_hint"] = v_hint
+            pista_vacilo.append((v_score, cand))
+
     pista_energy.sort(key=lambda x: -x[0])
+    pista_vacilo.sort(key=lambda x: -x[0])
     pista_serio.sort(key=lambda x: -x[0])
     pista_detective.sort(key=lambda x: -x[0])
     pista_coop.sort(key=lambda x: -x[0])
@@ -345,7 +461,16 @@ def build_multitrack_pool(
         [dict(c) for c in (scout_candidates or [])],
         key=lambda c: -float(c.get("overall") or 8.0),
     )
+    # 3.6.5: o achado do batedor também sabe se cai num pico do heatmap (sinal independente do ouro)
+    for sc in scout_list:
+        ss, se = float(sc.get("start") or 0.0), float(sc.get("end") or 0.0)
+        if any(ss - 10.0 <= hc <= se + 10.0 for hc in heatmap_centers):
+            sc["near_heatmap"] = True
     _take_from(scout_list, "full_vod_scout", track_quotas["full_vod_scout"])
+
+    # 1b) Vacilo / Mico (3.6.3): logo após o Scout — senão o TF-IDF da pista detetive pega o vacilo antes
+    #     ("recarregar", "burro" são palavras raras na live) e ele perde o rótulo de pista
+    _take_from([c for _, c in pista_vacilo], "vacilo_mico", track_quotas["vacilo_mico"])
 
     # 2) Dêiticos Visuais / Detetive / Callbacks
     _take_from([c for _, c in pista_detective], "deictic_detective_callback", track_quotas["deictic_detective_callback"])

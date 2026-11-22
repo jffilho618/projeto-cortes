@@ -771,6 +771,13 @@ def write_meta(seg, out_path, source_meta=None):
         "pinned_comment_debate",
         "parent_long_clip_id",
         "cold_open",
+        "freeze",
+        "transformacoes",
+        "layout_timeline",
+        "formato",
+        "moment_id",
+        "parent_short_id",
+        "miolo",
         "thumbnail_1280x720",
         "llm_mode_used",
         "archetype",
@@ -956,6 +963,7 @@ def _apply_green_seal(seg, cap_words, start, dur):
     gs_plan = plan_green_seal_audio_and_captions(
         cap_words, clip_start=start, clip_end=start + dur, cold_open_plan=seg.get("cold_open"))
     seg["_green_seal_bleeps"] = list(gs_plan["bleep_intervals"])
+    seg["_cold_open_bleeps"] = list(gs_plan.get("cold_open_bleeps") or [])  # 3.7.1: Selo Verde no teaser
     seg["_green_seal_status"] = gs_plan["status"]
     if gs_plan["status"] == "hard_block":
         raise PolicyViolationError(
@@ -965,6 +973,90 @@ def _apply_green_seal(seg, cap_words, start, dur):
             details={"hits": gs_plan["hard_block_hits"]},
         )
     return gs_plan["censored_words"]
+
+
+def _dynamic_games_chain(seg, render_src, local_start, dur, W, H, tw, th, face_box, vision_preset, workdir):
+    """3.7.2: filtro do layout dinâmico, ou None (layout fixo de hoje) com o motivo na saúde do projeto."""
+    from picorte.engine import health as _health
+    from picorte.engine.reframe_games import plan_dynamic_games
+    import cv2
+    plan = {"vf": None, "motivo": "sem facecam detectada", "timeline": [], "trocas": 0}
+    if face_box is not None:
+        frames, times = [], []
+        cap = cv2.VideoCapture(str(render_src))
+        try:
+            for k in range(max(2, int(dur))):
+                t = min(float(dur) - 0.05, k + 0.5)
+                cap.set(cv2.CAP_PROP_POS_MSEC, (local_start + t) * 1000.0)
+                ok, frame = cap.read()
+                if ok and frame is not None:
+                    scale = 480.0 / max(1, frame.shape[1])
+                    frames.append(cv2.resize(frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA))
+                    times.append(t)
+        finally:
+            cap.release()
+        try:
+            plan = plan_dynamic_games(frames, face_box=tuple(face_box), source_w=W, source_h=H, out_w=tw,
+                                      out_h=th, times=times, duration=dur, vision_preset=vision_preset)
+        except Exception as exc:
+            plan = {"vf": None, "motivo": f"erro: {type(exc).__name__}: {exc}", "timeline": [], "trocas": 0}
+    seg["layout_timeline"] = plan.get("timeline") or []
+    if plan.get("vf") and plan.get("trocas"):
+        seg.setdefault("transformacoes", []).append(
+            {"nome": "layout_dinamico", "trocas": plan["trocas"],
+             "layouts": [s["layout"] for s in plan["timeline"]]})
+    try:
+        if plan.get("vf"):
+            _health.record(workdir, "layout_dinamico", "ok",
+                           f"{plan['trocas']} troca(s): " + " → ".join(s["layout"] for s in plan["timeline"]))
+        else:
+            _health.record(workdir, "layout_dinamico", "na", str(plan.get("motivo")))
+    except Exception:
+        pass
+    return plan.get("vf")
+
+
+def _record_banner(seg, banner_text):
+    """3.7.5 (AC4): a faixa de contexto queimada no vídeo é transformação real (Score YPP, P2)."""
+    if banner_text and str(banner_text).strip():
+        seg.setdefault("transformacoes", []).append({"nome": "faixa_contexto", "texto": str(banner_text).strip()})
+
+
+def _apply_freeze(seg, out, size, preview=False, tightened=False):
+    """3.7.5: freeze + círculo/seta no momento-chave medido (só quando o plano veio ligado)."""
+    plan = seg.get("freeze")
+    if not isinstance(plan, dict) or not plan.get("enabled"):
+        return False
+    if preview or tightened:
+        plan["enabled"] = False
+        plan["motivo"] = "preview" if preview else "tighten muda a linha do tempo do vídeo"
+        return False
+    from picorte.engine.edit_effects import apply_freeze
+    return apply_freeze(seg, out, size=size)
+
+
+def _apply_cold_open(seg, out, start, preview=False, tightened=False):
+    """3.7.1: cola o teaser do clímax no 0:00 do mp4 já renderizado (medido ou desligado, com motivo)."""
+    plan = seg.get("cold_open")
+    if not isinstance(plan, dict) or not plan.get("enabled"):
+        return False
+    if preview or tightened:
+        plan["enabled"] = False
+        plan["motivo"] = "preview" if preview else "tighten muda a linha do tempo do vídeo"
+        return False
+    from picorte.engine.edit_effects import cold_open_start_after_freeze
+    from picorte.engine.retention_engine import prepend_cold_open
+    freeze = seg.get("freeze") if (seg.get("freeze") or {}).get("rendered") else None
+    if prepend_cold_open(out, plan, cold_open_start_after_freeze(float(start), plan, freeze),
+                         seg.get("_cold_open_bleeps") or []):
+        plan["rendered"] = True
+        seg.setdefault("transformacoes", []).append({
+            "nome": "cold_open", "teaser": [plan.get("teaser_start"), plan.get("teaser_end")],
+            "fonte": plan.get("climax_fonte")})
+        return True
+    plan["rendered"] = False
+    plan["motivo"] = "falha no ffmpeg ao colar o teaser (corte saiu sem Cold Open)"
+    return False
 
 
 def _green_seal_audio_filter(bleeps, dur):
@@ -1137,15 +1229,20 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
             focus_y_norm=0.5,
         )
         mode = "games facecam+gameplay"
+        # 3.7.2: layout dinâmico (História / Reação / Ação + Sniper Crop) medido no próprio corte
+        base_chain = _dynamic_games_chain(seg, render_src, local_start, dur, W, H, tw, th, face_box,
+                                          vision_preset, workdir) or rl["filter_chain"]
+        if base_chain is not rl["filter_chain"]:
+            mode = "games layout dinâmico"
 
         if badge_path is not None:
             vf = (
-                rl["filter_chain"]
+                base_chain
                 + f",setsar=1[games_bg];[games_bg][1:v]overlay=(W-w)/2:{badge_seam_top}"
                 + f":enable='between(t,0,{badge_end_sec:.3f})',subtitles=_caption.ass"
             )
         else:
-            vf = rl["filter_chain"] + ",setsar=1,subtitles=_caption.ass"
+            vf = base_chain + ",setsar=1,subtitles=_caption.ass"
     elif needs_track:
         track = smooth_track(detect_track(render_src, local_start, dur, W, workdir), W, cw)
         build_sendcmd(track, cw, out_dir / "_crop.cmd")
@@ -1192,6 +1289,9 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         cmd[cmd.index("-c:v"):cmd.index("-c:v")] = ["-af", ",".join(af_parts)]
     print(">", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True, cwd=str(out_dir))
+    _record_banner(seg, banner_text)
+    _apply_freeze(seg, out, (tw, th), preview=preview, tightened=do_tighten)  # 3.7.5: antes do Cold Open
+    _apply_cold_open(seg, out, start, preview=preview, tightened=do_tighten)
     write_srt(cap_words, start, start + dur, out.with_suffix(".srt"),
               group_size=resolved["words_per_cue"])
 

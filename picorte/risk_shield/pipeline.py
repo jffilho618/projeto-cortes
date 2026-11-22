@@ -159,7 +159,8 @@ def attach_risk_verdict(
             has_dynamic_captions=True,  # legenda .ass é sempre queimada no render
             has_context_banner=bool(seg.get("context_banner_2s")),
             has_native_metadata=bool(seg.get("proposed_title")),
-            has_cold_open=False,  # o teaser do Cold Open ainda não é renderizado no vídeo
+            # 3.7.1: só conta o teaser que foi de fato colado no vídeo (fecha o W3)
+            has_cold_open=bool((meta.get("cold_open") or seg.get("cold_open") or {}).get("rendered")),
             music_result=music_result,
             cadence_state_path=cadence_state_path,
             clip_id=clip_id,  # a deduplicação não compara o corte com ele mesmo

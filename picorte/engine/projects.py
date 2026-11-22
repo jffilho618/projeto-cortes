@@ -29,7 +29,7 @@ DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "embed_model": "nomic-embed-text", "brand": None,
                    "layout": "single", "centers": [0.25, 0.75], "caption": None,
                    "source_owner": None, "keyframes": False,
-                   "benchmark_blind": False}
+                   "benchmark_blind": False, "formatos_extras": True}
 
 
 def digest(value):
@@ -127,6 +127,8 @@ def validate_options(options):
         raise ValueError("keyframes must be true or false.")
     if not isinstance(result["benchmark_blind"], bool):
         raise ValueError("benchmark_blind must be true or false.")
+    if not isinstance(result["formatos_extras"], bool):
+        raise ValueError("formatos_extras must be true or false.")
     return result
 
 
@@ -152,6 +154,8 @@ def score_keys(transcript_key, data, options):
         for key in ("min_score", "max_clips", "llm", "ai_mode", "ai_filter", "ai_companion", "vision_preset", "query", "hunt_mode",
                     "keyframes")
     }
+    if options.get("formatos_extras") is False:  # 3.7.3: só entra na chave quando desligado (cache atual vale)
+        selection_options["formatos_extras"] = False
     selection_key = digest([discovery_key, selection_options])
     return discovery_key, selection_key
 
@@ -202,6 +206,41 @@ def edit_transcript(path, words):
     state["status"] = "review"
     save_project(path, state)
     return data
+
+
+TIKTOK_MAX_LEN = 75
+
+
+def link_format_family(segments):
+    """3.7.3: versão TikTok e Longo apontam para o Short do mesmo momento (`parent_short_id`)."""
+    short_by_moment = {s.get("moment_id"): s.get("id") for s in segments
+                       if s.get("moment_id") and s.get("formato", "short") == "short"}
+    out = []
+    for seg in segments:
+        rec = dict(seg)
+        if rec.get("formato") in ("tiktok_60", "longo_16x9") and short_by_moment.get(rec.get("moment_id")):
+            rec["parent_short_id"] = short_by_moment[rec["moment_id"]]
+        out.append(rec)
+    return out
+
+
+def render_params_for(seg, options):
+    """(aspect, layout, max_len do Cold Open) de cada segmento: o Longo sai 16:9, layout simples e sem Cold Open."""
+    if seg.get("formato") == "longo_16x9" or seg.get("aspect") == "16:9" and options["aspect"] != "16:9":
+        return "16:9", "single", None
+    if seg.get("formato") in ("arco_2_atos", "compilacao"):  # 3.7.4: compostos não ganham Cold Open
+        return options["aspect"], options["layout"], None
+    max_len = TIKTOK_MAX_LEN if seg.get("formato") == "tiktok_60" else options.get("max_len")
+    return options["aspect"], options["layout"], max_len
+
+
+def _chat_peaks(path):
+    """Picos do Sismógrafo do chat (3.6.2) gravados no projeto; vazio sem chat (3.7.1: clímax do Cold Open)."""
+    try:
+        data = json.loads((Path(path) / "chat_seismic.json").read_text(encoding="utf-8"))
+        return list(data.get("peaks") or []) if isinstance(data, dict) else []
+    except (OSError, ValueError):
+        return []
 
 
 def validate_segments(segments, duration):
@@ -477,7 +516,9 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                         ai_companion=options.get("ai_companion", "claude"),
                         query=options.get("query"),
                         hunt_mode=options.get("hunt_mode", "fast"),
-                        keyframes=bool(options.get("keyframes", False)))
+                        keyframes=bool(options.get("keyframes", False)),
+                        max_len=options["max_len"],  # 3.6.4: limite do fim estendido até o riso acabar
+                        formatos_extras=options.get("formatos_extras", True))  # 3.7.3
                     state["cache"]["selection"] = selection_key
                     save_project(path, state)
 
@@ -506,7 +547,7 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
             segments = [{**s, "id": f"{i:03}"} for i, s in enumerate(segments, 1)]
             try:
                 from picorte.engine.retention_engine import pair_short_and_long_clips
-                segments = pair_short_and_long_clips(segments)
+                segments = pair_short_and_long_clips(link_format_family(segments))
             except Exception:
                 pass
             segments = score_clips.pick_segments(segments, pick)
@@ -599,23 +640,54 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                         render_source, W, H = loaded
                 try:
                     enriched_seg = {**segment, "id": segment["id"] + "-" + key[:8]}
+                    # 3.7.3: cada formato no seu aspecto (o Longo sai 16:9, layout simples, sem Cold Open)
+                    seg_aspect, seg_layout, co_max_len = render_params_for(segment, options)
                     try:
-                        from picorte.engine.retention_engine import build_cold_open_plan
-                        enriched_seg["cold_open"] = build_cold_open_plan(
-                            float(segment["start"]),
-                            float(segment["end"]),
-                            archetype=segment.get("archetype"),
-                            tone=segment.get("tone"),
-                        )
-                    except Exception:
-                        pass
-                    output = render_clips.render(enriched_seg, data["words"], render_source, W, H, path,
-                        options["aspect"], out_dir=out, style=options["style"],
-                        do_tighten=options["tighten"], loudnorm=options["loudnorm"], preview=preview,
-                        brand=brand, layout=options["layout"], centers=options["centers"],
+                        # 3.7.1: Cold Open só com clímax MEDIDO (pico de chat ou punchline), respeitando max_len
+                        from picorte.engine.retention_engine import cold_open_for_segment
+                        if co_max_len is None:
+                            plan = {"enabled": False, "motivo": f"formato {segment.get('formato')} sem Cold Open"}
+                        else:
+                            plan = cold_open_for_segment(
+                                segment, data["words"], _chat_peaks(path), max_len=co_max_len)
+                        if plan.get("novo_inicio") is not None:
+                            enriched_seg["start"] = plan["novo_inicio"]
+                        enriched_seg["cold_open"] = plan
+                    except Exception as exc:
+                        enriched_seg["cold_open"] = {"enabled": False,
+                                                     "motivo": f"erro no plano: {type(exc).__name__}: {exc}"}
+                    try:
+                        # 3.7.5: freeze + seta no momento-chave medido, no tempo que sobra depois do Cold Open
+                        from picorte.engine.edit_effects import freeze_for_segment
+                        co = enriched_seg.get("cold_open") or {}
+                        used = (float(co.get("teaser_duration") or 0.0) - 0.25) if co.get("enabled") else 0.0
+                        enriched_seg["freeze"] = (
+                            {"enabled": False, "motivo": f"formato {segment.get('formato')} sem freeze"}
+                            if co_max_len is None else
+                            freeze_for_segment(enriched_seg, data["words"], _chat_peaks(path),
+                                               max_len=co_max_len, used_s=max(0.0, used)))
+                    except Exception as exc:
+                        enriched_seg["freeze"] = {"enabled": False,
+                                                  "motivo": f"erro no plano: {type(exc).__name__}: {exc}"}
+                    render_kwargs = dict(
+                        style=options["style"], do_tighten=options["tighten"], loudnorm=options["loudnorm"],
+                        preview=preview, brand=brand, layout=seg_layout, centers=options["centers"],
                         caption=options["caption"], source_offset=source_offset,
                         vision_preset=options.get("vision_preset", "auto"),
                         dominant_language=data.get("language"))
+                    if segment.get("formato") in ("arco_2_atos", "compilacao"):
+                        # 3.7.4: cada trecho pelo render normal (P1 por trecho) e emenda com ponte
+                        from picorte.engine.composites import render_composite
+                        comp = render_composite(
+                            enriched_seg, out_dir=out, render_fn=render_clips.render,
+                            render_args=(data["words"], render_source, W, H, path, seg_aspect),
+                            render_kwargs=render_kwargs, meta_fn=render_clips.write_meta)
+                        if comp["output"] is None:
+                            raise ValueError(f"composto {segment.get('formato')} não renderizado: {comp['motivo']}")
+                        output = comp["output"]
+                    else:
+                        output = render_clips.render(enriched_seg, data["words"], render_source, W, H, path,
+                                                     seg_aspect, out_dir=out, **render_kwargs)
                     try:
                         import shutil as _shutil
                         from picorte.engine.publish_kit import resolve_streamer
@@ -645,7 +717,7 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                             timestamp_s=thumb_ts if thumb_src == render_source else clip_dur * 0.4,
                             clip_start_s=clip_local_start if thumb_src == render_source else 0.0,
                             clip_end_s=clip_local_end if thumb_src == render_source else clip_dur,
-                            aspect=options["aspect"],
+                            aspect=seg_aspect,
                             vision_preset=options.get("vision_preset", "auto"),
                             facecam_box=enriched_seg.get("_detected_facecam_box"),
                             streamer_name=streamer_info.get("display_name") or None,
@@ -682,7 +754,7 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                             seg=enriched_seg,
                             words=data["words"],
                             mp4_path=output,
-                            options=options,
+                            options={**options, "aspect": seg_aspect, "layout": seg_layout},
                             game_slug=str((state.get("source_meta") or {}).get("detected_game") or ""),
                             music_result=music_result,
                             clip_id=f"studio-{state['id']}:{segment['id']}",
