@@ -1,6 +1,7 @@
 """Engenharia de Retenção + Par Short Isca / Vídeo Longo (Stories 3.4 & 3.5)."""
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import numpy as np
@@ -286,3 +287,162 @@ def pair_short_and_long_clips(clips: list[dict[str, Any]]) -> list[dict[str, Any
             if best is not None and (best_overlap > 0.0 or longs):
                 clip["parent_long_clip_id"] = best.get("id")
     return out
+
+
+# ------------------------------------------------------------------ 3.7.1: Cold Open de verdade + Seamless Loop
+
+COLD_OPEN_XFADE_S = 0.25
+CLIMAX_MIN_LEAD_S = 3.0
+_TOKEN_NORM_RE = re.compile(r"[^\wÀ-ÿ]+")
+
+
+PUNCHLINE_MIN_MATCH = 0.6  # fração das palavras do hook_quote achadas na janela (o Editor parafraseia)
+
+
+def _norm_token(word: Any) -> str:
+    import unicodedata
+
+    plain = unicodedata.normalize("NFKD", str(word or "").lower()).encode("ascii", "ignore").decode("ascii")
+    return _TOKEN_NORM_RE.sub("", plain)
+
+
+def _find_punchline_end(quote: list[str], clip_words: list[dict[str, Any]]) -> float | None:
+    """Fim da janela de palavras que mais se parece com o hook_quote (≥ 60% das palavras, sem acento)."""
+    from collections import Counter
+
+    n = len(quote)
+    toks = [_norm_token(w.get("word")) for w in clip_words]
+    want = Counter(quote)
+    best, best_end = 0.0, None
+    for i in range(max(0, len(toks) - n + 1)):
+        got = Counter(toks[i:i + n])
+        score = sum((want & got).values()) / n
+        if score > best:
+            best, best_end = score, float(clip_words[min(len(clip_words), i + n) - 1].get("end") or 0.0)
+    return best_end if best >= PUNCHLINE_MIN_MATCH else None
+
+
+def pick_climax(seg: dict[str, Any], words: list[dict[str, Any]] | None,
+                chat_peaks: list[dict[str, Any]] | None, *, min_lead: float = CLIMAX_MIN_LEAD_S
+                ) -> dict[str, Any] | None:
+    """Clímax MEDIDO do corte: o pico de chat mais forte (pela causa) ou o fim da punchline (`hook_quote`).
+
+    Pico cedo demais (antes de start+min_lead) não serve: o teaser repetiria a abertura. Sem sinal → None.
+    """
+    s, e = float(seg.get("start") or 0.0), float(seg.get("end") or 0.0)
+    inside = [p for p in chat_peaks or []
+              if p.get("cause_second") is not None and s + min_lead <= float(p["cause_second"]) <= e - 0.5]
+    if inside:
+        best = max(inside, key=lambda p: float(p.get("vel_zscore") or 0.0))
+        return {"t": float(best["cause_second"]), "fonte": "chat"}
+    quote = [t for t in (_norm_token(x) for x in str(seg.get("hook_quote") or "").split()) if t]
+    if quote:
+        clip_words = [w for w in words or [] if s <= float(w.get("start") or 0.0) <= e]
+        end_t = _find_punchline_end(quote, clip_words)
+        if end_t is not None and end_t - 0.5 >= s + min_lead:
+            return {"t": end_t - 0.5, "fonte": "punchline"}
+    return None
+
+
+def cold_open_for_segment(seg: dict[str, Any], words: list[dict[str, Any]] | None,
+                          chat_peaks: list[dict[str, Any]] | None, *, max_len: float | None = None,
+                          xfade: float = COLD_OPEN_XFADE_S) -> dict[str, Any]:
+    """Plano do Cold Open para um segmento: medido ou desligado (com motivo); respeita arquétipo e max_len."""
+    s, e = float(seg.get("start") or 0.0), float(seg.get("end") or 0.0)
+    off = {"enabled": False, "clip_start": round(s, 3), "clip_end": round(e, 3)}
+    climax = pick_climax(seg, words, chat_peaks)
+    if climax is None:
+        return {**off, "motivo": "sem clímax medido (pico de chat ou punchline) dentro do corte"}
+    plan = build_cold_open_plan(s, e, peak_t=climax["t"], archetype=seg.get("archetype"), tone=seg.get("tone"))
+    if not plan["enabled"]:
+        return {**off, "motivo": f"arquétipo {seg.get('archetype')} sem Cold Open (evita spoiler)"}
+    plan["climax_t"] = round(climax["t"], 3)
+    plan["climax_fonte"] = climax["fonte"]
+    if max_len:
+        excess = (e - s) + float(plan["teaser_duration"]) - float(xfade) - float(max_len)
+        if excess > 0:
+            novo = s + excess
+            if novo > float(plan["teaser_start"]) - CLIMAX_MIN_LEAD_S:
+                return {**off, "motivo": "max_len: não cabe o teaser sem cortar o setup do clímax"}
+            plan["novo_inicio"] = round(novo, 3)
+            plan["clip_start"] = round(novo, 3)
+    return plan
+
+
+def _teaser_bleep_filter(bleeps: list[dict[str, Any]] | None) -> str:
+    terms = [f"between(t,{float(b['start']):.3f},{float(b['end']):.3f})" for b in bleeps or []
+             if float(b.get("end") or 0.0) > float(b.get("start") or 0.0)]
+    if not terms:
+        return ""
+    return f",volume='if({'+'.join(terms)},0.016,1)':eval=frame"  # −36 dB, como o Selo Verde
+
+
+def cold_open_ffmpeg_cmd(in_path: Any, out_path: Any, rel_start: float, dur: float,
+                         bleeps: list[dict[str, Any]] | None = None, *, xfade: float = COLD_OPEN_XFADE_S
+                         ) -> list[str]:
+    """Teaser (trecho [rel_start, rel_start+dur] do próprio corte) colado no 0:00 com xfade/acrossfade."""
+    a, b, x = float(rel_start), float(rel_start) + float(dur), float(xfade)
+    graph = (
+        "[0:v]split=2[v0][v1];[0:a]asplit=2[a0][a1];"
+        f"[v0]trim=start={a:.3f}:end={b:.3f},setpts=PTS-STARTPTS[tv];"
+        f"[a0]atrim=start={a:.3f}:end={b:.3f},asetpts=PTS-STARTPTS{_teaser_bleep_filter(bleeps)}[ta];"
+        "[v1]setpts=PTS-STARTPTS[mv];[a1]asetpts=PTS-STARTPTS[ma];"
+        f"[tv][mv]xfade=transition=fade:duration={x:.3f}:offset={float(dur) - x:.3f}[v];"
+        f"[ta][ma]acrossfade=d={x:.3f}[a]"
+    )
+    return ["ffmpeg", "-y", "-i", str(in_path), "-filter_complex", graph, "-map", "[v]", "-map", "[a]",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out_path)]
+
+
+def prepend_cold_open(mp4: Any, plan: dict[str, Any] | None, clip_start: float,
+                      bleeps: list[dict[str, Any]] | None = None, *, runner: Any = None) -> bool:
+    """Cola o teaser no começo do mp4 já renderizado (troca o arquivo em lugar). Falha → arquivo intacto."""
+    import subprocess
+    from pathlib import Path
+
+    if not plan or not plan.get("enabled"):
+        return False
+    run = runner or subprocess.run
+    src = Path(mp4)
+    tmp = src.with_name(src.stem + ".coldopen" + src.suffix)
+    rel = float(plan["teaser_start"]) - float(clip_start)
+    try:
+        run(cold_open_ffmpeg_cmd(src, tmp, rel, float(plan["teaser_duration"]), bleeps),
+            check=True, capture_output=True)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        return False
+    if not tmp.is_file():
+        return False
+    tmp.replace(src)
+    return True
+
+
+def seamless_loop_end(sentences: list[dict[str, Any]] | None, start: float, end: float, *,
+                      rms: Any = None, back: float = 1.5, fwd: float = 1.5, only_forward: bool = False,
+                      max_len: float | None = None) -> float:
+    """Fim do corte num FIM DE FRASE em [end−back, end+fwd] cujo volume mais se parece com o do começo.
+
+    Assim o último segundo emenda com o 0:00 no replay. `only_forward` (riso estendido no fim) só avança.
+    Recuo padrão de 1,5 s (o AC dizia 3 s): recuar mais cortaria a reação que o Editor-Chefe incluiu (3.6.4).
+    Sem fim de frase no intervalo, mantém o fim. Limitação: a emenda é medida pelo volume, não pela imagem.
+    """
+    s, e = float(start), float(end)
+    lo = e if only_forward else e - float(back)
+    hi = e + float(fwd)
+    if max_len:
+        hi = min(hi, s + float(max_len))
+    cands = sorted({round(float(x.get("end") or 0.0), 3) for x in sentences or []
+                    if lo <= float(x.get("end") or 0.0) <= hi and float(x.get("end") or 0.0) > s + 1.0})
+    if not cands:
+        return e
+    levels = np.asarray(rms, dtype=np.float64).ravel() if rms is not None else None
+    if levels is None or levels.size == 0:
+        return min(cands, key=lambda c: abs(c - e))
+
+    def level(t: float) -> float:
+        return float(levels[max(0, min(levels.size - 1, int(t)))])
+
+    ref = level(s)
+    return min(cands, key=lambda c: (round(abs(level(c) - ref), 1), abs(c - e)))

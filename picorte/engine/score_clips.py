@@ -1041,6 +1041,7 @@ OPTIONAL_SEGMENT_KEYS = (
     "ouro_rebaixado",
     "standalone",
     "tags",
+    "transformacoes",  # 3.7: efeitos de formato aplicados (alimenta o Score de Transformação, P2)
 )
 
 
@@ -1909,6 +1910,51 @@ def _attach_keyframe_descriptions(workdir, pool):
     return res["candidates"]
 
 
+def _apply_seamless_loop(workdir, segments, max_len=None):
+    """3.7.1 (AC4): fim num fim de frase que emenda com o 0:00 (volume parecido com o do começo).
+
+    Depois do fim-após-o-riso (3.6.4) o fim só pode avançar. Sem frases, nada muda (sinal só vale se medido).
+    """
+    import numpy as _np
+    from picorte.engine import health as _health
+    from picorte.engine.retention_engine import seamless_loop_end
+    if not segments:
+        return segments
+    try:
+        words = json.loads((Path(workdir) / "transcript.json").read_text(encoding="utf-8-sig")).get("words") or []
+    except (OSError, ValueError):
+        words = []
+    sents = sentenceize(words) if words else []
+    if not sents:
+        _health.record(workdir, "seamless_loop", "na", "sem transcrição com frases")
+        return segments
+    rms = None
+    feat = Path(workdir) / "audio_features.npz"
+    if feat.is_file():
+        try:
+            with _np.load(feat) as data:
+                rms = _np.asarray(data["rms"]) if "rms" in data.files else None
+        except (OSError, ValueError):
+            rms = None
+    out, moved = [], 0
+    for seg in segments:
+        rec = dict(seg)
+        s, e = float(rec["start"]), float(rec["end"])
+        locked = bool((rec.get("evidence") or {}).get("end_after_laugh_s"))
+        new_end = seamless_loop_end(sents, s, e, rms=rms, only_forward=locked, max_len=max_len)
+        if abs(new_end - e) >= 0.05:
+            rec["end"] = round(new_end, 2)
+            rec["duration"] = round(new_end - s, 2)
+            rec["transformacoes"] = list(rec.get("transformacoes") or []) + [
+                {"nome": "seamless_loop", "fim_antes": round(e, 2), "fim": round(new_end, 2)}]
+            moved += 1
+        out.append(rec)
+    _health.record(workdir, "seamless_loop", "ok",
+                   f"{moved} de {len(out)} cortes com fim ajustado para emendar o loop"
+                   + ("" if rms is not None else " (sem volume medido: só fim de frase)"))
+    return out
+
+
 def _split_standalone(workdir, segments):
     """3.6.5 (AC4): corte com standalone < 5 sai dos Shorts e vai para longo_compilacao.json."""
     from picorte.engine.confidence import split_standalone
@@ -2425,6 +2471,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         evidence_available=discovery.get("evidence_available"))
     segments = _end_after_laugh(workdir, segments, max_len=max_len,
                                 source_duration=discovery.get("source_duration"))
+    segments = _apply_seamless_loop(workdir, segments, max_len=max_len)
     segments = _split_standalone(workdir, segments)
     _write_json(workdir / "segments.json", segments)
     _write_json(workdir / "selection.json", stats)

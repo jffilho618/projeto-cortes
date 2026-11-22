@@ -54,8 +54,8 @@ development_status:
   3-6-6-pesos-calibrados-pelo-gabarito: backlog
   epic-3-6-retrospective: optional
 
-  epic-3-7: backlog
-  3-7-1-cold-open-reverso-e-seamless-loop-renderizados: backlog
+  epic-3-7: in-progress
+  3-7-1-cold-open-reverso-e-seamless-loop-renderizados: done
   3-7-2-layout-dinamico-e-sniper-crop-no-render: backlog
   3-7-3-par-short-longo-com-sobreposicao-e-versao-tiktok-60s: backlog
   3-7-4-arcos-de-2-atos-e-compilacao-por-arquetipo-renderizados: backlog

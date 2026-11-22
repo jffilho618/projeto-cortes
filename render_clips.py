@@ -771,6 +771,7 @@ def write_meta(seg, out_path, source_meta=None):
         "pinned_comment_debate",
         "parent_long_clip_id",
         "cold_open",
+        "transformacoes",
         "thumbnail_1280x720",
         "llm_mode_used",
         "archetype",
@@ -956,6 +957,7 @@ def _apply_green_seal(seg, cap_words, start, dur):
     gs_plan = plan_green_seal_audio_and_captions(
         cap_words, clip_start=start, clip_end=start + dur, cold_open_plan=seg.get("cold_open"))
     seg["_green_seal_bleeps"] = list(gs_plan["bleep_intervals"])
+    seg["_cold_open_bleeps"] = list(gs_plan.get("cold_open_bleeps") or [])  # 3.7.1: Selo Verde no teaser
     seg["_green_seal_status"] = gs_plan["status"]
     if gs_plan["status"] == "hard_block":
         raise PolicyViolationError(
@@ -965,6 +967,27 @@ def _apply_green_seal(seg, cap_words, start, dur):
             details={"hits": gs_plan["hard_block_hits"]},
         )
     return gs_plan["censored_words"]
+
+
+def _apply_cold_open(seg, out, start, preview=False, tightened=False):
+    """3.7.1: cola o teaser do clímax no 0:00 do mp4 já renderizado (medido ou desligado, com motivo)."""
+    plan = seg.get("cold_open")
+    if not isinstance(plan, dict) or not plan.get("enabled"):
+        return False
+    if preview or tightened:
+        plan["enabled"] = False
+        plan["motivo"] = "preview" if preview else "tighten muda a linha do tempo do vídeo"
+        return False
+    from picorte.engine.retention_engine import prepend_cold_open
+    if prepend_cold_open(out, plan, float(start), seg.get("_cold_open_bleeps") or []):
+        plan["rendered"] = True
+        seg.setdefault("transformacoes", []).append({
+            "nome": "cold_open", "teaser": [plan.get("teaser_start"), plan.get("teaser_end")],
+            "fonte": plan.get("climax_fonte")})
+        return True
+    plan["rendered"] = False
+    plan["motivo"] = "falha no ffmpeg ao colar o teaser (corte saiu sem Cold Open)"
+    return False
 
 
 def _green_seal_audio_filter(bleeps, dur):
@@ -1192,6 +1215,7 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         cmd[cmd.index("-c:v"):cmd.index("-c:v")] = ["-af", ",".join(af_parts)]
     print(">", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True, cwd=str(out_dir))
+    _apply_cold_open(seg, out, start, preview=preview, tightened=do_tighten)
     write_srt(cap_words, start, start + dur, out.with_suffix(".srt"),
               group_size=resolved["words_per_cue"])
 

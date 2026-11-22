@@ -204,6 +204,15 @@ def edit_transcript(path, words):
     return data
 
 
+def _chat_peaks(path):
+    """Picos do Sismógrafo do chat (3.6.2) gravados no projeto; vazio sem chat (3.7.1: clímax do Cold Open)."""
+    try:
+        data = json.loads((Path(path) / "chat_seismic.json").read_text(encoding="utf-8"))
+        return list(data.get("peaks") or []) if isinstance(data, dict) else []
+    except (OSError, ValueError):
+        return []
+
+
 def validate_segments(segments, duration):
     if not isinstance(segments, list):
         raise ValueError("Candidates must be a list.")
@@ -590,15 +599,16 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                 try:
                     enriched_seg = {**segment, "id": segment["id"] + "-" + key[:8]}
                     try:
-                        from picorte.engine.retention_engine import build_cold_open_plan
-                        enriched_seg["cold_open"] = build_cold_open_plan(
-                            float(segment["start"]),
-                            float(segment["end"]),
-                            archetype=segment.get("archetype"),
-                            tone=segment.get("tone"),
-                        )
-                    except Exception:
-                        pass
+                        # 3.7.1: Cold Open só com clímax MEDIDO (pico de chat ou punchline), respeitando max_len
+                        from picorte.engine.retention_engine import cold_open_for_segment
+                        plan = cold_open_for_segment(
+                            segment, data["words"], _chat_peaks(path), max_len=options.get("max_len"))
+                        if plan.get("novo_inicio") is not None:
+                            enriched_seg["start"] = plan["novo_inicio"]
+                        enriched_seg["cold_open"] = plan
+                    except Exception as exc:
+                        enriched_seg["cold_open"] = {"enabled": False,
+                                                     "motivo": f"erro no plano: {type(exc).__name__}: {exc}"}
                     output = render_clips.render(enriched_seg, data["words"], render_source, W, H, path,
                         options["aspect"], out_dir=out, style=options["style"],
                         do_tighten=options["tighten"], loudnorm=options["loudnorm"], preview=preview,

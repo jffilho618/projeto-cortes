@@ -142,6 +142,8 @@ def test_e3_practical_end_to_end_real_video_ffmpeg_chat_cv_thumbnail_dashboard_d
     assert segs
     segs[0]["context_banner_2s"] = "CLUTCH IMPOSSIVEL NO FINAL!"
     segs[0]["pinned_comment_debate"] = "Voce teria arriscado essa play?"
+    # 3.7.1: Cold Open só com clímax MEDIDO — aqui a punchline ("inacreditavel", ~12 s) está nas palavras
+    segs[0]["hook_quote"] = "inacreditavel"
     (pdir / "segments.json").write_text(json.dumps(segs), encoding="utf-8")
 
     # 4. Roda render real FFmpeg (9:16, ass queimado, thumbnail 1280x720, cold_open, DB sync)
@@ -166,6 +168,10 @@ def test_e3_practical_end_to_end_real_video_ffmpeg_chat_cv_thumbnail_dashboard_d
     assert meta["context_banner_2s"] == "CLUTCH IMPOSSIVEL NO FINAL!"
     assert meta["pinned_comment_debate"] == "Voce teria arriscado essa play?"
     assert meta["cold_open"]["teaser_duration"] >= 1.2
+    # 3.7.1: o teaser foi colado de verdade no vídeo (antes era só plano, W3)
+    assert meta["cold_open"]["rendered"] is True, meta["cold_open"]
+    assert meta["cold_open"]["climax_fonte"] == "punchline"
+    assert any(t["nome"] == "cold_open" for t in meta["transformacoes"])
     assert Path(meta["thumbnail_1280x720"]).is_file()
     # P2 (Épico 4): todo corte final sai com veredito P1. Aqui o portão de ingestão foi liberado por fixture
     # sem fonte vinculada, então o escudo precisa barrar a exportação (fonte sem vínculo = hard_block).
