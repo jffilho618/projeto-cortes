@@ -130,7 +130,9 @@ def test_e3_practical_end_to_end_real_video_ffmpeg_chat_cv_thumbnail_dashboard_d
     # Confirma que Sismógrafo do Chat + Visão Games rodaram de verdade na descoberta
     assert "chat" in candidates[0]["evidence"]
     assert "visual_games" in candidates[0]["evidence"]
-    assert candidates[0]["evidence"]["chat"] >= 6.0
+    # 3.6.2: a nota do chat de um trecho vem da reação ~30 s DEPOIS dele (atraso do chat); num vídeo de 22 s
+    # com a explosão dentro do próprio corte não há "depois". O que este teste prova é que o Sismógrafo rodou.
+    assert candidates[0]["evidence"].get("chat_measured") is True
 
     selection_meta = json.loads((pdir / "selection.json").read_text(encoding="utf-8"))
     assert selection_meta.get("source_duration") == pytest.approx(22.0)

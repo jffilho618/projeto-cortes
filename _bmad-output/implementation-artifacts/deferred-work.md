@@ -25,3 +25,18 @@ Fonte: `_bmad-output/brainstorming/brainstorm-arquetipos-e-motor-de-selecao-2026
 - **W13** — Casar fala com chat: detectar quando o streamer lê uma mensagem do chat em voz alta (sinal de `chat_trolagem` ou filtro de leitura chata).
 - **W14** — Cota de diversidade por arquétipo por canal/dia na fila de publicação (Épico 6).
 - **W15** — Telas de morte/WASTED/game over no dossiê de cada jogo como sinal visual de nobada.
+
+## Da história 3.6.2 — Sismógrafo 2.0 (2026-11-22)
+
+Fonte: `docs/superpowers/plans/2026-11-21-3-6-2-sismografo-2.md`, `benchmarks/2026-11-21-baseline-det.json`, `benchmarks/2026-11-22-3.6.2-det-parcial.json`.
+
+- **W17 · A 3.6.2 fechou sem ganho medido** — com o Editor-Chefe determinístico, `x50ONQrBPRM` empatou (P@5 0,20) e `w546blqOvVU` caiu de 0,40 para 0,20 (1–2 acertos, dentro do ruído). As outras 2 lives não foram medidas na 3.6.2 (ver W19). Código mantido: anti-spam, tipo de reação e atraso calibrado servem de sinal para o painel e de rótulo para o Épico 7. Reavaliar quando houver gabarito melhor (W20).
+- **W18 · Editor-Chefe local lento e pesado** — o lote do Ollama tem até 28 candidatos (~7,7 mil tokens de prompt + ~7 mil de resposta, ~5 min no `qwen3.5:9b`); com `num_ctx` 16384 o modelo fica 16% na CPU numa placa de 8 GB. Proposta: lote de 10–12 candidatos só para o Ollama + `num_ctx` 8192 (cabe 100% na GPU). Muda a régua: re-medir o baseline junto. O streaming da resposta (prazo de silêncio 180 s + teto de 900 s) já entrou na 3.6.2.
+- **W19 · JSON inválido determinístico** — no `5P8qh7jZti8` com a 3.6.2, o lote 2/2 do Editor-Chefe devolve JSON inválido sempre (temperatura 0 → a nova tentativa repete a mesma resposta). Hipótese: prompt + resposta passam de 16 mil tokens e o Ollama corta. Na nova tentativa, variar a semente; ver W18.
+- **W20 · Gabarito de comentários é fraco** — 4 lives e comentários com horário só pegam estrago grande; diferença de 1–2 acertos é ruído. O gabarito de verdade vem das métricas reais pós-publicação (snapshots 1h/24h/7d, Épico 7).
+- **W21 · Sismógrafo em chat gigante** — no `4Lo5m9WlD6w` (~670 msg/min) a 3.6.2 gerou 0 picos; a calibração do atraso foi fraca em 3 de 4 lives (caiu no padrão de 30 s). Rever o limiar de pico relativo à taxa do chat.
+- **W22 · Batedor de IA (Full-VOD Scout) sem teto de custo** — com motor pago (Claude/Gemini) o número de blocos cresce com a duração do VOD; precisa de estimativa e teto antes de rodar (regra 6).
+- **W23 · Erro do Gemini esconde o stderr** — o `CalledProcessError` não mostra o motivo (429 de cota só apareceu com um espião).
+- **W24 · Chat de VOD longo estoura o tempo** — o download do chat do `x50ONQrBPRM` (11 h) parou em 6h05.
+- **W25 · Whisper traduz cutscenes em inglês** para um português quebrado; avaliar forçar o idioma por trecho ou marcar a cutscene.
+- **W26 · Lives longas com P@5 0 no baseline** — o `x50ONQrBPRM` (11 h) foi o pior do conjunto; investigar se o batedor dilui os destaques em VOD longo.

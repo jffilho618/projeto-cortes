@@ -1657,7 +1657,7 @@ def apply_4d_and_snap(
     visual_scores: dict[tuple[float, float], dict[str, float]] | None = None,
 ) -> list[dict]:
     """Aplica snap de fronteiras (sem cortar palavras) e fusão 4D nos candidatos."""
-    from picorte.engine.chat_seismic import score_chat_window
+    from picorte.engine.chat_seismic import peak_reaction_for_window, score_chat_window
     from picorte.engine.snap_boundaries import snap_window_to_words_and_silences
 
     out = []
@@ -1703,6 +1703,10 @@ def apply_4d_and_snap(
             ev["vision_measured"] = True
         if chat_seismic:
             ev["chat_measured"] = True
+            # 3.6.2: tipo de reação do pico cujo lance-causa cai dentro do corte (riso, susto, pedido de corte…)
+            pk = peak_reaction_for_window(chat_seismic, snapped_s, snapped_e)
+            if pk:
+                ev["chat_reaction"] = pk["reaction_type"]
         rec["evidence"] = ev
         out.append(rec)
     return out
@@ -1774,14 +1778,39 @@ def _load_source_meta(workdir: Path) -> dict:
     return meta if isinstance(meta, dict) else {}
 
 
-def _load_optional_chat_seismic(workdir: Path, source: str | None, duration_s: float) -> dict | None:
-    """Procura log de chat da live ao lado do projeto/vídeo e calcula o Sismógrafo 1Hz."""
-    from picorte.engine.chat_seismic import analyze_chat_seismic, parse_chat_log
+def _audio_jump_for(workdir: Path):
+    """Saltos de áudio por segundo a partir do audio_features.npz já medido (prosódia barata, sem reabrir o áudio)."""
+    import numpy as _np
+    from picorte.engine.chat_seismic import audio_jump_series
 
+    path = Path(workdir) / "audio_features.npz"
+    if not path.is_file():
+        return None
+    try:
+        with _np.load(path) as data:
+            if "rms" not in data.files:
+                return None
+            baseline = data["baseline"] if "baseline" in data.files else None
+            return audio_jump_series(data["rms"], baseline)
+    except (OSError, ValueError):
+        return None
+
+
+def _load_optional_chat_seismic(workdir: Path, source: str | None, duration_s: float):
+    """Sismógrafo do chat (v2, 3.6.2). Devolve (sismógrafo | None, motivo quando desligado | None).
+
+    Desliga abaixo de 20 msg/min (taxa medida só no trecho coberto: o chat de VOD longo pode vir parcial).
+    """
+    from picorte.engine.chat_seismic import (MIN_CHAT_PER_MIN, SEISMIC_VERSION, analyze_chat_seismic, is_noise,
+                                             parse_chat_log)
+
+    workdir = Path(workdir)
     seismic_cache = workdir / "chat_seismic.json"
     if seismic_cache.is_file():
         try:
-            return json.loads(seismic_cache.read_text(encoding="utf-8"))
+            cached = json.loads(seismic_cache.read_text(encoding="utf-8"))
+            if isinstance(cached, dict) and cached.get("version") == SEISMIC_VERSION:
+                return cached, None
         except (OSError, ValueError):
             pass
 
@@ -1800,10 +1829,16 @@ def _load_optional_chat_seismic(workdir: Path, source: str | None, duration_s: f
         if cand_path.is_file():
             msgs = parse_chat_log(cand_path)
             if msgs:
-                seismic = analyze_chat_seismic(msgs, duration_s=duration_s)
+                valid = sum(1 for m in msgs if not is_noise(m.get("text")))
+                minutes = max(1.0, float(msgs[-1]["t"]) / 60.0)
+                rate = valid / minutes
+                if rate < MIN_CHAT_PER_MIN:
+                    return None, f"chat pequeno demais ({rate:.1f} msg/min; mínimo {MIN_CHAT_PER_MIN:g})"
+                seismic = analyze_chat_seismic(msgs, duration_s=duration_s, audio_jump=_audio_jump_for(workdir))
+                seismic["msgs_per_min"] = round(rate, 1)
                 _write_json(seismic_cache, seismic)
-                return seismic
-    return None
+                return seismic, None
+    return None, None
 
 
 def _keyframe_video(workdir):
@@ -1920,7 +1955,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
     import ingest as _ingest
     from picorte.engine.multitrack import payoff_first_rewind
     resolved_vp = resolve_vision_preset(vision_preset)
-    chat_seismic = _load_optional_chat_seismic(workdir, source, source_duration)
+    chat_seismic, chat_off_reason = _load_optional_chat_seismic(workdir, source, source_duration)
     source_meta = _load_source_meta(workdir)
     blind = _benchmark_blind(workdir)
     heatmap_peaks = _gabarito_heatmap_peaks(workdir, source_meta)
@@ -2005,8 +2040,9 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
                     "raw_score": 7.5,
                     "seed_kind": "chat_peak",
                     "score_parts": {"chat_vel_zscore": pk.get("vel_zscore", 0.0)},
-                    "evidence": {},
-                    "reason": f"Pico sísmico do chat (z={pk.get('vel_zscore')}, emotes={pk.get('emote_burst')})",
+                    "evidence": {"chat_reaction": pk["reaction_type"]} if pk.get("reaction_type") else {},
+                    "reason": (f"Pico sísmico do chat (z={pk.get('vel_zscore')}, reação={pk.get('reaction_type')}, "
+                               f"lance em {pk.get('cause_second')}s, atraso {pk.get('delay_s')}s)"),
                 })
 
     # Comentários com timestamp do YouTube (3.5.4): o público marcou estes momentos.
@@ -2066,7 +2102,17 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 
     # Saúde dos sinais (W9): o painel do E6 só exibe; aqui nada mais falha em silêncio.
     _health.record(workdir, "chat", "ok" if chat_seismic else "na",
-                   f"{len((chat_seismic or {}).get('peaks') or [])} picos" if chat_seismic else "sem log de chat")
+                   f"{len((chat_seismic or {}).get('peaks') or [])} picos" if chat_seismic
+                   else (chat_off_reason or "sem log de chat"))
+    if chat_seismic:
+        cal = chat_seismic.get("delay") or {}
+        if cal.get("confiavel"):
+            _health.record(workdir, "chat_delay", "ok",
+                           f"atraso {cal.get('delay_s')} s calibrado (força {cal.get('strength')})")
+        else:
+            _health.record(workdir, "chat_delay", "ok",
+                           f"fraco: chat pouco confiável, usando {chat_seismic.get('delay_s')} s "
+                           f"({cal.get('fonte')}, força {cal.get('strength')})")
     if blind:
         _health.record(workdir, "heatmap", "na", "escondido do motor pelo modo cego (só gabarito, 3.6.1)")
         _health.record(workdir, "comment_seeds", "na", "escondidos do motor pelo modo cego (só gabarito, 3.6.1)")
@@ -2137,7 +2183,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         from picorte.ai.llm_scout import query_vod_clips, scout_full_vod
         from picorte.engine.multitrack import build_multitrack_pool
 
-        router = LLMRouter(ollama_host=host, ollama_model=llm or None)
+        router = LLMRouter(ollama_host=host, ollama_model=llm or None, deterministic=_benchmark_blind(workdir))
         source_meta = _load_source_meta(workdir)
         dossier = load_dossier_for_source(source_meta)
         golden_examples = load_golden_examples()

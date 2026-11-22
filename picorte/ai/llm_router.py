@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 import urllib.request
 from pathlib import Path
 from typing import Any, Callable
@@ -203,6 +204,11 @@ def _extract_json_array(raw_text: str) -> list[dict[str, Any]] | None:
 
 
 OLLAMA_NUM_CTX = 16384
+BENCHMARK_SEED = 3612
+# A resposta vem em streaming: o prazo por leitura só pega servidor mudo; o teto total segura um laço.
+# Um lote de 28 candidatos gera ~7 mil tokens (~5 min no qwen3.5:9b dividido CPU/GPU numa placa de 8 GB).
+OLLAMA_SILENCE_TIMEOUT_S = 180
+OLLAMA_TOTAL_TIMEOUT_S = 900
 OLLAMA_THINKING_FAMILIES = ("qwen3", "deepseek-r1")
 _THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
@@ -226,6 +232,11 @@ def _measured_signals(ev: dict[str, Any]) -> dict[str, Any]:
         out["fala"] = str(ev["speech_rate"])
     if ev.get("chat_measured"):
         out["chat"] = round(float(ev.get("chat") or 0.0), 1)
+        # 3.6.2: que tipo de reação o chat teve ao lance (riso, susto, cringe…); pedido explícito de corte pesa mais.
+        if ev.get("chat_reaction"):
+            out["reacao_chat"] = str(ev["chat_reaction"])
+            if ev["chat_reaction"] == "pedido_corte":
+                out["pedido_corte"] = True
     if ev.get("vision_measured"):
         out["facecam"] = round(float(ev.get("visual_games") or 0.0), 1)
         out["hud"] = round(float(ev.get("hud") or 0.0), 1)
@@ -259,9 +270,13 @@ class LLMRouter:
         ollama_model: str | None = None,
         provider_runner: Callable[[str, str | None, str, str], str] | None = None,
         vram_runner: VRAMRunner | None = None,
+        deterministic: bool = False,
     ) -> None:
         self.ollama_host = (ollama_host or os.environ.get("OLLAMA_HOST") or "http://localhost:11434").rstrip("/")
         self.ollama_model = ollama_model or _default_ollama_model()
+        # 3.6.2: no conjunto de prova o Editor-Chefe local é determinístico, para o antes/depois medir o motor
+        # e não o sorteio do LLM (controle de 2026-11-21: só re-rodar o Qwen mudou a P@5 em até 0,27).
+        self.deterministic = bool(deterministic)
         self.provider_runner = provider_runner or self._run_provider
         self.vram_runner = vram_runner or VRAMRunner()
 
@@ -270,7 +285,7 @@ class LLMRouter:
             chosen_model = model or self.ollama_model
             body: dict[str, Any] = {
                 "model": chosen_model,
-                "stream": False,
+                "stream": True,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -278,6 +293,8 @@ class LLMRouter:
                 # O padrão do Ollama (2–4 mil tokens) cortaria em silêncio o prompt do Editor-Chefe (~6 mil).
                 "options": {"num_ctx": OLLAMA_NUM_CTX},
             }
+            if self.deterministic:
+                body["options"].update({"temperature": 0, "seed": BENCHMARK_SEED})
             if str(chosen_model).lower().startswith(OLLAMA_THINKING_FAMILIES):
                 body["think"] = False  # sem bloco de pensamento: resposta direta em JSON e mais rápida
             payload = json.dumps(body).encode("utf-8")
@@ -289,10 +306,19 @@ class LLMRouter:
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                with urllib.request.urlopen(req, timeout=180) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                content = str((data.get("message") or {}).get("content") or "")
-                return _THINK_BLOCK_RE.sub("", content).strip()
+                parts: list[str] = []
+                started = time.monotonic()
+                with urllib.request.urlopen(req, timeout=OLLAMA_SILENCE_TIMEOUT_S) as resp:
+                    for line in resp:
+                        if not line.strip():
+                            continue
+                        chunk = json.loads(line.decode("utf-8"))
+                        parts.append(str((chunk.get("message") or {}).get("content") or ""))
+                        if chunk.get("done"):
+                            break
+                        if time.monotonic() - started > OLLAMA_TOTAL_TIMEOUT_S:
+                            raise TimeoutError(f"resposta do Ollama passou de {OLLAMA_TOTAL_TIMEOUT_S} s")
+                return _THINK_BLOCK_RE.sub("", "".join(parts)).strip()
 
             return self.vram_runner.run_stage("ollama_rerank", _call_ollama)
 

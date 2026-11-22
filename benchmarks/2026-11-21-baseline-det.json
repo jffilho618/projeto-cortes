@@ -1,0 +1,329 @@
+{
+  "data": "2026-11-21",
+  "label": "baseline-det",
+  "conjunto": "C:\\Users\\jffil\\AppData\\Local\\Temp\\claude\\64b3665a3e04b676\\20e95acf-18e6-4e0c-a8ef-861bc1b96525\\scratchpad\\conjunto_det.json",
+  "tol_s": 10.0,
+  "ks": [
+    5,
+    10
+  ],
+  "custo": "zero (só arquivos locais; nenhuma chamada a LLM)",
+  "media": {
+    "vods_com_gabarito": 4,
+    "k": {
+      "5": {
+        "precisao": 0.3,
+        "precisao_acaso": 0.1496,
+        "lift": 2.0056,
+        "recall": 0.1282,
+        "recall_acaso": 0.0538,
+        "vods_acima_do_acaso": 3
+      },
+      "10": {
+        "precisao": 0.15,
+        "precisao_acaso": 0.1552,
+        "lift": 0.9662,
+        "recall": 0.1282,
+        "recall_acaso": 0.114,
+        "vods_acima_do_acaso": 3
+      }
+    }
+  },
+  "media_pre_editor": {
+    "vods_com_gabarito": 4,
+    "k": {
+      "10": {
+        "precisao": 0.2,
+        "precisao_acaso": 0.1456,
+        "lift": 1.3737,
+        "recall": 0.1282,
+        "recall_acaso": 0.1071,
+        "vods_acima_do_acaso": 3
+      },
+      "20": {
+        "precisao": 0.1875,
+        "precisao_acaso": 0.1401,
+        "lift": 1.338,
+        "recall": 0.2379,
+        "recall_acaso": 0.1923,
+        "vods_acima_do_acaso": 3
+      }
+    }
+  },
+  "vods": [
+    {
+      "projeto": "2905f8cc8241",
+      "video_id": "x50ONQrBPRM",
+      "titulo": "GTA 6 É AGORA , O INICIO DA GAMEPLAY",
+      "duracao_s": 40815.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 42,
+        "heatmap": 0
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 18,
+        "momentos": 42,
+        "k": {
+          "5": {
+            "k_efetivo": 5,
+            "acertos": 1,
+            "precisao": 0.2,
+            "precisao_acaso": 0.097,
+            "lift": 2.0626,
+            "recall": 0.0238,
+            "recall_acaso": 0.013,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 1,
+            "precisao": 0.1,
+            "precisao_acaso": 0.082,
+            "lift": 1.2199,
+            "recall": 0.0238,
+            "recall_acaso": 0.0214,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      },
+      "pre_editor": {
+        "status": "ok",
+        "clipes": 11180,
+        "momentos": 42,
+        "k": {
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 1,
+            "precisao": 0.1,
+            "precisao_acaso": 0.0837,
+            "lift": 1.1952,
+            "recall": 0.0238,
+            "recall_acaso": 0.0219,
+            "semeados_pelo_gabarito": 0
+          },
+          "20": {
+            "k_efetivo": 20,
+            "acertos": 1,
+            "precisao": 0.05,
+            "precisao_acaso": 0.0784,
+            "lift": 0.6374,
+            "recall": 0.0238,
+            "recall_acaso": 0.0402,
+            "semeados_pelo_gabarito": 0
+          }
+        },
+        "candidatos": 11180,
+        "cobertura": 0.8571
+      }
+    },
+    {
+      "projeto": "ae5f08feaaa0",
+      "video_id": "5P8qh7jZti8",
+      "titulo": "🔴AO VIVO BISTECONE🔴 O PROTAGONISTA VOLTOU!!! JOGANDO GRANNY NOVAMENTE",
+      "duracao_s": 6350.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 5,
+        "heatmap": 1
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 19,
+        "momentos": 6,
+        "k": {
+          "5": {
+            "k_efetivo": 5,
+            "acertos": 2,
+            "precisao": 0.4,
+            "precisao_acaso": 0.0985,
+            "lift": 4.0611,
+            "recall": 0.3333,
+            "recall_acaso": 0.0794,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 2,
+            "precisao": 0.2,
+            "precisao_acaso": 0.0975,
+            "lift": 2.051,
+            "recall": 0.3333,
+            "recall_acaso": 0.151,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      },
+      "pre_editor": {
+        "status": "ok",
+        "clipes": 965,
+        "momentos": 6,
+        "k": {
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 2,
+            "precisao": 0.2,
+            "precisao_acaso": 0.098,
+            "lift": 2.0414,
+            "recall": 0.3333,
+            "recall_acaso": 0.1517,
+            "semeados_pelo_gabarito": 0
+          },
+          "20": {
+            "k_efetivo": 20,
+            "acertos": 3,
+            "precisao": 0.15,
+            "precisao_acaso": 0.0936,
+            "lift": 1.602,
+            "recall": 0.5,
+            "recall_acaso": 0.2695,
+            "semeados_pelo_gabarito": 0
+          }
+        },
+        "candidatos": 965,
+        "cobertura": 0.8333
+      }
+    },
+    {
+      "projeto": "b273d9db8c56",
+      "video_id": "w546blqOvVU",
+      "titulo": "GTA 6 GAMEPLAY ATÉ EU NÃO AGUENTAR MAIS",
+      "duracao_s": 15036.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 20,
+        "heatmap": 0
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 29,
+        "momentos": 20,
+        "k": {
+          "5": {
+            "k_efetivo": 5,
+            "acertos": 2,
+            "precisao": 0.4,
+            "precisao_acaso": 0.1957,
+            "lift": 2.044,
+            "recall": 0.1,
+            "recall_acaso": 0.0556,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 2,
+            "precisao": 0.2,
+            "precisao_acaso": 0.1586,
+            "lift": 1.2611,
+            "recall": 0.1,
+            "recall_acaso": 0.0854,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      },
+      "pre_editor": {
+        "status": "ok",
+        "clipes": 4171,
+        "momentos": 20,
+        "k": {
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 3,
+            "precisao": 0.3,
+            "precisao_acaso": 0.1462,
+            "lift": 2.0518,
+            "recall": 0.1,
+            "recall_acaso": 0.0791,
+            "semeados_pelo_gabarito": 0
+          },
+          "20": {
+            "k_efetivo": 20,
+            "acertos": 5,
+            "precisao": 0.25,
+            "precisao_acaso": 0.1283,
+            "lift": 1.9485,
+            "recall": 0.15,
+            "recall_acaso": 0.131,
+            "semeados_pelo_gabarito": 0
+          }
+        },
+        "candidatos": 4171,
+        "cobertura": 1.0
+      }
+    },
+    {
+      "projeto": "c433780dc1e0",
+      "video_id": "4Lo5m9WlD6w",
+      "titulo": "POPPY PLAY TIME AO VIVO",
+      "duracao_s": 9802.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 14,
+        "heatmap": 4
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 31,
+        "momentos": 18,
+        "k": {
+          "5": {
+            "k_efetivo": 5,
+            "acertos": 1,
+            "precisao": 0.2,
+            "precisao_acaso": 0.2072,
+            "lift": 0.9654,
+            "recall": 0.0556,
+            "recall_acaso": 0.0672,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 1,
+            "precisao": 0.1,
+            "precisao_acaso": 0.2829,
+            "lift": 0.3535,
+            "recall": 0.0556,
+            "recall_acaso": 0.1983,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      },
+      "pre_editor": {
+        "status": "ok",
+        "clipes": 2035,
+        "momentos": 18,
+        "k": {
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 2,
+            "precisao": 0.2,
+            "precisao_acaso": 0.2545,
+            "lift": 0.7858,
+            "recall": 0.0556,
+            "recall_acaso": 0.1758,
+            "semeados_pelo_gabarito": 0
+          },
+          "20": {
+            "k_efetivo": 20,
+            "acertos": 6,
+            "precisao": 0.3,
+            "precisao_acaso": 0.2602,
+            "lift": 1.1531,
+            "recall": 0.2778,
+            "recall_acaso": 0.3284,
+            "semeados_pelo_gabarito": 0
+          }
+        },
+        "candidatos": 2035,
+        "cobertura": 0.9444
+      }
+    }
+  ],
+  "sem_gabarito": [],
+  "duplicados_ignorados": []
+}

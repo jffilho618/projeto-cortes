@@ -1,0 +1,114 @@
+{
+  "data": "2026-11-21",
+  "label": "controle-3.6.1",
+  "conjunto": "C:\\Users\\jffil\\AppData\\Local\\Temp\\claude\\64b3665a3e04b676\\20e95acf-18e6-4e0c-a8ef-861bc1b96525\\scratchpad\\conjunto_controle-3.6.1.json",
+  "tol_s": 10.0,
+  "ks": [
+    5,
+    10
+  ],
+  "custo": "zero (só arquivos locais; nenhuma chamada a LLM)",
+  "media": {
+    "vods_com_gabarito": 2,
+    "k": {
+      "5": {
+        "precisao": 0.4333,
+        "precisao_acaso": 0.1958,
+        "lift": 2.2133,
+        "recall": 0.0806,
+        "recall_acaso": 0.0457,
+        "vods_acima_do_acaso": 2
+      },
+      "10": {
+        "precisao": 0.3833,
+        "precisao_acaso": 0.1786,
+        "lift": 2.1458,
+        "recall": 0.0806,
+        "recall_acaso": 0.0574,
+        "vods_acima_do_acaso": 1
+      }
+    }
+  },
+  "vods": [
+    {
+      "projeto": "b273d9db8c56",
+      "video_id": "w546blqOvVU",
+      "titulo": "GTA 6 GAMEPLAY ATÉ EU NÃO AGUENTAR MAIS",
+      "duracao_s": 15036.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 20,
+        "heatmap": 0
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 25,
+        "momentos": 20,
+        "k": {
+          "5": {
+            "k_efetivo": 5,
+            "acertos": 1,
+            "precisao": 0.2,
+            "precisao_acaso": 0.1638,
+            "lift": 1.2212,
+            "recall": 0.05,
+            "recall_acaso": 0.0439,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 10,
+            "acertos": 1,
+            "precisao": 0.1,
+            "precisao_acaso": 0.1295,
+            "lift": 0.7722,
+            "recall": 0.05,
+            "recall_acaso": 0.0674,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      }
+    },
+    {
+      "projeto": "c433780dc1e0",
+      "video_id": "4Lo5m9WlD6w",
+      "titulo": "POPPY PLAY TIME AO VIVO",
+      "duracao_s": 9802.0,
+      "modo_ia": "ollama",
+      "modo_cego": true,
+      "fontes": {
+        "comentarios": 14,
+        "heatmap": 4
+      },
+      "resultado": {
+        "status": "ok",
+        "clipes": 3,
+        "momentos": 18,
+        "k": {
+          "5": {
+            "k_efetivo": 3,
+            "acertos": 2,
+            "precisao": 0.6667,
+            "precisao_acaso": 0.2278,
+            "lift": 2.9267,
+            "recall": 0.1111,
+            "recall_acaso": 0.0475,
+            "semeados_pelo_gabarito": 0
+          },
+          "10": {
+            "k_efetivo": 3,
+            "acertos": 2,
+            "precisao": 0.6667,
+            "precisao_acaso": 0.2278,
+            "lift": 2.9267,
+            "recall": 0.1111,
+            "recall_acaso": 0.0475,
+            "semeados_pelo_gabarito": 0
+          }
+        }
+      }
+    }
+  ],
+  "sem_gabarito": [],
+  "duplicados_ignorados": []
+}
