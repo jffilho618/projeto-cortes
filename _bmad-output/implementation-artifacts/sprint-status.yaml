@@ -70,16 +70,16 @@ development_status:
   5-5-formatos-especiais-de-evento-com-hyperframes-compilacao-cross-streamer: backlog
   epic-5-retrospective: optional
 
-  epic-6: backlog
+  epic-6: in-progress
   6-1-pacote-de-publicacao-assistida-export-pack-py-e-cofre-oauth-publicadores-das-5-redes: backlog
   6-2-monitor-de-claims-e-disjuntor-global-automatico-claim-breaker-py: backlog
   # 2026-11-21 (sprint-change-proposal-2026-11-21-painel.md): a 6.3 virou 6.3–6.8; painel antes do 3.6.2+ e do E5
-  6-3-base-do-estudio-fastapi-contrato-de-capacidades-e-casca-da-spa: backlog
-  6-4-verdade-no-banco-sinais-medidos-veredito-p1-fonte-e-reconciliacao: backlog
-  6-5-lives-pagina-inicial-ao-vivo-em-alta-recentes-e-na-sua-mesa: backlog
-  6-6-fila-e-revisao-de-cortes-player-waveform-sinais-e-rotulos: backlog
-  6-7-fontes-escudo-saude-do-motor-benchmark-e-configuracoes: backlog
-  6-8-publicacao-assistida-e-areas-travadas-oauth-claims-metricas-bandit-radar: backlog
+  6-3-base-do-estudio-fastapi-contrato-de-capacidades-e-casca-da-spa: review
+  6-4-verdade-no-banco-sinais-medidos-veredito-p1-fonte-e-reconciliacao: review
+  6-5-lives-pagina-inicial-ao-vivo-em-alta-recentes-e-na-sua-mesa: review
+  6-6-fila-e-revisao-de-cortes-player-waveform-sinais-e-rotulos: review
+  6-7-fontes-escudo-saude-do-motor-benchmark-e-configuracoes: review
+  6-8-publicacao-assistida-e-areas-travadas-oauth-claims-metricas-bandit-radar: review
   epic-6-retrospective: optional
 
   epic-7: backlog

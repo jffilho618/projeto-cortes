@@ -288,8 +288,7 @@ class PicorteMCPServer:
 def main() -> None:
     server = PicorteMCPServer()
     try:  # B6: políticas de publisher disponíveis desde o boot
-        from picorte.risk_shield.policy_gate import sync_publisher_policies
-        sync_publisher_policies(server.service.db)
+        server.service.risk_sync_publisher_policies()  # AD-10: o MCP só fala com o escudo pelo StudioService
     except Exception as exc:
         sys.stderr.write(f"picorte-mcp: políticas não sincronizadas ({exc})\n")
     for line in sys.stdin:
