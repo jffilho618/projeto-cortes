@@ -52,6 +52,8 @@ COMPANION_SYSTEM_PROMPT = (
     '{"index": int, "adjustment": float (-2.5 a 3.0), "archetype": str, "tier": "ouro"|"forte"|"experimental", '
     '"tone": "hype"|"editorial"|"curioso"|"ironico"|"tenso", '
     '"rewatchability": float (0-10), "shareability": float (0-10), '
+    '"standalone": float (0-10: dá para entender o corte SEM conhecer o streamer nem a live? '
+    'abaixo de 5 ele não vai para Short isolado), '
     '"hook_quote": str (opcional, frase lapidar), '
     '"proposed_title": str, '
     '"context_banner_2s": str (4 a 6 palavras curtas, concretas e magnéticas; '
@@ -514,7 +516,7 @@ class LLMRouter:
             tone = str(entry.get("tone") or "").strip().lower()
             if tone in VALID_TONES:
                 rec["tone"] = tone
-            for num_field in ("rewatchability", "shareability"):
+            for num_field in ("rewatchability", "shareability", "standalone"):
                 val = entry.get(num_field)
                 if isinstance(val, (int, float)) and not isinstance(val, bool) and math.isfinite(val):
                     rec[num_field] = round(max(0.0, min(10.0, float(val))), 2)

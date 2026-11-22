@@ -1033,6 +1033,14 @@ OPTIONAL_SEGMENT_KEYS = (
     "hook_quote",
     "track_origin",
     "why_extraordinary",
+    # 3.6.3–3.6.5: dica de arquétipo, confiança da ordem, sinais do ouro, standalone e tags (falha técnica)
+    "archetype_hint",
+    "confianca_baixa",
+    "ordem_ajustes",
+    "sinais_independentes",
+    "ouro_rebaixado",
+    "standalone",
+    "tags",
 )
 
 
@@ -1796,6 +1804,45 @@ def _audio_jump_for(workdir: Path):
         return None
 
 
+def _chat_log_paths(workdir, source):
+    """Onde o log de chat do projeto pode estar (o primeiro que existir vale)."""
+    workdir = Path(workdir)
+    paths = [workdir / "chat.json", workdir / "chat.jsonl"]
+    if source:
+        src_p = Path(source)
+        paths.extend([src_p.with_suffix(".chat.json"), src_p.parent / f"{src_p.stem}_chat.json"])
+    return paths
+
+
+def _apply_digital_silence(workdir, timeline, candidates, source, chat_seismic):
+    """3.6.5: descarta candidatos mudos (> 20% de silêncio digital) e marca falha técnica; registra na saúde."""
+    from picorte.engine import health as _health
+    from picorte.engine.confidence import digital_silence_ranges, drop_muted_candidates, tag_technical_failures
+    rms = getattr(timeline, "rms", None)
+    if rms is None or len(rms) == 0:
+        _health.record(workdir, "silencio_digital", "na", "sem medição de áudio")
+        return candidates
+    ranges = digital_silence_ranges(rms)
+    if not ranges:
+        _health.record(workdir, "silencio_digital", "na", "nenhum trecho mutado/sem áudio")
+        return candidates
+    _write_json(Path(workdir) / "digital_silence.json", [{"start": a, "end": b} for a, b in ranges])
+    kept, dropped = drop_muted_candidates(candidates, ranges)
+    msgs = []
+    if chat_seismic:
+        from picorte.engine.chat_seismic import parse_chat_log
+        for p in _chat_log_paths(workdir, source):
+            if p.is_file():
+                msgs = parse_chat_log(p)
+                break
+    kept = tag_technical_failures(kept, ranges, msgs, float((chat_seismic or {}).get("delay_s") or 30))
+    tagged = sum(1 for c in kept if "falha_tecnica" in (c.get("tags") or []))
+    _health.record(workdir, "silencio_digital", "ok",
+                   f"{len(ranges)} trechos mutados/sem áudio; {dropped} candidatos descartados (P1); "
+                   f"{tagged} com falha técnica")
+    return kept
+
+
 def _load_optional_chat_seismic(workdir: Path, source: str | None, duration_s: float):
     """Sismógrafo do chat (v2, 3.6.2). Devolve (sismógrafo | None, motivo quando desligado | None).
 
@@ -1814,18 +1861,7 @@ def _load_optional_chat_seismic(workdir: Path, source: str | None, duration_s: f
         except (OSError, ValueError):
             pass
 
-    candidates = [
-        workdir / "chat.json",
-        workdir / "chat.jsonl",
-    ]
-    if source:
-        src_p = Path(source)
-        candidates.extend([
-            src_p.with_suffix(".chat.json"),
-            src_p.parent / f"{src_p.stem}_chat.json",
-        ])
-
-    for cand_path in candidates:
+    for cand_path in _chat_log_paths(workdir, source):
         if cand_path.is_file():
             msgs = parse_chat_log(cand_path)
             if msgs:
@@ -1871,6 +1907,32 @@ def _attach_keyframe_descriptions(workdir, pool):
     _health.record(workdir, "keyframes", "ok",
                    f"{res['described']} candidatos descritos · consumo reportado ~US$ {res['cost_usd']}")
     return res["candidates"]
+
+
+def _split_standalone(workdir, segments):
+    """3.6.5 (AC4): corte com standalone < 5 sai dos Shorts e vai para longo_compilacao.json."""
+    from picorte.engine.confidence import split_standalone
+    shorts, longos = split_standalone(segments)
+    path = Path(workdir) / "longo_compilacao.json"
+    if longos:
+        _write_json(path, longos)
+    elif path.is_file():
+        path.unlink()
+    return shorts
+
+
+def _record_project_confidence(workdir):
+    """3.6.5 (AC5): engine_health.json ganha `confianca_projeto` — quais sinais rodaram de verdade."""
+    from picorte.engine import health as _health
+    from picorte.engine.confidence import project_confidence
+    conf = project_confidence(_health.load(workdir))
+    _health.record(workdir, "confianca_projeto", "ok", json.dumps(conf, ensure_ascii=False))
+    return conf
+
+
+def heatmap_seed_overall(value):
+    """3.6.5 (AC6): semente do heatmap é bônus fraco (antes 7.4 + 1.5·v, dominava a pista de energia)."""
+    return round(6.6 + min(0.6, float(value) * 0.6), 2)
 
 
 def _end_after_laugh(workdir, segments, max_len=None, source_duration=None):
@@ -2022,7 +2084,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
             if not covered:
                 candidates.append(rw)
 
-    # Promove picos do heatmap Most Replayed do YouTube como sementes candidatas obrigatórias.
+    # Promove picos do heatmap Most Replayed do YouTube como sementes candidatas (3.6.5: com nota fraca).
     for pk in heatmap_peaks:
         ps = float(pk["start"])
         pe = float(pk["end"])
@@ -2047,7 +2109,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
                 "duration": round(we - ws, 2),
                 "hook": make_hook(peak_text) if peak_text else f"Pico Most Replayed em {int(center)}s",
                 "text": peak_text,
-                "overall": round(7.4 + min(1.5, float(pk["value"]) * 1.5), 2),
+                "overall": heatmap_seed_overall(pk["value"]),
                 "raw_score": 7.6,
                 "seed_kind": "heatmap_peak",
                 "track_origin": "energy_chat_heatmap",
@@ -2124,6 +2186,9 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
             chat_seismic=chat_seismic,
             visual_scores=visual_scores,
         )
+
+    # 3.6.5 (AC1/AC2): trecho mudo não vira corte (P1); a volta do silêncio com chat de queda vira falha técnica.
+    candidates = _apply_digital_silence(workdir, timeline, candidates, source, chat_seismic)
 
     # Prosódia (3.5.4): riso 3–6 Hz, susto e ritmo de fala nos melhores candidatos (CPU, não fatal).
     from picorte.engine import health as _health
@@ -2265,6 +2330,10 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                 scout_cands = []
                 from picorte.engine import health as _health
                 _health.record(workdir, "full_vod_scout", "failed", f"{type(scout_exc).__name__}: {scout_exc}")
+            else:
+                from picorte.engine import health as _health
+                _health.record(workdir, "full_vod_scout", "ok" if scout_cands else "na",
+                               f"{len(scout_cands)} achados" if scout_cands else "nenhum achado")
 
         if hunt_mode == "deep" and sentences:
             try:
@@ -2343,6 +2412,12 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
             mode = "ollama"
             save_candidates(workdir, candidates, discovery, mode=mode)
 
+    # 3.6.5 (AC3): ouro exige ≥ 2 sinais independentes medidos; senão forte.
+    from picorte.engine.confidence import enforce_gold_rule
+    gold_dropped = enforce_gold_rule(deduped)
+    if gold_dropped:
+        from picorte.engine import health as _health
+        _health.record(workdir, "ouro_2_sinais", "ok", f"{gold_dropped} ouro(s) rebaixado(s) a forte por ter < 2 sinais")
     segments, stats = select_candidates(
         deduped, min_score=min_score, max_clips=max_clips,
         preferred_len=preferred_len, band=effective_band, dedupe=False,
@@ -2350,8 +2425,10 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         evidence_available=discovery.get("evidence_available"))
     segments = _end_after_laugh(workdir, segments, max_len=max_len,
                                 source_duration=discovery.get("source_duration"))
+    segments = _split_standalone(workdir, segments)
     _write_json(workdir / "segments.json", segments)
     _write_json(workdir / "selection.json", stats)
+    _record_project_confidence(workdir)
     if hunt_mode == "deep" and segments:
         try:
             from picorte.engine.archetype_compiler import compile_by_archetype

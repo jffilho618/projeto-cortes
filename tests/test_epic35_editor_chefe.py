@@ -266,7 +266,7 @@ def test_benchmark_geladeira_alanzoka_end_to_end_select(tmp_path: Path, monkeypa
     gel_clips = [s for s in segments if s.get("archetype") == "callback_oculto"]
     assert len(gel_clips) >= 1
     gel = gel_clips[0]
-    assert gel["tier"] == "ouro"
+    assert gel["tier"] == "ouro", (gel.get("ouro_rebaixado"), gel.get("sinais_independentes"), gel.get("track_origin"))
     assert "trailer" in gel["context_banner_2s"].lower()
     assert gel["overall"] >= 9.0
 

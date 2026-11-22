@@ -64,6 +64,11 @@ ANUNCIO_CORTE_PTBR: tuple[str, ...] = (
 # 2.0 (e não 1.5): uma frase sozinha (1.5) precisa de outro sinal junto. Na olhada nas 4 lives do conjunto
 # (2026-11-22), frases genéricas sozinhas ("não era pra", "esqueci de") marcavam trechos que não eram vacilo.
 VACILO_MICO_MIN_SCORE = 2.0
+
+# 3.6.5 (AC6): heatmap "mais repetidos" rebaixado — a pesquisa mostrou que é ruidoso para escolher Shorts.
+HEATMAP_BONUS_SHORT = 0.3
+HEATMAP_BONUS_LONG = 1.2
+LONG_MIN_S = 180.0
 SHOCK_GAP_MIN_S, SHOCK_GAP_MAX_S = 1.0, 3.0
 
 ARCHETYPE_LEXICON_PTBR: dict[str, tuple[str, ...]] = {
@@ -391,9 +396,15 @@ def build_multitrack_pool(
         s = float(cand.get("start") or 0.0)
         e = float(cand.get("end") or s)
         near_heatmap = any(s - 10.0 <= hc <= e + 10.0 for hc in heatmap_centers)
+        # 3.6.5 (AC6): o heatmap é ruidoso — bônus fraco em Short; forte só no Longo (3–5 min), para achar o miolo
+        heat_bonus = 0.0
+        if near_heatmap or cand.get("seed_kind") == "heatmap_peak":
+            heat_bonus = HEATMAP_BONUS_LONG if (e - s) >= LONG_MIN_S else HEATMAP_BONUS_SHORT
+            cand["near_heatmap"] = True
+            cand["heatmap_bonus"] = heat_bonus
 
         # Pista 1: Energia / Chat / Heatmap
-        e_score = overall + (1.2 if near_heatmap or cand.get("seed_kind") in ("chat_peak", "heatmap_peak") else 0.0)
+        e_score = overall + heat_bonus + (1.2 if cand.get("seed_kind") == "chat_peak" else 0.0)
         pista_energy.append((e_score, cand))
 
         # Pista 3: Sério / Polêmica / Silêncio Magnético
@@ -450,6 +461,11 @@ def build_multitrack_pool(
         [dict(c) for c in (scout_candidates or [])],
         key=lambda c: -float(c.get("overall") or 8.0),
     )
+    # 3.6.5: o achado do batedor também sabe se cai num pico do heatmap (sinal independente do ouro)
+    for sc in scout_list:
+        ss, se = float(sc.get("start") or 0.0), float(sc.get("end") or 0.0)
+        if any(ss - 10.0 <= hc <= se + 10.0 for hc in heatmap_centers):
+            sc["near_heatmap"] = True
     _take_from(scout_list, "full_vod_scout", track_quotas["full_vod_scout"])
 
     # 1b) Vacilo / Mico (3.6.3): logo após o Scout — senão o TF-IDF da pista detetive pega o vacilo antes
