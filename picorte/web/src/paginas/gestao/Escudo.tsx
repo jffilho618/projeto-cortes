@@ -3,6 +3,7 @@ import { pedir } from "../../api/cliente";
 import { faltaAte, REDES, rotuloRede, TIPOS_CLAIM, useEscudo, useFontes, type PreviaClaim } from "../../api/gestao";
 import { Carregando, ErroCarregar, Vazio } from "../../ui/Estados";
 import { Icone } from "../../ui/Icone";
+import { IconeRede } from "../../ui/IconeRede";
 import { plural } from "../../ui/tempo";
 import { haQuanto } from "../lives/regras";
 import { FuncoesDaArea } from "../PaginaArea";
@@ -50,7 +51,7 @@ function Cooldowns() {
           const c = q.data.cooldowns[r.id];
           return (
             <li key={r.id} className="linha-tab">
-              <div><b>{r.rotulo}</b></div>
+              <div><IconeRede rede={r.id} /></div>
               {c ? <span className="est bar num"><Icone nome="av" pequeno />Em cooldown · faltam {faltaAte(c.ate, agora)}</span>
                 : <span className="est ok"><Icone nome="ok" pequeno />Livre para publicar</span>}
               <span className="meta">{c?.motivo ?? ""}</span>

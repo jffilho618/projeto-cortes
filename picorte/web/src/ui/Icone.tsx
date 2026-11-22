@@ -21,6 +21,12 @@ const DESENHOS = {
   pino: <><path d="M9 4h6l-1 5 3 3H7l3-3z" /><path d="M12 15v5" /></>,
   seta: <path d="M9 6l6 6-6 6" />,
   voltar: <path d="M15 6l-6 6 6 6" />,
+  // redes: mesmo traço do sprite; Shorts em pé (9:16) e Longo deitado (16:9) para não confundir
+  shorts: <><rect x="7" y="3" width="10" height="18" rx="3" /><path d="M10.9 9.8v4.4l3.4-2.2z" /></>,
+  ytlongo: <><rect x="3" y="5.5" width="18" height="12" rx="3.5" /><path d="M10.4 9.3v4.4l3.8-2.2zM7 20.5h10" /></>,
+  tiktok: <><path d="M13.6 4v10.6a3.4 3.4 0 1 1-3.4-3.4" /><path d="M13.6 4c.4 2.5 2 4.1 4.6 4.4" /></>,
+  instagram: <><rect x="4" y="4" width="16" height="16" rx="4.6" /><circle cx="12" cy="12" r="3.6" /><path d="M16.9 7.1v.1" /></>,
+  facebook: <><circle cx="12" cy="12" r="8.6" /><path d="M15.2 7.6h-1.4c-1.3 0-1.9.8-1.9 2.1v10.9M9.4 13h5.4" /></>,
 } satisfies Record<string, ReactNode>;
 
 export type NomeIcone = keyof typeof DESENHOS;

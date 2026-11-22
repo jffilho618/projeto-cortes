@@ -208,6 +208,8 @@
   .dica { font-size: 13px; color: var(--tinta-3); }
   .mini-espaco { padding: 2px 0; font-size: 13px; color: var(--tinta-2); display: flex; gap: 8px; align-items: center; }
   .mini-espaco .ic { width: 14px; height: 14px; color: var(--tinta-3); flex: none; }
+  .mini-espaco .ladrilho .ic { width: 17px; height: 17px; color: var(--tinta); }
+  .mini-espaco .ladrilho { width: 26px; height: 26px; border-radius: 8px; }
   .prev { display: grid; grid-template-columns: 132px 1fr; gap: 14px; align-items: center; }
   .vert { aspect-ratio: 9 / 16; border-radius: 12px; overflow: hidden; display: grid; background: #000; box-shadow: 0 0 0 .5px var(--fio); }
   .vert.dividido { grid-template-rows: 32% 68%; }
@@ -334,6 +336,25 @@
   .cartao { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
   .cartao h3 { font-size: 16px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
   .contagem { font-size: 23px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Publicação ---------- */
+  .rede { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; color: var(--tinta); white-space: nowrap; }
+  .ladrilho { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 9px; background: var(--folha-2); color: var(--tinta); box-shadow: inset 0 0 0 .5px var(--fio-forte), 0 1px 1px rgba(0, 0, 0, .08); }
+  .ladrilho .ic { width: 22px; height: 22px; stroke-width: 1.75; }
+  .linha-pub { display: grid; grid-template-columns: 20px minmax(0, 1.5fr) 110px minmax(0, 2fr) minmax(0, .8fr); gap: 16px; align-items: center; padding: 11px 18px; min-height: 56px; }
+  .linha-pub + .linha-pub { border-top: .5px solid var(--fio); }
+  .linha-pub > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .linha-pub > div b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .linha-pub input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--acao); }
+  .quando { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+  .quando .chip-rede { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px 0 7px; border-radius: var(--raio-ctrl); background: var(--folha-2); box-shadow: inset 0 0 0 .5px var(--fio); font-size: 12.5px; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+  .quando .chip-rede .ladrilho { width: 20px; height: 20px; border-radius: 6px; background: transparent; box-shadow: none; color: var(--tinta-2); }
+  .quando .chip-rede .ic { width: 16px; height: 16px; }
+  .quando .chip-rede.espera { color: var(--tinta); box-shadow: inset 0 0 0 1px var(--aviso); }
+  .rede-pub { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; }
+  .rede-pub + .rede-pub { border-top: .5px solid var(--fio); }
+  .rede-pub .cab-rede { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .rede-pub .cab-rede .rede { min-width: 170px; }
 
   /* só desktop */
   .janela-pequena { display: none; }

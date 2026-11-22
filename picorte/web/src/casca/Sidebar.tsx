@@ -26,7 +26,7 @@ interface Props {
   desligado: boolean;
 }
 
-const SUFIXO: Record<string, string> = { fila: "na fila", revisao: "para revisar", fontes: "pede você" };
+const SUFIXO: Record<string, string> = { fila: "na fila", revisao: "para revisar", publicacao: "links pendentes", fontes: "pede você" };
 
 function ItemNav({ area, contagem, travada, alerta = false }: { area: Area; contagem: number; travada: boolean; alerta?: boolean }) {
   return (
@@ -47,6 +47,7 @@ export function Sidebar({ aberta, fixa, eventos, alternarFixa, capacidades, proj
   const contagens: Record<string, number> = desligado ? {} : {
     fila: contarNaFila(projetos),
     revisao: mesa?.revisar ?? 0,
+    publicacao: mesa?.links_pendentes ?? 0,
     fontes: mesa?.pede_voce.length ?? 0,
   };
   return (
