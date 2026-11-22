@@ -67,10 +67,10 @@ def catalogo() -> list[Capacidade]:
         # 4. Fontes e permissões (P1)
         _c("FON-1", "fontes", "Lista de fontes com status e base da permissão", L, None, "", "sources + registry.json", "4", "4.1"),
         _c("FON-2", "fontes", "Cadastrar fonte e mudar permissão", L, None, "", "StudioService.create_source", "2", "2.4"),
-        _c("FON-3", "fontes", "Tentativas barradas", P, "dado", "registro próprio; hoje só no erro do projeto", "project.error [P1:pre_ingest]", "4", "4.1"),
+        _c("FON-3", "fontes", "Tentativas barradas", L, None, "", "GET /api/fontes/barradas (erros [P1:pre_ingest] dos projetos)", "6", "6.7", ligou_em="2026-11-22"),
         _c("FON-4", "fontes", "Elo fonte → vídeos → cortes", L, None, "", "videos.source_id", "2", "2.1", ligou_em="2026-11-22"),
         _c("FON-5", "fontes", "Políticas por publisher/jogo", L, None, "", "publisher_policies (sincronizada no boot)", "4", "4.1", ligou_em="2026-11-22"),
-        _c("FON-6", "fontes", "Campanhas CPM", P, "codigo", "tela de cadastro e radar", "campaigns", "4", "4.1/5.1"),
+        _c("FON-6", "fontes", "Campanhas CPM", P, "codigo", "cadastro e lista ligados; o radar de campanhas chega na história 5.1", "campaigns", "4", "4.1/5.1"),
         _c("FON-7", "fontes", "Pausar fonte (disjuntor manual)", L, None, "", "/api/risco/pausar-fonte, MCP", "4", "4.1"),
         _c("FON-8", "fontes", "Dossiês de jogo", L, None, "", "picorte/ai/game_dossiers/", "3.5", "3.5.5"),
         _c("FON-9", "fontes", "Perfis e piadas internas", T, "codigo", "história 5.4", "—", "5", "5.4"),
@@ -82,7 +82,7 @@ def catalogo() -> list[Capacidade]:
         _c("ESC-5", "escudo", "YPP, originalidade TikTok e pHash", P, "dado", "aparece quando houver corte renderizado com veredito", "clips.ypp_transform_score, phash_signature", "4", "4.2", escopo="corte"),
         _c("ESC-6", "escudo", "Limpeza de texto por rede", L, None, "", "publish_kit", "4", "4.2", escopo="corte"),
         _c("ESC-7", "escudo", "Cadência e cooldown de 48h", L, None, "", "work/cadence_state.json", "4", "4.2"),
-        _c("ESC-8", "escudo", "Registrar claim manual → pausa", P, "codigo", "formulário na tela", "claims_events", "4", "4.1"),
+        _c("ESC-8", "escudo", "Registrar claim manual → pausa", L, None, "", "POST /api/escudo/claim → claims_events", "6", "6.7", ligou_em="2026-11-22"),
         _c("ESC-9", "escudo", "Monitor automático de claims", T, "codigo", "história 6.2", "—", "6", "6.2", "CAP-16"),
         # 6. Saúde e benchmark
         _c("SAU-1", "saude", "Saúde por projeto e por parte", L, None, "", "engine_health.json", "1", "1b/W9", escopo="projeto"),
@@ -114,7 +114,7 @@ def catalogo() -> list[Capacidade]:
         _c("LIV-1", "lives", "Ao vivo: streamers cadastrados transmitindo agora", T, "config", "credencial de app da Twitch (grátis e revogável); consulta oficial de está ao vivo", "sources + API oficial", "6", "6.5"),
         _c("LIV-2", "lives", "Abrir a live com player ao vivo e opções de corte", T, "codigo", "player embutido oficial + captura da live (5.2)", "—", "5", "5.2", depende=("LIV-1",)),
         _c("LIV-3", "lives", "Em alta", T, "codigo", "radar com a ordenação oficial das APIs (5.1)", "—", "5", "5.1"),
-        _c("LIV-4", "lives", "Recentes: vídeos recentes dos streamers cadastrados", P, "config", "sem a chave da YouTube Data API a lista vem do yt-dlp, sem estatísticas oficiais; a chave entra em Configurações (6.7)", "registry.json + yt-dlp (cache 6 h, máx. 30 dias)", "6", "6.5"),
+        _c("LIV-4", "lives", "Recentes: vídeos recentes dos streamers cadastrados", P, "config", "sem a chave da YouTube Data API a lista vem do yt-dlp, sem estatísticas oficiais; a chave entra em Configurações quando o cofre de segredos existir (história 6.1)", "registry.json + yt-dlp (cache 6 h, máx. 30 dias)", "6", "6.5"),
         _c("LIV-5", "lives", "Cortar um VOD na Sala do vídeo", L, None, "", "GET /api/sala + POST /api/lote", "6", "6.5", ligou_em="2026-11-22"),
         _c("LIV-6", "lives", "Selo AO VIVO, espectadores, duração", T, "codigo", "só com dado da API oficial e verificado_em", "API oficial", "5", "5.2", depende=("LIV-1",)),
     ]

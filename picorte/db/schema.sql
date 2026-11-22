@@ -152,3 +152,15 @@ CREATE TABLE IF NOT EXISTS revisao_cortes (
     exemplo_ouro INTEGER NOT NULL DEFAULT 0,
     atualizado_em TEXT NOT NULL
 );
+
+-- História 6.7 (C1): toda mudança de permissão de fonte fica no histórico, com base, evidência e motivo.
+CREATE TABLE IF NOT EXISTS fontes_historico (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_id TEXT NOT NULL,
+    de TEXT NOT NULL DEFAULT '',
+    para TEXT NOT NULL,
+    base TEXT NOT NULL DEFAULT '',
+    evidencia TEXT NOT NULL DEFAULT '',
+    motivo TEXT NOT NULL,
+    em TEXT NOT NULL
+);
