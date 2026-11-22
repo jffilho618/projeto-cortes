@@ -12,3 +12,8 @@ export function verificadoHa(iso: string | null, agora: Date = new Date()): stri
   const dias = Math.floor(horas / 24);
   return `verificado há ${dias} ${dias === 1 ? "dia" : "dias"}`;
 }
+
+/** "1 vídeo", "3 vídeos": `singular` e `plural` por extenso. */
+export function plural(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}

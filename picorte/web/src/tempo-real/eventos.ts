@@ -5,6 +5,7 @@ import { CHAVE_MESA } from "../api/lives";
 import { CHAVE_PROJETOS } from "../api/projetos";
 import { CHAVE_FILA } from "../api/revisao";
 import type { Progresso } from "../api/tipos";
+import { avisarJob } from "../ui/notificacoes";
 import { useTempoReal } from "./loja";
 
 type Invalidar = (chave: readonly string[]) => void;
@@ -30,10 +31,12 @@ export function ligarEventos(fonte: EventSource, invalidar: Invalidar): () => vo
       invalidar(CHAVE_FILA);
     },
     capacidades: () => invalidar(CHAVE_CAPACIDADES),
-    job: () => {
+    job: (e) => {
       invalidar(CHAVE_PROJETOS);
       invalidar(CHAVE_FILA);
       invalidar(CHAVE_MESA);
+      const dados = lerDados(e);
+      if (dados) avisarJob(dados);
     },
     progresso: (e) => {
       const dados = lerDados(e);
