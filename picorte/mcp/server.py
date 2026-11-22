@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Any
+from typing import Any, Callable
 
 from picorte.services.studio_service import StudioService
 
@@ -15,8 +15,10 @@ from picorte.services.studio_service import StudioService
 class PicorteMCPServer:
     """Expõe as operações de StudioService via ferramentas MCP padrão."""
 
-    def __init__(self, service: StudioService | None = None, *, db: Any = None) -> None:
+    def __init__(self, service: StudioService | None = None, *, db: Any = None,
+                 capacidades: "Callable[[], dict[str, Any]] | None" = None) -> None:
         self.service = service or (StudioService(db=db) if db is not None else StudioService())
+        self._capacidades = capacidades
 
     def list_tools(self) -> list[dict[str, Any]]:
         return [
@@ -61,16 +63,14 @@ class PicorteMCPServer:
             },
             {
                 "name": "picorte_enfileirar_video",
-                "description": "Enfileira um VOD, live ou arquivo local no banco canônico do Picorte.",
+                "description": ("Cria o projeto e o coloca na fila única do Estúdio (o mesmo caminho do painel). "
+                                "O Estúdio precisa estar aberto (python estudio.py); o portão P1 roda antes de baixar."),
                 "inputSchema": {
                     "type": "object",
                     "required": ["source_url"],
                     "properties": {
                         "source_url": {"type": "string"},
-                        "source_id": {"type": "string"},
-                        "origin_type": {"type": "string", "default": "vod"},
-                        "game_slug": {"type": "string", "default": ""},
-                        "workdir_path": {"type": "string", "default": ""},
+                        "options": {"type": "object"},
                     },
                 },
             },
@@ -156,6 +156,11 @@ class PicorteMCPServer:
                     },
                 },
             },
+            {
+                "name": "picorte_capacidades",
+                "description": "Status real de cada função do Picorte (ligado/parcial/travado), com motivo, o que falta, fonte do dado e origem. Mesma função do painel (GET /api/capacidades).",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
         ]
 
     def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
@@ -180,13 +185,7 @@ class PicorteMCPServer:
                 evidence_url=args.get("evidence_url"),
             )
         if name == "picorte_enfileirar_video":
-            return self.service.enqueue_video(
-                source_url=args["source_url"],
-                source_id=args.get("source_id"),
-                origin_type=args.get("origin_type", "vod"),
-                game_slug=args.get("game_slug", ""),
-                workdir_path=args.get("workdir_path", ""),
-            )
+            return self.service.enqueue_video(source_url=args["source_url"], options=args.get("options"))
         if name == "picorte_listar_cortes":
             return self.service.list_clips(video_id=args.get("video_id"))
         if name == "picorte_buscar_por_pergunta":
@@ -230,6 +229,12 @@ class PicorteMCPServer:
                 details=str(args.get("details") or ""),
                 reason=str(args.get("reason") or ""),
             )
+        if name == "picorte_capacidades":
+            if self._capacidades is not None:
+                return self._capacidades()
+            from picorte.capacidades import listar_capacidades
+            from picorte.config import PROJECT_ROOT
+            return listar_capacidades(PROJECT_ROOT / "projects")
         raise ValueError(f"Ferramenta MCP desconhecida: {name}")
 
     def handle_jsonrpc(self, request: dict[str, Any]) -> dict[str, Any] | None:
@@ -282,6 +287,11 @@ class PicorteMCPServer:
 
 def main() -> None:
     server = PicorteMCPServer()
+    try:  # B6: políticas de publisher disponíveis desde o boot
+        from picorte.risk_shield.policy_gate import sync_publisher_policies
+        sync_publisher_policies(server.service.db)
+    except Exception as exc:
+        sys.stderr.write(f"picorte-mcp: políticas não sincronizadas ({exc})\n")
     for line in sys.stdin:
         raw = line.strip()
         if not raw:

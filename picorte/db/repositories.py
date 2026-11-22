@@ -226,12 +226,12 @@ class ClipsRepository:
         ab_variant: int = 1,
         start_sec: float,
         end_sec: float,
-        score_chat: float = 0.0,
-        score_audio: float = 0.0,
-        score_visual: float = 0.0,
-        score_text: float = 0.0,
+        score_chat: float | None = None,
+        score_audio: float | None = None,
+        score_visual: float | None = None,
+        score_text: float | None = None,
         score_overall: float = 0.0,
-        ypp_transform_score: int = 0,
+        ypp_transform_score: int | None = None,
         phash_signature: str = "",
         llm_mode_used: str = "heuristic",
         risk_status: str = "pending",
@@ -258,12 +258,12 @@ class ClipsRepository:
                 int(ab_variant),
                 float(start_sec),
                 float(end_sec),
-                float(score_chat),
-                float(score_audio),
-                float(score_visual),
-                float(score_text),
+                None if score_chat is None else float(score_chat),  # NULL = não medido (A5)
+                None if score_audio is None else float(score_audio),
+                None if score_visual is None else float(score_visual),
+                None if score_text is None else float(score_text),
                 float(score_overall),
-                int(ypp_transform_score),
+                None if ypp_transform_score is None else int(ypp_transform_score),
                 phash_signature,
                 llm_mode_used,
                 risk_status,
@@ -277,10 +277,12 @@ class ClipsRepository:
         )
         return self.db.fetch_one("SELECT * FROM clips WHERE id = ?", (cid,))  # type: ignore[return-value]
 
-    def list_clips(self, video_id: str | None = None) -> list[dict[str, Any]]:
+    def list_clips(self, video_id: str | None = None, incluir_arquivados: bool = False) -> list[dict[str, Any]]:
+        filtro = "" if incluir_arquivados else " AND archived_at IS NULL"
         if video_id:
-            return self.db.fetch_all("SELECT * FROM clips WHERE video_id = ? ORDER BY score_overall DESC", (video_id,))
-        return self.db.fetch_all("SELECT * FROM clips ORDER BY created_at DESC")
+            return self.db.fetch_all(
+                f"SELECT * FROM clips WHERE video_id = ?{filtro} ORDER BY score_overall DESC", (video_id,))
+        return self.db.fetch_all(f"SELECT * FROM clips WHERE 1 = 1{filtro} ORDER BY created_at DESC")
 
 
 class PublicationsRepository:

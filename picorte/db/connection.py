@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import Any, Iterator
 from picorte.config import PROJECT_ROOT
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
+ANULAVEIS = ("score_chat", "score_audio", "score_visual", "score_text", "ypp_transform_score")
 
 
 class Database:
@@ -62,6 +64,8 @@ class Database:
     # Colunas adicionadas depois da criação original do schema (bancos antigos não recebem via IF NOT EXISTS).
     _ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
         ("sources", "permission_basis", "TEXT NOT NULL DEFAULT 'explicita'"),
+        ("videos", "archived_at", "TEXT"),
+        ("clips", "archived_at", "TEXT"),
     )
 
     def _migrate(self) -> None:
@@ -69,6 +73,53 @@ class Database:
             if column in self.list_columns(table):
                 continue
             self.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+        self._tornar_anulaveis()
+
+    def _tornar_anulaveis(self) -> None:
+        """B2/B3 (história 6.4): nota não medida e YPP sem veredito viram NULL; os 0.0 antigos eram falsos."""
+        anular = ", ".join(f"{c} = NULL" for c in ANULAVEIS[:4])
+        if self.is_postgres:
+            presos = [r["name"] for r in self.fetch_all(
+                "SELECT column_name AS name FROM information_schema.columns "
+                "WHERE table_name = 'clips' AND is_nullable = 'NO'") if r["name"] in ANULAVEIS]
+            if presos:
+                with self.connect() as conn:
+                    for col in presos:
+                        conn.execute(f"ALTER TABLE clips ALTER COLUMN {col} DROP NOT NULL")
+                    conn.execute(f"UPDATE clips SET {anular}")
+                    conn.execute("UPDATE clips SET ypp_transform_score = NULL WHERE ypp_transform_score = 0")
+            return
+        with self.connect() as conn:
+            info = conn.execute("PRAGMA table_info(clips)").fetchall()
+            ddl = conn.execute("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'clips'").fetchone()["sql"]
+        if not any(r["name"] in ANULAVEIS and r["notnull"] for r in info):
+            return
+        novo = re.sub(r"\b(score_chat|score_audio|score_visual|score_text)\s+REAL\s+NOT\s+NULL\s+DEFAULT\s+0(\.0)?",
+                      r"\1 REAL", ddl, flags=re.I)
+        novo = re.sub(r"\bypp_transform_score\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+0", "ypp_transform_score INTEGER",
+                      novo, flags=re.I)
+        novo = re.sub(r"^CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?\"?clips\"?", "CREATE TABLE clips_novo", novo, flags=re.I)
+        conn = sqlite3.connect(str(self.sqlite_path), isolation_level=None)
+        try:  # receita oficial do SQLite para mudar restrição de coluna: nova tabela, copiar, trocar
+            conn.execute("PRAGMA foreign_keys = OFF")
+            conn.execute("BEGIN")
+            conn.execute(novo)
+            conn.execute("INSERT INTO clips_novo SELECT * FROM clips")
+            conn.execute(f"UPDATE clips_novo SET {anular}")
+            conn.execute("UPDATE clips_novo SET ypp_transform_score = NULL WHERE ypp_transform_score = 0")
+            conn.execute("DROP TABLE clips")
+            conn.execute("ALTER TABLE clips_novo RENAME TO clips")
+            if conn.execute("PRAGMA foreign_key_check").fetchall():
+                raise RuntimeError("Migração do banco quebraria referências; nada foi alterado.")
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.close()
+        with self.connect() as c:  # recria índices que viviam na tabela antiga
+            c.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
 
     @contextmanager
     def transaction(self) -> Iterator["_Tx"]:

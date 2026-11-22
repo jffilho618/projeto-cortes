@@ -227,7 +227,18 @@ def validate_segments(segments, duration):
 
 
 def run_project(path, action="all", preview=False, pick=None, resume=True, progress=None):
-    """Prepare candidates or render saved candidates; checkpoint every successful clip."""
+    """Prepare candidates or render saved candidates; checkpoint every successful clip.
+
+    Holds the per-project job lock (B9) so the Studio can tell a live job from an interrupted one.
+    """
+    from picorte.services.job_lock import segurar_job
+    with segurar_job(Path(path).resolve()):
+        return _run_project(path, action=action, preview=preview, pick=pick,
+                            resume=resume, progress=progress)
+
+
+def _run_project(path, action="all", preview=False, pick=None, resume=True, progress=None):
+    """Body of run_project, called with the job lock held."""
     path = Path(path).resolve()
     state = read_project(path)
     options = validate_options(state["options"])
@@ -674,6 +685,7 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                             options=options,
                             game_slug=str((state.get("source_meta") or {}).get("detected_game") or ""),
                             music_result=music_result,
+                            clip_id=f"studio-{state['id']}:{segment['id']}",
                         )
                 except (Exception, SystemExit) as exc:
                     if not render_from_sections:
@@ -699,18 +711,12 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
             state.update(status="review" if preview else "complete", stage="preview ready" if preview else "complete")
         save_project(path, state)
         try:
+            from picorte.services.reconciliacao import sincronizar_pasta
             from picorte.services.studio_service import StudioService
-            seg_list = read_json(path / "segments.json") if (path / "segments.json").exists() else []
-            t_dur = float((read_json(path / "transcript.json") or {}).get("duration") or 0.0) if (path / "transcript.json").exists() else 0.0
-            StudioService().sync_studio_project(
-                state,
-                segments=seg_list,
-                outputs=state.get("last_outputs") or [],
-                workdir=path,
-                duration_seconds=t_dur,
-            )
-        except Exception:
-            pass
+            sincronizar_pasta(StudioService(), path, state)
+        except Exception as db_exc:  # o banco não derruba o job, mas a falha fica visível na Saúde
+            from picorte.engine import health as _health
+            _health.record(path, "banco", "failed", f"{type(db_exc).__name__}: {db_exc}")
         return state
     except (Exception, SystemExit) as exc:
         state.update(status="failed", error=str(exc), stage=state.get("stage", "failed"))
