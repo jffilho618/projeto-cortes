@@ -1873,6 +1873,46 @@ def _attach_keyframe_descriptions(workdir, pool):
     return res["candidates"]
 
 
+def _end_after_laugh(workdir, segments, max_len=None, source_duration=None):
+    """3.6.4 (AC3): fim nunca no meio de um riso. Sem áudio local, nada muda (sinal só vale se medido)."""
+    from picorte.engine import health as _health
+    if not segments:
+        return segments
+    try:
+        video = json.loads((Path(workdir) / "transcript.json").read_text(encoding="utf-8-sig")).get("video")
+    except (OSError, ValueError):
+        video = None
+    if not video or not Path(video).is_file():
+        _health.record(workdir, "end_after_laugh", "na", "sem áudio local")
+        return segments
+    from picorte.engine.prosody_events import extend_end_past_laugh
+    out = extend_end_past_laugh(segments, video, max_len=max_len, source_duration=source_duration)
+    moved = sum(1 for s in out if (s.get("evidence") or {}).get("end_after_laugh_s"))
+    _health.record(workdir, "end_after_laugh", "ok", f"{moved} de {len(out)} cortes estendidos até o riso acabar")
+    return out
+
+
+def chat_seed_window(pk, sentences, min_len, max_len, source_duration):
+    """Janela da semente de pico de chat; 3.6.4 (AC2): recua até o começo da frase do setup."""
+    from picorte.engine.snap_boundaries import setup_preroll_start
+    ps = float(pk["start"])
+    pe = float(pk["end"])
+    center = (ps + pe) / 2.0
+    span = max(float(min_len), pe - ps)
+    span = min(float(max_len), span)
+    ws = max(0.0, center - span / 2.0)
+    we = min(source_duration if source_duration > 0 else ws + span, ws + span)
+    if (we - ws) < float(min_len) and source_duration >= float(min_len):
+        ws = max(0.0, source_duration - float(min_len))
+        we = source_duration
+    cause = pk.get("cause_second")
+    if cause is not None:
+        pre = setup_preroll_start(sentences or [], float(cause))
+        if pre is not None and float(min_len) <= we - pre <= float(max_len):
+            ws = max(0.0, pre)
+    return ws, we
+
+
 def merge_comment_seeds(candidates, seeds, sentences):
     """Comentários com timestamp viram candidatos com a FALA real do trecho; o comentário fica como pista."""
     out = list(candidates)
@@ -2020,16 +2060,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
     # promove esses picos para janelas candidatas dentro de [min_len, max_len].
     if chat_seismic and chat_seismic.get("peaks"):
         for pk in chat_seismic["peaks"]:
-            ps = float(pk["start"])
-            pe = float(pk["end"])
-            center = (ps + pe) / 2.0
-            span = max(float(min_len), pe - ps)
-            span = min(float(max_len), span)
-            ws = max(0.0, center - span / 2.0)
-            we = min(source_duration if source_duration > 0 else ws + span, ws + span)
-            if (we - ws) < float(min_len) and source_duration >= float(min_len):
-                ws = max(0.0, source_duration - float(min_len))
-                we = source_duration
+            ws, we = chat_seed_window(pk, sentences, min_len, max_len, source_duration)
             covered = any(
                 min(float(c["end"]), we) - max(float(c["start"]), ws) >= 0.4 * max(1.0, we - ws)
                 for c in candidates
@@ -2172,7 +2203,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
            band=None, llm=None, host=OLLAMA_HOST, mode="heuristic",
            ai_mode="heuristic", ai_filter="ollama", ai_companion="claude",
-           query=None, hunt_mode="fast", keyframes=False):
+           query=None, hunt_mode="fast", keyframes=False, max_len=None):
     """Read candidates.json, write segments.json and selection.json."""
     workdir = Path(workdir)
     candidates, discovery = load_candidates(workdir)
@@ -2280,7 +2311,10 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
             _health.record(workdir, "editor", "failed", f"{type(exc).__name__}: {exc}")
             raise EditorChiefUnavailable(ai_mode, f"erro inesperado: {type(exc).__name__}: {exc}") from exc
         from picorte.engine import health as _health
-        _health.record(workdir, "editor", "ok", f"modo {used_mode}")
+        _health.record(workdir, "editor", "ok",
+                       f"modo {used_mode}; ordem semente {routed.get('ordem_semente')}; "
+                       f"{routed.get('confianca_baixa', 0)} finalistas com confiança baixa (notas discordantes "
+                       f"entre 2 ordens)")
         if adjusted:
             by_key = {_candidate_key(item): item for item in adjusted}
             updated_cands = [
@@ -2314,6 +2348,8 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         preferred_len=preferred_len, band=effective_band, dedupe=False,
         discovery=discovery, mode=mode,
         evidence_available=discovery.get("evidence_available"))
+    segments = _end_after_laugh(workdir, segments, max_len=max_len,
+                                source_duration=discovery.get("source_duration"))
     _write_json(workdir / "segments.json", segments)
     _write_json(workdir / "selection.json", stats)
     if hunt_mode == "deep" and segments:

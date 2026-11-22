@@ -213,3 +213,62 @@ def attach_prosody_evidence(
             cand["score_parts"]["prosody_bonus"] = round(bonus, 2)
             cand["overall"] = round(min(10.0, float(cand.get("overall") or 0.0) + bonus), 2)
     return out
+
+
+LAUGH_WINDOW_S = 1.5
+LAUGH_STEP_S = 0.5
+
+
+def extend_end_past_laugh(
+    segments: list[dict[str, Any]],
+    audio_path: Any,
+    *,
+    max_len: float | None = None,
+    source_duration: float | None = None,
+    decoder: Callable[[Any, float, float], np.ndarray] | None = None,
+    sample_rate: int = 16000,
+    max_extra: float = 6.0,
+) -> list[dict[str, Any]]:
+    """3.6.4 (AC3): o corte nunca termina no meio de um riso.
+
+    Mede o riso (3–6 Hz) em janelas de 1,5 s com passo de 0,5 s de `end−1` até `end+max_extra`. Se o
+    riso está ativo no fim, o fim avança até o riso acabar (+1 s), respeitando `max_len`, a duração da
+    fonte e `max_extra`. Sem áudio ou com erro de decodificação, o corte fica como está.
+    """
+    decode = decoder or (lambda p, s, e: _ffmpeg_window(p, s, e, sample_rate))
+    out = [dict(seg, evidence=dict(seg.get("evidence") or {})) for seg in segments or []]
+    for seg in out:
+        start, end = float(seg.get("start") or 0.0), float(seg.get("end") or 0.0)
+        if end <= start:
+            continue
+        limit = end + float(max_extra)
+        if max_len:
+            limit = min(limit, start + float(max_len))
+        if source_duration and source_duration > 0:
+            limit = min(limit, float(source_duration))
+        if limit <= end:
+            continue
+        t0 = max(0.0, end - 1.0)
+        try:
+            samples = np.asarray(decode(audio_path, t0, limit + LAUGH_WINDOW_S), dtype=np.float32).ravel()
+        except Exception:
+            continue
+        win, step = int(LAUGH_WINDOW_S * sample_rate), int(LAUGH_STEP_S * sample_rate)
+        last_laugh_start = None
+        k = 0
+        while k * step + win <= samples.size:
+            a = t0 + k * LAUGH_STEP_S
+            if a > limit:
+                break
+            if detect_laugh_rhythm_cpu(samples[k * step: k * step + win], sample_rate=sample_rate) < LAUGH_MIN:
+                break
+            last_laugh_start = a
+            k += 1
+        if last_laugh_start is None:
+            continue  # sem riso cruzando o fim
+        new_end = min(limit, last_laugh_start + 1.0 + 1.0)  # fim do riso ≈ meio da última janela; +1 s
+        if new_end > end:
+            seg["evidence"]["end_after_laugh_s"] = round(new_end - end, 2)
+            seg["end"] = round(new_end, 2)
+            seg["duration"] = round(new_end - start, 2)
+    return out

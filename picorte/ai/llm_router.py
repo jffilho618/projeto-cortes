@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import random
 import re
 import subprocess
 import tempfile
@@ -59,8 +60,10 @@ COMPANION_SYSTEM_PROMPT = (
     'para referências externas, contextualize SEM dar spoiler da punchline), '
     '"thumbnail_words": str (2-3 palavras em caixa alta), '
     '"pinned_comment_debate": str, '
-    '"expand_start_sec": float (opcional, 0 a 20s se o setup estiver no pre_context), '
-    '"expand_end_sec": float (opcional, 0 a 15s se a punchline estiver no post_context), '
+    '"extend_sentences_before": int (opcional, 0 a 4: quantas frases [-1], [-2]… do pre_context incluir '
+    'para o corte começar no SETUP), '
+    '"extend_sentences_after": int (opcional, 0 a 4: quantas frases [+1], [+2]… do post_context incluir '
+    'para o corte terminar DEPOIS da reação/riso, nunca no meio), '
     '"reason": str}. '
     "REGRAS: NUNCA meça qualidade só por volume/grito — callbacks culturais silenciosos (como testar detalhes de trailer), "
     "desabafos sérios, hot takes e deadpan valem +2.5 a +3.0 e tier 'ouro'. "
@@ -108,7 +111,12 @@ def attach_neighbor_context(
     pre_sec: float = 20.0,
     post_sec: float = 15.0,
 ) -> list[dict[str, Any]]:
-    """Anexa pre_context (20s antes) e post_context (15s depois) a cada candidato."""
+    """Anexa pre_context (20s antes) e post_context (15s depois) a cada candidato.
+
+    3.6.4: o contexto vai numerado por frase ("[-2] … [-1] …" / "[+1] … [+2] …") e as frases ficam em
+    `pre_sentences`/`post_sentences` (da mais próxima para a mais distante), para o Editor-Chefe ajustar
+    as bordas contando frases e o motor converter frase → tempo exato.
+    """
     sents = sentences or []
     out: list[dict[str, Any]] = []
     for cand in candidates:
@@ -118,20 +126,40 @@ def attach_neighbor_context(
             continue
         s = float(rec.get("start") or 0.0)
         e = float(rec.get("end") or s)
-        pre_parts = [
-            str(item.get("text") or "").strip()
-            for item in sents
-            if float(item.get("end") or 0.0) <= s + 0.25 and float(item.get("start") or 0.0) >= s - float(pre_sec)
+        pre = [
+            item for item in sents
+            if str(item.get("text") or "").strip()
+            and float(item.get("end") or 0.0) <= s + 0.25 and float(item.get("start") or 0.0) >= s - float(pre_sec)
         ]
-        post_parts = [
-            str(item.get("text") or "").strip()
-            for item in sents
-            if float(item.get("start") or 0.0) >= e - 0.25 and float(item.get("end") or 0.0) <= e + float(post_sec)
+        post = [
+            item for item in sents
+            if str(item.get("text") or "").strip()
+            and float(item.get("start") or 0.0) >= e - 0.25 and float(item.get("end") or 0.0) <= e + float(post_sec)
         ]
-        rec["pre_context"] = " ".join(p for p in pre_parts if p)[:320]
-        rec["post_context"] = " ".join(p for p in post_parts if p)[:280]
+        pre = sorted(pre, key=lambda x: -float(x.get("start") or 0.0))[:MAX_EDGE_SENTENCES]
+        post = sorted(post, key=lambda x: float(x.get("start") or 0.0))[:MAX_EDGE_SENTENCES]
+        rec["pre_sentences"] = [_edge_sentence(x) for x in pre]
+        rec["post_sentences"] = [_edge_sentence(x) for x in post]
+        rec["pre_context"] = " ".join(
+            f"[-{i}] {str(x.get('text') or '').strip()}" for i, x in reversed(list(enumerate(pre, 1))))[:320]
+        rec["post_context"] = " ".join(
+            f"[+{i}] {str(x.get('text') or '').strip()}" for i, x in enumerate(post, 1))[:280]
         out.append(rec)
     return out
+
+
+MAX_EDGE_SENTENCES = 4
+
+
+def _edge_sentence(item: dict[str, Any]) -> dict[str, Any]:
+    return {"start": float(item.get("start") or 0.0), "end": float(item.get("end") or 0.0),
+            "text": str(item.get("text") or "").strip()}
+
+
+def _int_0_to(val: Any, top: int) -> int:
+    if isinstance(val, bool) or not isinstance(val, (int, float)) or not math.isfinite(val):
+        return 0
+    return max(0, min(top, int(val)))
 
 
 def mmr_diversify(
@@ -280,6 +308,8 @@ class EditorChiefUnavailable(RuntimeError):
 
 
 EDITOR_ATTEMPTS_PER_BATCH = 2
+SECOND_PASS_TOP = 15  # 3.6.4: finalistas reavaliados em outra ordem (+1 chamada por VOD)
+ORDER_DISAGREEMENT_MAX = 1.5  # diferença de nota entre as 2 passadas acima disso → confianca_baixa
 
 
 class LLMRouter:
@@ -455,6 +485,7 @@ class LLMRouter:
                 prev = rec.get("llm_adjustment") or 0.0
                 rec["llm_adjustment"] = float(prev) + adj_clamped
             rec["overall"] = round(max(0.0, min(10.0, base + adj_clamped)), 2)
+            rec["last_pass_adjustment"] = adj_clamped  # 3.6.4: comparado com a 2ª passada (outra ordem)
             rec["llm_mode_used"] = mode_label
             reason = str(entry.get("reason", "")).strip()
             if reason:
@@ -489,11 +520,25 @@ class LLMRouter:
                     rec[num_field] = round(max(0.0, min(10.0, float(val))), 2)
 
             # Ajuste fino seguro de bordas a partir de pre_context / post_context
-            exp_start = entry.get("expand_start_sec")
-            exp_end = entry.get("expand_end_sec")
             cur_start = float(rec.get("start") or 0.0)
             cur_end = float(rec.get("end") or cur_start)
             changed_edges = False
+            # 3.6.4: bordas por FRASE — o motor converte frase → tempo exato pelas frases do Whisper
+            n_before = _int_0_to(entry.get("extend_sentences_before"), MAX_EDGE_SENTENCES)
+            n_after = _int_0_to(entry.get("extend_sentences_after"), MAX_EDGE_SENTENCES)
+            pre_s = rec.get("pre_sentences") or []
+            post_s = rec.get("post_sentences") or []
+            if n_before and pre_s:
+                cur_start = min(cur_start, float(pre_s[min(n_before, len(pre_s)) - 1]["start"]))
+                changed_edges = True
+            if n_after and post_s:
+                cur_end = max(cur_end, float(post_s[min(n_after, len(post_s)) - 1]["end"]))
+                if source_duration and source_duration > 0:
+                    cur_end = min(float(source_duration), cur_end)
+                changed_edges = True
+            # Reserva: provedor que ainda responda em segundos (formato anterior à 3.6.4)
+            exp_start = None if n_before else entry.get("expand_start_sec")
+            exp_end = None if n_after else entry.get("expand_end_sec")
             if isinstance(exp_start, (int, float)) and not isinstance(exp_start, bool) and math.isfinite(exp_start) and exp_start > 0:
                 delta_s = min(20.0, float(exp_start))
                 cur_start = max(0.0, cur_start - delta_s)
@@ -524,6 +569,7 @@ class LLMRouter:
         golden_examples: list[dict[str, Any]] | None = None,
         max_per_archetype: int | None = None,
         keep_overflow: bool = True,
+        order_seed: int | None = None,
     ) -> dict[str, Any]:
         if ai_mode not in VALID_AI_MODES:
             raise ValueError(f"ai_mode inválido '{ai_mode}'. Escolha: {', '.join(VALID_AI_MODES)}")
@@ -549,6 +595,11 @@ class LLMRouter:
                 time_part.append(by_time[int(idx_f)])
                 idx_f += step
             ranked = sorted(top_part + time_part, key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0))))
+
+        # 3.6.4 (AC4): a nota não pode depender da ordem — candidatos embaralhados com semente gravada.
+        if order_seed is None:
+            order_seed = BENCHMARK_SEED if self.deterministic else random.SystemRandom().randrange(1, 2 ** 31)
+        random.Random(order_seed).shuffle(ranked)
 
         def _context_preamble() -> str:
             blocks: list[str] = []
@@ -673,16 +724,61 @@ class LLMRouter:
                         f"{last_problem}"[:400])
             return all_entries
 
+        def _second_pass(items: list[dict[str, Any]], provider_name: str, model_name: str | None) -> int:
+            """3.6.4 (AC4): reavalia os ~15 finalistas em OUTRA ordem; média das 2 notas.
+
+            Diferença > ORDER_DISAGREEMENT_MAX marca `confianca_baixa` e impede `ouro`. Falha da 2ª passada
+            não derruba a seleção: fica a 1ª passada. Devolve quantos finalistas ficaram com confiança baixa.
+            """
+            order = sorted(range(len(items)),
+                           key=lambda i: (-float(items[i].get("overall", 0.0)), float(items[i].get("start", 0.0))))
+            order = [i for i in order[:SECOND_PASS_TOP] if items[i].get("last_pass_adjustment") is not None]
+            if len(order) < 2:
+                return 0
+            random.Random(int(order_seed) + 1).shuffle(order)
+            try:
+                entries = _call_batched(provider_name, model_name, COMPANION_SYSTEM_PROMPT,
+                                        [items[i] for i in order], include_triage=False, include_context=True)
+            except EditorChiefUnavailable:
+                return 0
+            low = 0
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                idx, adj = entry.get("index"), entry.get("adjustment")
+                if isinstance(idx, bool) or not isinstance(idx, int) or not 0 <= idx < len(order):
+                    continue
+                if isinstance(adj, bool) or not isinstance(adj, (int, float)) or not math.isfinite(adj):
+                    continue
+                rec = items[order[idx]]
+                if "ordem_ajustes" in rec:
+                    continue
+                a1 = float(rec["last_pass_adjustment"])
+                a2 = max(-2.5, min(3.0, float(adj)))
+                avg = (a1 + a2) / 2.0
+                rec["overall"] = round(max(0.0, min(10.0, float(rec.get("overall", 0.0)) - a1 + avg)), 2)
+                rec["llm_adjustment"] = round(float(rec.get("llm_adjustment") or 0.0) - a1 + avg, 3)
+                rec["last_pass_adjustment"] = avg
+                rec["ordem_ajustes"] = [round(a1, 2), round(a2, 2)]
+                if abs(a1 - a2) > ORDER_DISAGREEMENT_MAX:
+                    rec["confianca_baixa"] = True
+                    low += 1
+                    if rec.get("tier") == "ouro":
+                        rec["tier"] = "forte"
+            return low
+
         if ai_mode in VALID_PROVIDERS:
             parsed = _call_batched(ai_mode, model, COMPANION_SYSTEM_PROMPT, ranked, include_triage=False, include_context=True)
             if not parsed:
                 raise EditorChiefUnavailable(ai_mode, "nenhuma avaliação válida")
             updated = self._apply_entries(ranked, parsed, mode_label=ai_mode, source_duration=source_duration)
+            low_conf = _second_pass(updated, ai_mode, model)
             if max_per_archetype is not None and any(c.get("archetype") for c in updated):
                 updated = mmr_diversify(updated, max_per_archetype=max_per_archetype, keep_overflow=keep_overflow)
             else:
                 updated.sort(key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0))))
-            return {"candidates": updated, "llm_mode_used": ai_mode}
+            return {"candidates": updated, "llm_mode_used": ai_mode, "ordem_semente": order_seed,
+                    "confianca_baixa": low_conf}
 
         # Modo Dupla: Stage 1 (filter_provider) -> Stage 2 (companion_provider)
         if filter_provider not in VALID_PROVIDERS or companion_provider not in VALID_PROVIDERS:
@@ -697,6 +793,9 @@ class LLMRouter:
         top_filtered = sorted(
             after_filter, key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0)))
         )[:16]
+        random.Random(int(order_seed) + 2).shuffle(top_filtered)  # 3.6.4: o Editor também recebe embaralhado
+        # a 2ª passada compara só notas do Editor-Chefe, nunca a do filtro inicial
+        top_filtered = [{k: v for k, v in c.items() if k != "last_pass_adjustment"} for c in top_filtered]
 
         parsed_companion = _call_batched(
             companion_provider,
@@ -711,8 +810,10 @@ class LLMRouter:
         final_list = self._apply_entries(
             top_filtered, parsed_companion, mode_label=mode_label, accumulate=True, source_duration=source_duration
         )
+        low_conf = _second_pass(final_list, companion_provider, model)
 
         if max_per_archetype is not None and any(c.get("archetype") for c in final_list):
             final_list = mmr_diversify(final_list, max_per_archetype=max_per_archetype)
         final_list.sort(key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0))))
-        return {"candidates": final_list, "llm_mode_used": mode_label}
+        return {"candidates": final_list, "llm_mode_used": mode_label, "ordem_semente": order_seed,
+                "confianca_baixa": low_conf}

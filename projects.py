@@ -466,7 +466,8 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         ai_companion=options.get("ai_companion", "claude"),
                         query=options.get("query"),
                         hunt_mode=options.get("hunt_mode", "fast"),
-                        keyframes=bool(options.get("keyframes", False)))
+                        keyframes=bool(options.get("keyframes", False)),
+                        max_len=options["max_len"])  # 3.6.4: limite do fim estendido até o riso acabar
                     state["cache"]["selection"] = selection_key
                     save_project(path, state)
 
