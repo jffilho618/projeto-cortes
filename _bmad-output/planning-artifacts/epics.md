@@ -452,6 +452,11 @@ Como operador, quero que cada corte tenha edição própria ligada ao conteúdo:
 
 Antes de adotar, uma prova de conceito na 4060 Ti mede o tempo por efeito. Detalhes em `deferred-work.md` (W16).
 
+**Decisão do dono (2026-11-22):**
+- A prova deu ~13 s por efeito avulso e ~10,3 s em lote, no limite de 10 s ou acima dele.
+- Na 3.7.5 os efeitos dos cortes normais ficam em FFmpeg/OpenCV, a reserva que o AC3 prevê.
+- O HyperFrames entra no **Épico 5 (Story 5.5)**, para os formatos especiais de evento.
+
 ---
 
 ## Epic 4: Escudo Anti-Strike, Anti-Desmonetização e Anti-Bloqueio (P1 Inegociável — Ampliado)
@@ -562,6 +567,41 @@ Como operador, quero manter um perfil adaptativo por fonte autorizada contendo b
 
 
 **Nota (2026-11-21, correct-course):** bordões e piadas internas (`lore_bordao`) e o perfil do streamer ficam aqui; incluir os emotes próprios do canal (7TV/BTTV/canal) no perfil, alimentando o léxico do Sismógrafo 2.0 (3.6.2).
+
+### Story 5.5: Formatos Especiais de Evento com HyperFrames — Compilação Cross-Streamer (ex.: "streamers zerando o jogo")
+
+**Origem:** decisão do dono em 2026-11-22, depois da prova de conceito do HyperFrames na 3.7.5 (`deferred-work.md` W16 e W41). Critérios de aceite detalhados escritos ao iniciar o Épico 5, pelo BMAD.
+
+**Descrição:**
+Como operador, quero que, quando vários streamers autorizados viverem o mesmo evento, o Picorte monte vídeos especiais, fora do padrão de corte de uma live só, com edição avançada:
+- **exemplos de evento:** zerar o jogo, lançamento, final de campeonato, cena icônica;
+- **exemplos do que sai:** compilado "5 STREAMERS ZERARAM GTA 6" com abertura animada, o nome de cada streamer na tela, reações lado a lado sincronizadas e transições.
+
+**Escopo inicial (a detalhar):**
+1. **Gatilho:** o calendário de eventos (5.1) e o consenso cross-streamer, com 3 ou mais fontes no mesmo momento em 24 h (5.3, AC3). O monitor de lives (5.2) junta as lives das várias fontes.
+2. **Alinhamento:** o mesmo momento em cada live é sincronizado por áudio/imagem. O `build_cross_streamer_sync_plan` (`retention_engine.py`, Story 3.4 AC2) já existe, mas nunca foi ligado.
+3. **Edição avançada pelo HyperFrames** (HeyGen, Apache-2.0):
+   - efeitos e cartões gerados **em lote por vídeo**, com fundo transparente, sobrepostos pelo FFmpeg;
+   - versão fixada (prova feita com a 0.9.82) e variáveis `HYPERFRAMES_NO_TELEMETRY=1`, `HYPERFRAMES_NO_UPDATE_CHECK=1` e `HYPERFRAMES_SKIP_SKILLS=1`;
+   - as skills do HyperFrames só entram com aprovação (regra 9);
+   - se o HyperFrames falhar, o FFmpeg entra como reserva.
+4. **P1:** cada live do compilado precisa ter a fonte autorizada, e a que não tiver fica fora. Crédito a cada canal, e Selo Verde e música checados por trecho, como na 3.7.4.
+5. **P2/A2:** a edição é transformação real (abertura, nomes, sincronia, comentário), nunca disfarce. Cada efeito entra em `transformacoes`.
+
+**Prova de conceito (2026-11-22, RTX 4060 Ti):**
+- **Tempo por efeito de 2,5 s com fundo transparente:** ~13 s avulso e ~10,3 s em lote.
+- **Cache:** ~440 MB (Chrome sem janela + pacote npm).
+- **Visual:** círculo que se desenha, seta com quique e pulso, nitidamente acima do efeito em FFmpeg.
+
+Por isso o HyperFrames ficou para os formatos especiais, em que o tempo extra rende, e não para todo Short.
+
+**Portão de pilares (2026-11-22): SEGUE ✅.**
+- P1 é condição: só fontes autorizadas entram no compilado.
+- P2 reforça: edição própria e nomes dos streamers.
+- P3 reforça: o gatilho é tendência e evento do momento.
+- P4 neutro: peça local e open-source, e a decisão do que cortar continua nossa.
+- A1 neutro: edição automática, sem timeline manual.
+- A2 respeitado: nada de disfarce.
 ---
 
 ## Epic 6: Publicação Assistida e OAuth nas 5 Redes, Disjuntor de Claims e Painel "Estúdio do Criador"

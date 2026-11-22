@@ -54,12 +54,12 @@ development_status:
   3-6-6-pesos-calibrados-pelo-gabarito: backlog
   epic-3-6-retrospective: optional
 
-  epic-3-7: in-progress
+  epic-3-7: done
   3-7-1-cold-open-reverso-e-seamless-loop-renderizados: done
   3-7-2-layout-dinamico-e-sniper-crop-no-render: done
   3-7-3-par-short-longo-com-sobreposicao-e-versao-tiktok-60s: done
   3-7-4-arcos-de-2-atos-e-compilacao-por-arquetipo-renderizados: done
-  3-7-5-variacao-de-template-por-arquetipo-e-freeze-seta: backlog
+  3-7-5-variacao-de-template-por-arquetipo-e-freeze-seta: done
   epic-3-7-retrospective: optional
 
   epic-5: backlog
@@ -67,6 +67,7 @@ development_status:
   5-2-monitor-de-lives-ao-vivo-e-feeds-de-vods-live-monitor-py: backlog
   5-3-cacador-de-clipes-de-terceiros-clip-hunter-py-e-detector-de-treta-storyline-detector-py: backlog
   5-4-perfis-adaptativos-e-memoria-de-piadas-internas-streamer-profiles-py: backlog
+  5-5-formatos-especiais-de-evento-com-hyperframes-compilacao-cross-streamer: backlog
   epic-5-retrospective: optional
 
   epic-6: backlog

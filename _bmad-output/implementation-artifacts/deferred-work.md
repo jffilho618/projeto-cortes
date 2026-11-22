@@ -53,3 +53,10 @@ Fonte: `docs/superpowers/plans/2026-11-21-3-6-2-sismografo-2.md`, `benchmarks/20
 - **W37 · Versão TikTok sem replay em câmera lenta** (3.7.3) — o AC4 só limita o replay (no máximo 1 trecho de 3 s); não foi implementado. Avaliar quando houver métrica de retenção da versão TikTok.
 - **W38 · Detector de arco de 2 atos é só léxico e ruidoso** (3.7.4, 2026-11-22) — nas 4 lives deu 9 arcos brutos ("relaxa/confia" → "morri/não acredito" até 30 min depois); só 1 passou no filtro "desfecho dentro de um corte selecionado". Melhorar com o Editor-Chefe confirmando a ligação setup → desfecho, ou com o batedor (Full-VOD Scout), antes de aumentar o limite de 2 arcos por VOD.
 - **W39 · Compilações dependem de Shorts curtos** (3.7.4) — nos projetos atuais, muitos cortes passam de 60 s (o Editor-Chefe estende as bordas), então nenhuma compilação saiu. Num projeto com `max_len` 58, deve sair; conferir na 1ª live real.
+- **W40 · A seta do freeze aponta para o centro da área do jogo** (3.7.5, 2026-11-22) — não para o objeto do lance. Apontar o objeto exige a posição dele no instante: HUD/kill (`hud_detector`) ou o rastreio do Sniper Crop (3.7.2) por segundo. O momento-chave vem do pico de chat ou da punchline (3.7.1); o riso e o susto medidos por instante (W28, W33) ampliariam os cortes com freeze.
+- **W41 · ✅ Prova de conceito do HyperFrames feita em 2026-11-22** (3.7.5, AC3; aprovada pelo dono).
+  - **Como rodou:** versão 0.9.82 via `npx`, sem `postinstall`, com telemetria, atualização e skills desligadas, numa pasta do scratchpad.
+  - **Tempo por efeito de 2,5 s com fundo transparente (VP9 alpha):** ~13 s avulso e ~10,3 s em lote, na RTX 4060 Ti.
+  - **Cache:** ~440 MB (Chrome em `~/.cache/hyperframes` + `_npx`).
+  - **Visual:** claramente melhor que o FFmpeg. O 1º efeito saiu sem o círculo, por erro de autoria no SVG/GSAP, e foi corrigido na 2ª tentativa.
+  - **Decisão do dono:** os cortes normais ficam em FFmpeg, e o HyperFrames entra no **Épico 5, Story 5.5** (formatos especiais de evento). O cache foi mantido.

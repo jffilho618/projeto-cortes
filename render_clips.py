@@ -771,6 +771,7 @@ def write_meta(seg, out_path, source_meta=None):
         "pinned_comment_debate",
         "parent_long_clip_id",
         "cold_open",
+        "freeze",
         "transformacoes",
         "layout_timeline",
         "formato",
@@ -1015,6 +1016,25 @@ def _dynamic_games_chain(seg, render_src, local_start, dur, W, H, tw, th, face_b
     return plan.get("vf")
 
 
+def _record_banner(seg, banner_text):
+    """3.7.5 (AC4): a faixa de contexto queimada no vídeo é transformação real (Score YPP, P2)."""
+    if banner_text and str(banner_text).strip():
+        seg.setdefault("transformacoes", []).append({"nome": "faixa_contexto", "texto": str(banner_text).strip()})
+
+
+def _apply_freeze(seg, out, size, preview=False, tightened=False):
+    """3.7.5: freeze + círculo/seta no momento-chave medido (só quando o plano veio ligado)."""
+    plan = seg.get("freeze")
+    if not isinstance(plan, dict) or not plan.get("enabled"):
+        return False
+    if preview or tightened:
+        plan["enabled"] = False
+        plan["motivo"] = "preview" if preview else "tighten muda a linha do tempo do vídeo"
+        return False
+    from picorte.engine.edit_effects import apply_freeze
+    return apply_freeze(seg, out, size=size)
+
+
 def _apply_cold_open(seg, out, start, preview=False, tightened=False):
     """3.7.1: cola o teaser do clímax no 0:00 do mp4 já renderizado (medido ou desligado, com motivo)."""
     plan = seg.get("cold_open")
@@ -1024,8 +1044,11 @@ def _apply_cold_open(seg, out, start, preview=False, tightened=False):
         plan["enabled"] = False
         plan["motivo"] = "preview" if preview else "tighten muda a linha do tempo do vídeo"
         return False
+    from picorte.engine.edit_effects import cold_open_start_after_freeze
     from picorte.engine.retention_engine import prepend_cold_open
-    if prepend_cold_open(out, plan, float(start), seg.get("_cold_open_bleeps") or []):
+    freeze = seg.get("freeze") if (seg.get("freeze") or {}).get("rendered") else None
+    if prepend_cold_open(out, plan, cold_open_start_after_freeze(float(start), plan, freeze),
+                         seg.get("_cold_open_bleeps") or []):
         plan["rendered"] = True
         seg.setdefault("transformacoes", []).append({
             "nome": "cold_open", "teaser": [plan.get("teaser_start"), plan.get("teaser_end")],
@@ -1266,6 +1289,8 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         cmd[cmd.index("-c:v"):cmd.index("-c:v")] = ["-af", ",".join(af_parts)]
     print(">", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True, cwd=str(out_dir))
+    _record_banner(seg, banner_text)
+    _apply_freeze(seg, out, (tw, th), preview=preview, tightened=do_tighten)  # 3.7.5: antes do Cold Open
     _apply_cold_open(seg, out, start, preview=preview, tightened=do_tighten)
     write_srt(cap_words, start, start + dur, out.with_suffix(".srt"),
               group_size=resolved["words_per_cue"])

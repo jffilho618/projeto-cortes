@@ -645,6 +645,19 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                     except Exception as exc:
                         enriched_seg["cold_open"] = {"enabled": False,
                                                      "motivo": f"erro no plano: {type(exc).__name__}: {exc}"}
+                    try:
+                        # 3.7.5: freeze + seta no momento-chave medido, no tempo que sobra depois do Cold Open
+                        from picorte.engine.edit_effects import freeze_for_segment
+                        co = enriched_seg.get("cold_open") or {}
+                        used = (float(co.get("teaser_duration") or 0.0) - 0.25) if co.get("enabled") else 0.0
+                        enriched_seg["freeze"] = (
+                            {"enabled": False, "motivo": f"formato {segment.get('formato')} sem freeze"}
+                            if co_max_len is None else
+                            freeze_for_segment(enriched_seg, data["words"], _chat_peaks(path),
+                                               max_len=co_max_len, used_s=max(0.0, used)))
+                    except Exception as exc:
+                        enriched_seg["freeze"] = {"enabled": False,
+                                                  "motivo": f"erro no plano: {type(exc).__name__}: {exc}"}
                     render_kwargs = dict(
                         style=options["style"], do_tighten=options["tighten"], loudnorm=options["loudnorm"],
                         preview=preview, brand=brand, layout=seg_layout, centers=options["centers"],
