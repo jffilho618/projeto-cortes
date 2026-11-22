@@ -318,15 +318,139 @@ Como operador, quero trocar os pesos escolhidos "a olho" por pesos aprendidos do
 
 ## Epic 3.7: Formato que Retém — Cold Open, Loop, Layout Dinâmico, Par Short↔Longo e Arcos (Leva 2)
 
-**Objetivo:** renderizar de verdade as alavancas de formato que a auditoria achou só planejadas (A8, A9, A11, A12). **Só começa depois do Épico 3.6 medido**, para separar o efeito da seleção do efeito do formato. Critérios de aceite detalhados escritos ao iniciar a leva.
-**Origem:** [`sprint-change-proposal-2026-11-21.md`](sprint-change-proposal-2026-11-21.md).
+**Objetivo:** renderizar de verdade as alavancas de formato que a auditoria achou só planejadas (A8, A9, A11, A12).
+**Decisão do dono (2026-11-22):** a regra "só começa depois do Épico 3.6 medido" foi dispensada.
+- A régua de Precision@K mede só a **escolha** dos cortes, não o formato, e se mostrou fraca (W17, W20).
+- O efeito do formato só aparece na retenção real dos cortes publicados (snapshots 1h/24h/7d, Épico 7).
+- Critérios de aceite escritos em 2026-11-22.
+**Origem:** [`sprint-change-proposal-2026-11-21.md`](sprint-change-proposal-2026-11-21.md) + auditoria `auditoria-e3-done-vs-ligado-2026-11-20.md` (A8, A9, A11, A12) + W3 e W16 do `deferred-work.md`.
+
+**Regras comuns às 5 histórias:**
+- Todo recurso de formato é **medido ou desligado**: sem o sinal que o sustenta, o corte sai como hoje, e a saúde registra `na` com o motivo.
+- O render continua multiplataforma (AD-11, filtros FFmpeg iguais no Windows e no Linux). O NVENC é usado quando existe, e passo pesado de GPU passa pela fila serial (`vram_runner`, AD-3).
+- **P1** vale em cada pedaço novo de vídeo (teaser, ponte, replay, compilação): Selo Verde 15s, música e crédito ao canal original.
+- **A2:** nada de pitch, velocidade ou variação sorteada para disfarçar conteúdo. Toda variação vem do conteúdo do corte.
+- Cada efeito aplicado entra em `transformacoes` no segmento (lista com nome e trecho). Essa lista alimenta o Score de Transformação YPP (P2), que ainda não existe no código.
+- Testes não dependem de render real; 1 render curto (≤ 20 s) por história fica como teste de integração opcional no PC.
+
+**Portão de pilares (`cortes-pilares`, modo Julgar, 2026-11-22): SEGUE ✅.** Nada viola.
+- **P1, P2 e A2 reforçam:** Selo Verde no teaser e em cada trecho composto; título e legenda próprios na versão TikTok; variação dirigida pelo conteúdo; replay pontual; nada de enchimento.
+- **P3 reforça:** `moment_id` e `transformacoes` alimentam a medição real.
+- **P4, P5, A1, A3, A4 e A5 neutros.** O HyperFrames é peça local e open-source que não decide nada. Os efeitos são automáticos, sem timeline manual.
+- **CLAUDE.md:** regra 9 (instalação do HyperFrames com aprovação), regra 6 (custo R$ 0) e AD-11 respeitadas.
 
 ### Story 3.7.1: Cold Open Reverso 1,5s e Seamless Loop renderizados de verdade (A9)
+
+**Descrição:**
+Como operador, quero que o corte vertical abra com 1,5 s do clímax e termine num ponto que emende com o começo, para segurar quem assiste nos primeiros segundos e estimular o replay. Hoje o `build_cold_open_plan` só gera o plano (W3) e o `find_seamless_loop_end` não tem chamador.
+
+**Critérios de Aceite (AC):**
+1. `render_clips.py` monta de verdade o teaser do plano. O teaser tem 1,5 s do clímax, em `0:00`, seguido do corte desde o começo, com uma transição de no máximo 0,3 s (FFmpeg `xfade`).
+   - O clímax é o sinal medido mais forte dentro do corte: riso, susto, pico de chat ou fim da punchline (`hook_quote`).
+   - Sem sinal medido, o corte sai sem Cold Open.
+2. A política por arquétipo (`resolve_archetype_retention_policy`) decide se há teaser. `susto_tensao`, `mico_constrangimento`, `serio_realtalk` e `callback_oculto` saem sem Cold Open, para não dar spoiler da punchline. O campo `cold_open` do segmento é a fonte da verdade.
+3. O Selo Verde (P1) vale no teaser: os `cold_open_bleeps` e as `cold_open_censored_words` já calculados entram no áudio dele, e o veredito P1 passa a usar o `has_cold_open` real (fecha o W3).
+4. **Seamless Loop:** `find_seamless_loop_end` procura um fim dentro de `[fim − 3 s, fim + 1,5 s]` cujo quadro e áudio emendem com o 1º quadro do corte.
+   - Nunca corta no meio de uma frase nem de um riso (3.6.4).
+   - Sem ponto bom, mantém o fim atual.
+5. O total (teaser + corte) respeita o `max_len` do formato. Se passar, o corte perde do começo do setup, nunca do clímax nem do fim.
+6. **Testes:**
+   - plano → filtro FFmpeg (string do `filter_complex`), sem render;
+   - arquétipo sem Cold Open;
+   - bleep do Selo Verde no teaser;
+   - loop que acha um ponto e loop que mantém o fim;
+   - limite de `max_len`.
+
 ### Story 3.7.2: Layout dinâmico + Sniper Crop ligados ao render de games (A8)
+
+**Descrição:**
+Como operador, quero que o render de games use de verdade a troca de layout e o Sniper Crop da Story 3.3, em vez do layout `games` estático de hoje:
+- **História:** 70/30;
+- **Reação:** split;
+- **Ação:** 100% jogo + PiP da facecam.
+
+**Critérios de Aceite (AC):**
+1. Com `layout=games`, o `render_clips.py` chama o `compute_dynamic_layout_timeline` com a evidência medida por trecho (expressão e MAR da facecam, movimento, HUD) e monta o filtro por trechos, com histerese mínima de 3 s (Story 3.3, AC1).
+2. Nos trechos de Ação, o recorte do jogo segue o `compute_sniper_crop_track`, suavizado e com deslocamento máximo por segundo limitado, sem trepidação.
+   - Por padrão usa o centroide óptico (CPU).
+   - O YOLO entra só se estiver instalado, pela fila serial (AD-3).
+3. Sem facecam detectada ou sem visão medida, o render cai no layout estático atual, e a saúde registra `layout_dinamico: na` com o motivo.
+4. Legenda, faixa de contexto (`y` de 240 a 360 px) e áreas seguras de cada rede (P2) ficam corretas em todos os layouts e nas trocas.
+5. **Testes:**
+   - linha do tempo de layout com histerese;
+   - recorte sem salto acima do limite;
+   - queda para o layout estático sem facecam;
+   - filtro FFmpeg montado por trechos.
+
 ### Story 3.7.3: Par Short↔Longo só com sobreposição real + versão TikTok 60–75s do mesmo momento (A11)
-Ressalva do portão de pilares (A2): replay em câmera lenta só como recurso editorial pontual, nunca no corte inteiro.
+
+**Descrição:**
+Como operador, quero que o Short Isca só aponte para um Corte Longo que contém o mesmo momento, e que o mesmo momento gere uma versão de 60–75 s com contexto próprio para o TikTok, sem ser reupload nem enchimento.
+
+**Critérios de Aceite (AC):**
+1. **Corrige o bug A11:** o `pair_short_and_long_clips` só liga o Short a um Longo que contenha pelo menos 50% do Short. Sem Longo com sobreposição real, o Short fica sem `parent_long_clip_id`. Hoje ele liga a qualquer longo (`best_overlap > 0.0 or longs`).
+2. Um Short `ouro` ou `forte` sem Longo ganha a proposta de um Longo de 3–5 min em volta do momento, marcado para render 16:9.
+   - O miolo é escolhido pelo heatmap (3.6.5, AC6) e pelas frases (3.6.4).
+   - Sem material suficiente, não há proposta.
+3. **Versão TikTok:** cada Short selecionado gera um segmento irmão de 60–75 s do mesmo momento, com `formato: "tiktok_60"` e `parent_short_id`.
+   - O contexto vem de frases reais antes e depois (3.6.4), nunca de enchimento, pausa ou repetição.
+   - O título e a legenda são próprios (P2).
+4. Replay em câmera lenta só como recurso editorial pontual: no máximo 1 trecho de até 3 s por vídeo, nunca no corte inteiro (ressalva A2 do portão de pilares).
+5. Short, versão TikTok e Longo do mesmo momento compartilham um `moment_id`. A deduplicação pHash do Épico 4 trata os três como família, não como reupload proibido.
+6. **Testes:**
+   - sem sobreposição não liga; com sobreposição liga;
+   - versão TikTok com 60–75 s, contexto de frases e `parent_short_id`;
+   - replay pontual limitado;
+   - proposta de Longo só com material suficiente.
+
 ### Story 3.7.4: Renderizar arcos de 2 atos e compilação por arquétipo, incl. "top vacilos" (A12)
+
+**Descrição:**
+Como operador, quero que os arcos de 2 atos (setup → payoff distantes) e as compilações por arquétipo, incluindo o "TOP VACILOS DA LIVE" (3.6.3), virem vídeo de verdade. Hoje só geram `.json`, e só em `hunt_mode=deep`.
+
+**Critérios de Aceite (AC):**
+1. `detect_two_act_arcs` e `compile_by_archetype` rodam no `select` sempre que houver material, não só no `hunt_mode=deep`:
+   - um arco detectado;
+   - ou ≥ 4 cortes do mesmo arquétipo.
+   O resultado vira segmento composto (`formato: "arco_2_atos"` ou `"compilacao"`) com a lista de trechos de origem.
+2. O `render_clips.py` renderiza o composto pelo filtro do `build_two_act_ffmpeg_filter`: concat com a ponte de texto "X minutos depois…" e transição curta, Windows e Linux (AD-11), NVENC quando houver.
+3. A compilação "top vacilos" usa os cortes `nobada_vacilo` e o título de `ARCHETYPE_COMPILATION_TITLES`.
+4. Cada trecho do composto passa pelo escudo P1 como um corte normal (Selo Verde, música, crédito ao canal). Um trecho reprovado sai do composto, e o composto que ficar com menos de 2 trechos (arco) ou 4 (compilação) não é renderizado.
+5. Durações: o arco tem até 3 min; a compilação, 90–240 s (limites atuais do `compile_by_archetype`).
+6. **Testes:**
+   - segmentos compostos gerados fora do `deep`;
+   - filtro concat válido;
+   - compilação de vacilos;
+   - trecho reprovado no P1 sai, e o composto curto demais cai.
+
 ### Story 3.7.5: Variação de template por arquétipo + freeze/seta no momento-chave (P2: regra do YouTube de 2026-10 contra "template em massa")
+
+**Descrição:**
+Como operador, quero que cada corte tenha edição própria ligada ao conteúdo: visual do arquétipo e um freeze com seta ou destaque no momento-chave. Assim o corte conta como transformação real (P2), e não como "template em massa", que desde 2026-10 o YouTube não conta como mudança significativa.
+
+**Critérios de Aceite (AC):**
+1. **Variação dirigida pelo conteúdo, nunca sorteada para parecer diferente (A2; P2: "diferenças artificiais não são exigidas").** O visual de cada corte vem de:
+   - arquétipo e tom (`resolve_archetype_retention_policy`);
+   - posição do momento-chave;
+   - layout do trecho (3.7.2).
+   As cores e fontes vêm só do `DESIGN.md`.
+2. **Freeze + seta ou destaque:** no sinal medido mais forte dentro do corte (riso, susto, pico de chat, HUD/kill), o quadro congela 0,6–1,2 s com uma seta ou um círculo animado apontando a região (do Sniper Crop ou do HUD, quando houver). Sem sinal medido, sem freeze. No máximo 1 por Short.
+3. **Camada de efeitos animados (HyperFrames, W16):**
+   - **Prova de conceito na 4060 Ti:** mede o tempo de render de um efeito de 2–3 s com fundo transparente. Adota se ficar em até 10 s por efeito; senão, os efeitos ficam em FFmpeg/ASS.
+   - **Instalação:** a do HyperFrames (Node 22+) e a das skills que vêm com ele só com aprovação do dono (regra 9), mostrando origem, mantenedor e o que executam.
+   - **Uso:** telemetria desligada, render pela fila serial (AD-3), custo R$ 0.
+4. Cada efeito aplicado (freeze, seta, faixa de contexto, Cold Open, loop, layout) entra em `transformacoes` no segmento, para o Score de Transformação YPP (P2) e para o painel.
+5. **Testes:**
+   - dois cortes do mesmo arquétipo com momentos-chave diferentes geram edições diferentes;
+   - sem sinal medido, sem freeze;
+   - no máximo 1 freeze por Short;
+   - `transformacoes` preenchido.
+
+**Nota (2026-11-21):** candidato para a camada de efeitos animados (freeze/seta, faixa 2s, transição do Cold Open da 3.7.1, variação por arquétipo): **HyperFrames** (HeyGen, Apache-2.0), em modelo híbrido.
+- O HyperFrames renderiza só os 2–3 s do efeito com fundo transparente (WebM VP9 / ProRes 4444).
+- O FFmpeg sobrepõe, como hoje.
+
+Antes de adotar, uma prova de conceito na 4060 Ti mede o tempo por efeito. Detalhes em `deferred-work.md` (W16).
 
 ---
 
