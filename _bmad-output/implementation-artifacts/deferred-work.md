@@ -40,3 +40,4 @@ Fonte: `docs/superpowers/plans/2026-11-21-3-6-2-sismografo-2.md`, `benchmarks/20
 - **W24 · Chat de VOD longo estoura o tempo** — o download do chat do `x50ONQrBPRM` (11 h) parou em 6h05.
 - **W25 · Whisper traduz cutscenes em inglês** para um português quebrado; avaliar forçar o idioma por trecho ou marcar a cutscene.
 - **W26 · Lives longas com P@5 0 no baseline** — o `x50ONQrBPRM` (11 h) foi o pior do conjunto; investigar se o batedor dilui os destaques em VOD longo.
+- **W27 · Pista "vacilo_mico" acha pouco pela transcrição** (3.6.3, 2026-11-22) — nas 4 lives do conjunto só 1 momento passou da nota 2,0 (0:26:20 do `4Lo5m9WlD6w`). O Whisper quase nunca escreve a risada ("kkk"/"haha"), então o silêncio de choque depende do chat ou de comentário. Os 2 arquétipos continuam disponíveis para o batedor e o Editor-Chefe, que leem a fala inteira. Reavaliar com riso medido logo após o vão (prosódia por janela curta) ou com o W12 (riso do streamer × convidado).

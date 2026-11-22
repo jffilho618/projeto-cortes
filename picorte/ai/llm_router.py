@@ -36,11 +36,15 @@ FILTER_SYSTEM_PROMPT = (
 COMPANION_SYSTEM_PROMPT = (
     "Você é o Editor-Chefe v2 de cortes extraordinários de games em português do Brasil (Picorte). "
     "Avalie cada candidato usando o Conselho de 4 Caçadores Especialistas: "
-    "(1) Comédia/Caos/Deadpan (caos_coop, deadpan_karma, chat_trolagem), "
+    "(1) Comédia/Caos/Deadpan/Vacilo (caos_coop, deadpan_karma, chat_trolagem, nobada_vacilo, mico_constrangimento), "
     "(2) Rage/Clutch/Susto (rage_tilt, clutch_fail, susto_tensao), "
     "(3) Cultura/Lore/Detalhes/Callbacks (callback_oculto, descoberta_detalhe), "
     "(4) Opinião/Polêmica/Real-Talk (serio_realtalk, polemica_hottake). "
     f"Arquétipos válidos: {', '.join(CANONICAL_ARCHETYPES)}. "
+    "nobada_vacilo = erro bobo de execução do próprio streamer (apertou errado, caiu sozinho, esqueceu o óbvio); "
+    "NÃO é o fail cinematográfico/épico do clutch_fail. "
+    "mico_constrangimento = vergonha social: piada que não colou, silêncio constrangedor, fala que pegou mal. "
+    "O campo dica_arquetipo de um candidato é só uma pista medida (léxico, chat, comentário): decida pelo conteúdo. "
     f"Tiers válidos: {', '.join(CANONICAL_TIERS)}. "
     f"Tons válidos: {', '.join(VALID_TONES)}. "
     "Retorne APENAS um array JSON com objetos: "
@@ -77,6 +81,24 @@ def load_golden_examples(path: Path | None = None) -> list[dict[str, Any]]:
     if not isinstance(examples, list):
         return []
     return [ex for ex in examples if isinstance(ex, dict)]
+
+
+def pick_golden_for_prompt(examples: list[dict[str, Any]], limit: int = 8) -> list[dict[str, Any]]:
+    """Rodízio por arquétipo: o 1º de cada arquétipo entra antes do 2º de qualquer um (3.6.3).
+
+    Antes o prompt pegava só os 6 primeiros do arquivo, e exemplos novos nunca chegavam ao Editor-Chefe.
+    """
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for ex in examples or []:
+        groups.setdefault(str(ex.get("archetype") or ""), []).append(ex)
+    picked: list[dict[str, Any]] = []
+    depth = 0
+    while len(picked) < limit and any(len(g) > depth for g in groups.values()):
+        for group in groups.values():
+            if len(group) > depth and len(picked) < limit:
+                picked.append(group[depth])
+        depth += 1
+    return picked
 
 
 def attach_neighbor_context(
@@ -552,7 +574,7 @@ class LLMRouter:
             if golden_examples:
                 ex_lines = [
                     f"- [{ex.get('id')}] ({ex.get('archetype')}/{ex.get('tier')}): {ex.get('summary')} | Banner: {ex.get('ideal_context_banner')}"
-                    for ex in golden_examples[:6]
+                    for ex in pick_golden_for_prompt(golden_examples, limit=8)
                 ]
                 blocks.append("EXEMPLOS OURO (FEW-SHOT):\n" + "\n".join(ex_lines))
             return ("\n\n".join(blocks) + "\n\n") if blocks else ""
@@ -581,6 +603,8 @@ class LLMRouter:
             sinais = _measured_signals(item.get("evidence") or {})
             if sinais:
                 row["sinais"] = sinais
+            if item.get("archetype_hint"):
+                row["dica_arquetipo"] = str(item["archetype_hint"])  # 3.6.3: pista medida, o Editor decide
             if include_triage and item.get("reason"):
                 row["triagem_filtro"] = str(item["reason"])[:180]
             return row

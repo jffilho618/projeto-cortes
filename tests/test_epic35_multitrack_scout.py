@@ -22,8 +22,10 @@ def _make_sentences(entries: list[tuple[float, float, str]]) -> list[dict]:
 def test_canonical_archetypes_and_tiers_contracts():
     from picorte.engine.multitrack import CANONICAL_ARCHETYPES, CANONICAL_TIERS
 
-    assert len(CANONICAL_ARCHETYPES) == 10
+    assert len(CANONICAL_ARCHETYPES) == 12  # 3.6.3: + nobada_vacilo e mico_constrangimento
     assert set(CANONICAL_ARCHETYPES) == {
+        "nobada_vacilo",
+        "mico_constrangimento",
         "callback_oculto",
         "caos_coop",
         "rage_tilt",

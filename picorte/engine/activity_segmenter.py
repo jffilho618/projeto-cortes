@@ -15,6 +15,7 @@ ACTIVITY_WEIGHTS: dict[str, dict[str, float]] = {
         "chat_trolagem": 1.25,
         "callback_oculto": 1.05,
         "clutch_fail": 0.50,
+        "mico_constrangimento": 1.25,
     },
     "gameplay": {
         "clutch_fail": 1.25,
@@ -24,12 +25,15 @@ ACTIVITY_WEIGHTS: dict[str, dict[str, float]] = {
         "callback_oculto": 1.25,
         "susto_tensao": 1.25,
         "deadpan_karma": 1.20,
+        "nobada_vacilo": 1.25,
+        "mico_constrangimento": 1.10,
     },
     "menu_pausa": {
         "serio_realtalk": 1.20,
         "polemica_hottake": 1.15,
         "chat_trolagem": 1.15,
         "clutch_fail": 0.40,
+        "mico_constrangimento": 1.10,
     },
     "cutscene": {
         "callback_oculto": 1.30,

@@ -20,6 +20,8 @@ ARCHETYPE_COMPILATION_TITLES: dict[str, str] = {
     "susto_tensao": "COMPILADO DE SUSTOS E TENSÃO AO VIVO",
     "deadpan_karma": "OS MELHORES MOMENTOS DE KARMA INSTANTÂNEO",
     "chat_trolagem": "AS MELHORES RESPOSTAS E TROLAGENS COM O CHAT",
+    "nobada_vacilo": "TOP VACILOS DA LIVE",
+    "mico_constrangimento": "OS MAIORES MICOS DA LIVE",
 }
 
 

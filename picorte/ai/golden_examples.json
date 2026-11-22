@@ -61,6 +61,46 @@
       "why_gold": "Arco clássico de escalada emocional onde o público sente a tensão subindo até o clímax.",
       "ideal_context_banner": "Depois de 12 tentativas no mesmo checkpoint...",
       "ideal_duration_bucket": "short"
+    },
+    {
+      "id": "nobada-esqueceu-de-recarregar",
+      "archetype": "nobada_vacilo",
+      "tier": "ouro",
+      "game": "fps",
+      "summary": "Streamer se gaba de ter limpado a sala, esquece de recarregar, o último inimigo aparece e ele morre clicando com o pente vazio; solta um 'não acredito que eu fiz isso' e ri de si mesmo.",
+      "why_gold": "Erro bobo e humano, não épico: o público se reconhece no vacilo e o próprio streamer entrega a punchline rindo da cara dele.",
+      "ideal_context_banner": "ELE ESQUECEU DE RECARREGAR",
+      "ideal_duration_bucket": "micro"
+    },
+    {
+      "id": "nobada-avisou-e-caiu",
+      "archetype": "nobada_vacilo",
+      "tier": "forte",
+      "game": "geral",
+      "summary": "Streamer avisa o chat 'cuidado com esse buraco aqui, ó' e, três segundos depois, cai exatamente nele; o chat explode em kkkk e pede 'clipa'.",
+      "why_gold": "Ironia instantânea de autoaviso: setup e payoff em menos de 10 segundos, perfeito para Short e para compilado de vacilos.",
+      "ideal_context_banner": "ELE MESMO AVISOU DO BURACO",
+      "ideal_duration_bucket": "micro"
+    },
+    {
+      "id": "mico-piada-que-nao-colou",
+      "archetype": "mico_constrangimento",
+      "tier": "ouro",
+      "game": "geral",
+      "summary": "Streamer conta uma piada para o chat, espera a reação, vem um silêncio de 2 segundos e ele mesmo quebra com 'nossa, que vergonha, ninguém riu' enquanto o chat manda 😬.",
+      "why_gold": "O constrangimento é o conteúdo: o silêncio depois da piada cria tensão social que todo mundo já viveu, e a autoconsciência do streamer vira a punchline.",
+      "ideal_context_banner": "A PIADA QUE NINGUÉM RIU",
+      "ideal_duration_bucket": "micro"
+    },
+    {
+      "id": "mico-leu-o-nome-errado",
+      "archetype": "mico_constrangimento",
+      "tier": "forte",
+      "game": "geral",
+      "summary": "Ao agradecer um doador ao vivo, o streamer lê o nome de um jeito completamente errado, o chat corrige em massa e ele tenta consertar e piora.",
+      "why_gold": "Vergonha alheia com reação coletiva do chat; funciona fora da bolha porque não depende do jogo.",
+      "ideal_context_banner": "ELE LEU O NOME ERRADO AO VIVO",
+      "ideal_duration_bucket": "micro"
     }
   ]
 }

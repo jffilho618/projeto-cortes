@@ -1887,6 +1887,11 @@ def merge_comment_seeds(candidates, seeds, sentences):
         rec["comment_likes"] = int((seed.get("score_parts") or {}).get("comment_likes") or 0)
         rec["text"] = spoken or rec["comment_hint"]
         rec["evidence"] = dict(seed.get("evidence") or {})
+        # 3.6.3: "kkkk 12:34" → dica de nobada; "que vergonha" → dica de mico (vale para seeds antigos também)
+        from picorte.engine.comments_miner import archetype_hint_from_comment
+        hint = archetype_hint_from_comment(rec["comment_hint"])
+        if hint:
+            rec["archetype_hint"] = hint
         out.append(rec)
     return out
 

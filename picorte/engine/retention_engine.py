@@ -89,6 +89,23 @@ ARCHETYPE_RETENTION_POLICIES: dict[str, dict[str, Any]] = {
         "back_colour": "&HC8141422",
         "comparative_badge": False,
     },
+    # 3.6.3: o vacilo rende teaser (o erro em si); o mico precisa do setup inteiro, então sem Cold Open.
+    "nobada_vacilo": {
+        "use_cold_open": True,
+        "banner_style": "hype",
+        "font_name": "Arial Black",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HC8000000",
+        "comparative_badge": False,
+    },
+    "mico_constrangimento": {
+        "use_cold_open": False,
+        "banner_style": "ironico",
+        "font_name": "Archivo",
+        "primary_colour": "&H00FFFFFF",
+        "back_colour": "&HD01A1A1A",
+        "comparative_badge": False,
+    },
 }
 
 
