@@ -99,7 +99,8 @@ CREATE TABLE IF NOT EXISTS publications (
     related_video_external_id TEXT NOT NULL DEFAULT '',
     scheduled_for TEXT,
     published_at TEXT,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    motivo TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS metrics_snapshots (

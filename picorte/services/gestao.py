@@ -146,7 +146,7 @@ def previa_claim(db, source_id: str) -> dict[str, Any]:
     cortes = db.fetch_one("SELECT COUNT(*) AS n FROM clips c JOIN videos v ON v.id = c.video_id WHERE v.source_id = ?",
                           (source_id,))["n"]
     pendentes = db.fetch_one("SELECT COUNT(*) AS n FROM publications p JOIN clips c ON c.id = p.clip_id "
-                             "JOIN videos v ON v.id = c.video_id WHERE v.source_id = ? AND p.status IN ('fila', 'agendado')",
+                             "JOIN videos v ON v.id = c.video_id WHERE v.source_id = ? AND p.status IN ('fila', 'agendado', 'exportado')",
                              (source_id,))["n"]
     return {"fonte": fonte["name"], "videos": int(videos), "cortes": int(cortes), "publicacoes_pendentes": int(pendentes)}
 

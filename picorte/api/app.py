@@ -67,6 +67,9 @@ def _registrar_rotas(app: FastAPI) -> None:
     from picorte.api.rotas_gestao import rotas as rotas_gestao
 
     app.include_router(rotas_gestao)
+    from picorte.api.rotas_publicacao import rotas as rotas_publicacao
+
+    app.include_router(rotas_publicacao)
 
 
 def _registrar_spa(app: FastAPI, dist: Path) -> None:

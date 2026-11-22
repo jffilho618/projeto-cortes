@@ -91,9 +91,9 @@ def catalogo() -> list[Capacidade]:
         _c("SAU-4", "saude", "Gabaritos acumulados para a 3.6.6", L, None, "", "benchmarks/gabaritos/", "3.6", "3.6.1"),
         _c("SAU-5", "saude", "Canário semanal e yt-dlp diário", T, "codigo", "W9", "—", "6", "W9"),
         # 7. Publicação
-        _c("PUB-1", "publicacao", "Pacote do Dia", L, None, "", "export-bundle", "4", "4.5", escopo="projeto"),
+        _c("PUB-1", "publicacao", "Pacote do Dia", L, None, "", "GET /api/publicacao/pacote + export_daily_bundle", "6", "6.8", ligou_em="2026-11-22"),
         _c("PUB-2", "publicacao", "Kit por rede, copiar em 1 clique", L, None, "", ".meta.json.publish_kit", "4", "4.2/6.1", escopo="corte"),
-        _c("PUB-3", "publicacao", "Registrar a URL publicada", L, None, "", "publications", "6", "6.1", escopo="corte"),
+        _c("PUB-3", "publicacao", "Registrar a URL publicada (pendência C2)", L, None, "", "POST /api/publicacao/links → publications", "6", "6.8", escopo="corte", ligou_em="2026-11-22"),
         _c("PUB-4", "publicacao", "YouTube Longo e Related Video", T, "codigo", "B11 + 3.7.3", "—", "6", "3.7.3", "CAP-15", depende=("REV-12",)),
         _c("PUB-5", "publicacao", "Contas OAuth das 5 redes", T, "codigo", "6.1 cofre de tokens; app aprovado por rede (T1)", "social_accounts", "6", "6.1", "CAP-15"),
         _c("PUB-6", "publicacao", "Publicação automática", T, "codigo", "6.1 + auditorias", "—", "6", "6.1", "CAP-15", depende=("PUB-5",)),

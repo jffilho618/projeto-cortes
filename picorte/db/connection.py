@@ -66,6 +66,7 @@ class Database:
         ("sources", "permission_basis", "TEXT NOT NULL DEFAULT 'explicita'"),
         ("videos", "archived_at", "TEXT"),
         ("clips", "archived_at", "TEXT"),
+        ("publications", "motivo", "TEXT NOT NULL DEFAULT ''"),  # 6.8: "não vou postar" (C2)
     )
 
     def _migrate(self) -> None:

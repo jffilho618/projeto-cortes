@@ -52,9 +52,19 @@ def prateleira(slug: str, request: Request, limite: int = 8):
             "videos": [{**v, "projeto": indice.get(v["id"])} for v in r["videos"]]}
 
 
+def _links_pendentes() -> int | None:
+    """C2: cortes exportados sem link; se o banco não abrir, a faixa diz que não mediu (A5)."""
+    try:
+        from picorte.db.connection import get_default_db
+        from picorte.services.publicacao import contar_pendentes
+        return contar_pendentes(get_default_db())
+    except Exception:  # noqa: BLE001 - banco ilegível vira "não medido", nunca zero falso
+        return None
+
+
 @rotas.get("/api/mesa")
 def mesa(request: Request):
-    return na_sua_mesa(request.app.state.fila.listar())
+    return na_sua_mesa(request.app.state.fila.listar(), _links_pendentes())
 
 
 @rotas.get("/api/sala")

@@ -17,7 +17,7 @@ def _proximo_passo(projeto: dict[str, Any]) -> str:
     return "Ver o detalhe e retomar"
 
 
-def na_sua_mesa(projetos: list[dict[str, Any]]) -> dict[str, Any]:
+def na_sua_mesa(projetos: list[dict[str, Any]], links_pendentes: int | None = None) -> dict[str, Any]:
     pede_voce, falhas = [], []
     for p in projetos:
         status, erro = p.get("status"), str(p.get("error") or "")
@@ -33,6 +33,6 @@ def na_sua_mesa(projetos: list[dict[str, Any]]) -> dict[str, Any]:
         "na_fila": {"n": sum(1 for p in projetos if p.get("status") in {"queued", "running"}),
                     "estagio": (rodando or {}).get("stage")},
         "falhas": falhas,
-        "links_pendentes": None,  # A5: ninguém marca "Exportado" por corte ainda
-        "links_pendentes_motivo": "Os cortes exportados passam a ser marcados na história 6.8.",
+        "links_pendentes": links_pendentes,  # C2: exportado sem link (história 6.8); None = banco ilegível (A5)
+        "links_pendentes_motivo": "" if links_pendentes is not None else "Não consegui contar os links pendentes no banco.",
     }

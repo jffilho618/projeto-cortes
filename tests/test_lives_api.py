@@ -48,10 +48,12 @@ def test_prateleira_sem_rede_e_sem_cache_responde_503_legivel(tmp_path):
     assert r.status_code == 503 and "Não consegui listar" in r.json()["erro"]
 
 
-def test_mesa(tmp_path):
+def test_mesa(tmp_path, monkeypatch):
+    import picorte.api.rotas_lives as rl
+    monkeypatch.setattr(rl, "_links_pendentes", lambda: 2)
     c, _ = _cliente(tmp_path)
     m = c.get("/api/mesa").json()
-    assert m["revisar"] == 0 and m["links_pendentes"] is None
+    assert m["revisar"] == 0 and m["links_pendentes"] == 2
 
 
 def test_sala_com_link_ruim_e_400(tmp_path):
