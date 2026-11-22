@@ -1,0 +1,35 @@
+/* Tokens do Estúdio: cópia fiel de design/estudio/estudio.css (DESIGN.md da raiz). */
+@font-face{font-family:"Onest";font-style:normal;font-weight:100 900;font-display:swap;src:url("../../../../assets/fonts/onest-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Onest";font-style:normal;font-weight:100 900;font-display:swap;src:url("../../../../assets/fonts/onest-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+/* ---------- tokens: escuro (padrão) ---------- */
+:root{
+  --fundo:#1C1C1E; --trilho:rgba(40,40,42,.78); --folha:#2C2C2E; --folha-2:#3A3A3C; --poco:#232325;
+  --fio:rgba(255,255,255,.09); --fio-forte:rgba(255,255,255,.16);
+  --tinta:#F5F5F7; --tinta-2:#C7C7CC; --tinta-3:#8E8E93;
+  --marca:#FF6A3D; --acao:#CF4520; --acao-hover:#BC3B17; --acao-tinta:#FFFFFF; --acao-texto:#FF8A66; --selecao:rgba(255,106,61,.16); --foco:rgba(255,106,61,.55);
+  --capsula:rgba(255,255,255,.12); --capsula-tinta:#D1D1D6;
+  --alerta-fundo:#CC2E24; --ouro:#E5B53B; --forte:#8E8E93; --exp:#5E5E63; --ok:#30D158; --aviso:#FFD60A; --barrado:#FF453A;
+  --material:rgba(20,20,22,.74); --sombra:0 10px 30px rgba(0,0,0,.45),0 0 0 .5px rgba(255,255,255,.08);
+  --thumb:#2C2C2E; --thumb-2:#3A3A3C;
+  --raio:12px; --raio-p:10px; --raio-ctrl:7px; --raio-plaquinha:6px; --pilula:999px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --fundo:#F5F5F7; --trilho:rgba(232,232,237,.80); --folha:#FFFFFF; --folha-2:#F2F2F7; --poco:#ECECF0;
+  --fio:rgba(0,0,0,.09); --fio-forte:rgba(0,0,0,.16);
+  --tinta:#1D1D1F; --tinta-2:#424245; --tinta-3:#5F5F64;
+  --acao:#CF4520; --acao-hover:#BC3B17; --acao-tinta:#FFFFFF; --acao-texto:#C2410C; --selecao:rgba(255,106,61,.14); --foco:rgba(255,106,61,.5);
+  --capsula:rgba(0,0,0,.07); --capsula-tinta:#3A3A3C;
+  --alerta-fundo:#C41E1E; --ouro:#B07D00; --forte:#6E6E73; --exp:#AEAEB2; --ok:#1E8E3E; --aviso:#9A6200; --barrado:#D70015;
+  --material:rgba(28,28,30,.72); --sombra:0 10px 30px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.08);
+  --thumb:#E5E5EA; --thumb-2:#D8D8DD; color-scheme:light}}
+:root[data-theme="light"]{
+  --fundo:#F5F5F7; --trilho:rgba(232,232,237,.80); --folha:#FFFFFF; --folha-2:#F2F2F7; --poco:#ECECF0;
+  --fio:rgba(0,0,0,.09); --fio-forte:rgba(0,0,0,.16);
+  --tinta:#1D1D1F; --tinta-2:#424245; --tinta-3:#5F5F64;
+  --acao:#CF4520; --acao-hover:#BC3B17; --acao-tinta:#FFFFFF; --acao-texto:#C2410C; --selecao:rgba(255,106,61,.14); --foco:rgba(255,106,61,.5);
+  --capsula:rgba(0,0,0,.07); --capsula-tinta:#3A3A3C;
+  --alerta-fundo:#C41E1E; --ouro:#B07D00; --forte:#6E6E73; --exp:#AEAEB2; --ok:#1E8E3E; --aviso:#9A6200; --barrado:#D70015;
+  --material:rgba(28,28,30,.72); --sombra:0 10px 30px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.08);
+  --thumb:#E5E5EA; --thumb-2:#D8D8DD; color-scheme:light}
