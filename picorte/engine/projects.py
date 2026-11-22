@@ -228,6 +228,8 @@ def render_params_for(seg, options):
     """(aspect, layout, max_len do Cold Open) de cada segmento: o Longo sai 16:9, layout simples e sem Cold Open."""
     if seg.get("formato") == "longo_16x9" or seg.get("aspect") == "16:9" and options["aspect"] != "16:9":
         return "16:9", "single", None
+    if seg.get("formato") in ("arco_2_atos", "compilacao"):  # 3.7.4: compostos não ganham Cold Open
+        return options["aspect"], options["layout"], None
     max_len = TIKTOK_MAX_LEN if seg.get("formato") == "tiktok_60" else options.get("max_len")
     return options["aspect"], options["layout"], max_len
 
@@ -633,7 +635,7 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         # 3.7.1: Cold Open só com clímax MEDIDO (pico de chat ou punchline), respeitando max_len
                         from picorte.engine.retention_engine import cold_open_for_segment
                         if co_max_len is None:
-                            plan = {"enabled": False, "motivo": "formato 16:9 sem Cold Open (só verticais)"}
+                            plan = {"enabled": False, "motivo": f"formato {segment.get('formato')} sem Cold Open"}
                         else:
                             plan = cold_open_for_segment(
                                 segment, data["words"], _chat_peaks(path), max_len=co_max_len)
@@ -643,13 +645,25 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                     except Exception as exc:
                         enriched_seg["cold_open"] = {"enabled": False,
                                                      "motivo": f"erro no plano: {type(exc).__name__}: {exc}"}
-                    output = render_clips.render(enriched_seg, data["words"], render_source, W, H, path,
-                        seg_aspect, out_dir=out, style=options["style"],
-                        do_tighten=options["tighten"], loudnorm=options["loudnorm"], preview=preview,
-                        brand=brand, layout=seg_layout, centers=options["centers"],
+                    render_kwargs = dict(
+                        style=options["style"], do_tighten=options["tighten"], loudnorm=options["loudnorm"],
+                        preview=preview, brand=brand, layout=seg_layout, centers=options["centers"],
                         caption=options["caption"], source_offset=source_offset,
                         vision_preset=options.get("vision_preset", "auto"),
                         dominant_language=data.get("language"))
+                    if segment.get("formato") in ("arco_2_atos", "compilacao"):
+                        # 3.7.4: cada trecho pelo render normal (P1 por trecho) e emenda com ponte
+                        from picorte.engine.composites import render_composite
+                        comp = render_composite(
+                            enriched_seg, out_dir=out, render_fn=render_clips.render,
+                            render_args=(data["words"], render_source, W, H, path, seg_aspect),
+                            render_kwargs=render_kwargs, meta_fn=render_clips.write_meta)
+                        if comp["output"] is None:
+                            raise ValueError(f"composto {segment.get('formato')} não renderizado: {comp['motivo']}")
+                        output = comp["output"]
+                    else:
+                        output = render_clips.render(enriched_seg, data["words"], render_source, W, H, path,
+                                                     seg_aspect, out_dir=out, **render_kwargs)
                     try:
                         import shutil as _shutil
                         from picorte.engine.publish_kit import resolve_streamer

@@ -1983,6 +1983,25 @@ def _add_format_siblings(workdir, segments, source_duration):
     return out
 
 
+def _add_composites(workdir, segments):
+    """3.7.4: arcos de 2 atos (desfecho dentro de um corte selecionado) e compilações por arquétipo."""
+    from picorte.engine import health as _health
+    from picorte.engine.composites import arc_composites, compilation_composites
+    if not segments:
+        return segments
+    try:
+        words = json.loads((Path(workdir) / "transcript.json").read_text(encoding="utf-8-sig")).get("words") or []
+    except (OSError, ValueError):
+        words = []
+    sents = sentenceize(words) if words else []
+    arcs = arc_composites(sents, segments) if sents else []
+    comps = compilation_composites(segments)
+    _health.record(workdir, "composicoes", "ok" if (arcs or comps) else "na",
+                   f"{len(arcs)} arco(s) de 2 atos, {len(comps)} compilação(ões)" if (arcs or comps)
+                   else "sem arco com desfecho num corte selecionado nem 4+ cortes do mesmo arquétipo")
+    return list(segments) + arcs + comps
+
+
 def _split_standalone(workdir, segments):
     """3.6.5 (AC4): corte com standalone < 5 sai dos Shorts e vai para longo_compilacao.json."""
     from picorte.engine.confidence import split_standalone
@@ -2503,6 +2522,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
     segments = _split_standalone(workdir, segments)
     if formatos_extras and not _benchmark_blind(workdir):
         segments = _add_format_siblings(workdir, segments, discovery.get("source_duration"))
+        segments = _add_composites(workdir, segments)
     _write_json(workdir / "segments.json", segments)
     _write_json(workdir / "selection.json", stats)
     _record_project_confidence(workdir)
