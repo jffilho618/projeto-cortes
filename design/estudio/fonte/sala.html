@@ -1,0 +1,76 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sala do vídeo · Picorte</title><link rel="stylesheet" href="estudio.css">
+<style>
+.voltar{display:inline-flex;align-items:center;gap:6px;color:var(--tinta-2);font-weight:600;width:max-content}
+.sala{display:grid;grid-template-columns:1fr 440px;gap:24px;align-items:start}
+.palco{display:flex;flex-direction:column;gap:12px;min-width:0}
+.player{position:relative;aspect-ratio:16/9;border-radius:var(--raio);overflow:hidden;background:#000}
+.player img{width:100%;height:100%;object-fit:cover;opacity:.92}
+.player .play{position:absolute;inset:0;margin:auto;width:76px;height:76px;border-radius:50%;background:#000a;display:grid;place-items:center;color:#fff}
+.player .play svg{width:30px;height:30px;fill:#fff;stroke:none}
+.palco h1{font-size:29px;font-weight:650;line-height:1.15;letter-spacing:-.015em;text-wrap:balance}
+.painel{position:sticky;top:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.passo{display:flex;flex-direction:column;gap:8px}
+.passo>label,.passo>.rotulo{font-size:12.5px;font-weight:600;color:var(--tinta-3);letter-spacing:.01em}
+.portao{display:flex;align-items:center;gap:10px;padding:2px 0 14px;border-bottom:.5px solid var(--fio-forte)}
+.portao b{font-weight:700}
+.opcoes{display:flex;flex-wrap:wrap;gap:8px}
+.op{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:var(--raio-ctrl);background:var(--folha-2);box-shadow:0 0 0 .5px var(--fio);font-weight:500;color:var(--tinta)}
+.op[aria-pressed="true"]{background:var(--selecao);box-shadow:inset 0 0 0 1.5px var(--acao);color:var(--tinta)}
+.op[aria-disabled="true"]{background:transparent;color:var(--tinta-3);cursor:not-allowed}
+.op .ic{width:14px;height:14px}
+.dica{font-size:13px;color:var(--tinta-3)}
+.mini-espaco{border-radius:0;padding:2px 0;font-size:13px;color:var(--tinta-2);display:flex;gap:8px;align-items:center}
+.mini-espaco .ic{width:14px;height:14px;color:var(--tinta-3)}
+.prev{display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center}
+.vert{aspect-ratio:9/16;border-radius:12px;overflow:hidden;display:grid;grid-template-rows:32% 68%;background:#000;box-shadow:0 0 0 .5px var(--fio)}
+.vert img{width:100%;height:100%;object-fit:cover}
+.vert .face{object-position:8% 12%}.vert .jogo{object-position:58% 60%}
+.troca{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--fio)}
+.sw{width:40px;height:24px;border-radius:12px;background:var(--fio-forte);position:relative;flex:none}.sw::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+.sw.on{background:var(--ok)}.sw.on::after{left:19px}
+.cortar{justify-content:center;height:46px;font-size:14px}
+</style></head><body>
+<!--@SPRITE-->
+<div class="app"><!--@SIDE:lives-->
+<main class="main">
+  <a class="voltar" href="lives.html"><svg class="ic s"><use href="#i-voltar"/></svg>Lives</a>
+  <div class="sala">
+    <section class="palco">
+      <div class="player"><img src="https://i.ytimg.com/vi/x50ONQrBPRM/maxresdefault.jpg" alt=""><span class="play"><svg viewBox="0 0 24 24"><path d="M8 5l12 7-12 7z"/></svg></span></div>
+      <h1>GTA 6 É AGORA, O INÍCIO DA GAMEPLAY</h1>
+      <span class="meta">Davy Jones · GTA 6 · <span class="num">11:20:15</span> · há 2 dias · dados da API oficial, verificado há 14 min</span>
+      <p class="fraco" style="font-size:12px;margin-top:8px">Protótipo de design: título, duração e thumb reais; estado do Gemini e opções escolhidas são ilustrativos; o custo dos frames foi medido na auditoria de 20/11.</p>
+    </section>
+
+    <aside class="painel folha" aria-label="Painel de corte">
+      <div class="portao"><span class="mk ok"><svg class="ic s"><use href="#i-ok"/></svg></span><span><b>Davy Jones · liberado</b><br><span class="fraco">tolerância pública · portão P1</span></span></div>
+
+      <div class="passo"><span class="rotulo">Formato</span>
+        <div class="opcoes"><button class="op" aria-pressed="true">9:16 Short</button><button class="op" aria-pressed="false">16:9</button><span class="op" aria-disabled="true"><svg class="ic"><use href="#i-cad"/></svg>Par Short + Longo · 3.7.3</span></div></div>
+
+      <div class="passo"><span class="rotulo">Enquadramento</span>
+        <div class="opcoes"><button class="op" aria-pressed="true">Games · facecam no topo</button><button class="op" aria-pressed="false">Rosto único</button><span class="op" aria-disabled="true"><svg class="ic"><use href="#i-cad"/></svg>Layout dinâmico · 3.7.2</span></div></div>
+
+      <div class="passo"><span class="rotulo">Motor de IA</span>
+        <div class="opcoes"><button class="op" aria-pressed="true">Ollama · qwen3.5:9b</button><button class="op" aria-pressed="false">Claude</button><span class="op" aria-disabled="true"><svg class="ic"><use href="#i-av"/></svg>Gemini · sem cota desde 21/11</span><button class="op" aria-pressed="false">Dupla</button><button class="op" aria-pressed="false">Sem IA</button></div>
+        <span class="dica">Padrão: o último motor que funcionou.</span></div>
+
+      <div class="passo"><span class="rotulo">Caça</span><div class="opcoes"><button class="op" aria-pressed="false">Rápida</button><button class="op" aria-pressed="true">Profunda</button></div></div>
+
+      <div class="passo"><span class="rotulo">Efeitos de retenção</span>
+        <div class="mini-espaco"><svg class="ic"><use href="#i-cad"/></svg>Cold Open 1,5 s e Seamless Loop chegam na história 3.7.1.</div></div>
+
+      <div class="passo"><span class="rotulo">Preview do enquadramento</span>
+        <div class="prev"><div class="vert"><img class="face" src="https://i.ytimg.com/vi/x50ONQrBPRM/maxresdefault.jpg" alt=""><img class="jogo" src="https://i.ytimg.com/vi/x50ONQrBPRM/maxresdefault.jpg" alt=""></div>
+        <span class="dica">Aplicado sobre a thumb real deste vídeo. Muda quando você troca o formato ou o enquadramento.</span></div></div>
+
+      <div class="troca"><span><b>LLM vê os frames</b><br><span class="dica">Claude Sonnet · ~US$ 0,26 por VOD, medido em 20/11 (limite da assinatura)</span></span><span class="sw" role="switch" aria-checked="false"></span></div>
+      <div class="troca"><span><b>Renderizar sozinho</b><br><span class="dica">Os cortes aprovados pelos portões vão para o Pacote do Dia</span></span><span class="sw on" role="switch" aria-checked="true"></span></div>
+
+      <a class="pilula cortar" href="revisao.html">Cortar este vídeo</a>
+    </aside>
+  </div>
+</main></div>
+<!--@SCRIPT-->
+</body></html>

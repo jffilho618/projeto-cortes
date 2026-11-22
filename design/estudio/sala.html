@@ -1,0 +1,125 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sala do vídeo · Picorte</title><link rel="stylesheet" href="estudio.css">
+<style>
+.voltar{display:inline-flex;align-items:center;gap:6px;color:var(--tinta-2);font-weight:600;width:max-content}
+.sala{display:grid;grid-template-columns:1fr 440px;gap:24px;align-items:start}
+.palco{display:flex;flex-direction:column;gap:12px;min-width:0}
+.player{position:relative;aspect-ratio:16/9;border-radius:var(--raio);overflow:hidden;background:#000}
+.player img{width:100%;height:100%;object-fit:cover;opacity:.92}
+.player .play{position:absolute;inset:0;margin:auto;width:76px;height:76px;border-radius:50%;background:#000a;display:grid;place-items:center;color:#fff}
+.player .play svg{width:30px;height:30px;fill:#fff;stroke:none}
+.palco h1{font-size:29px;font-weight:650;line-height:1.15;letter-spacing:-.015em;text-wrap:balance}
+.painel{position:sticky;top:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.passo{display:flex;flex-direction:column;gap:8px}
+.passo>label,.passo>.rotulo{font-size:12.5px;font-weight:600;color:var(--tinta-3);letter-spacing:.01em}
+.portao{display:flex;align-items:center;gap:10px;padding:2px 0 14px;border-bottom:.5px solid var(--fio-forte)}
+.portao b{font-weight:700}
+.opcoes{display:flex;flex-wrap:wrap;gap:8px}
+.op{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:var(--raio-ctrl);background:var(--folha-2);box-shadow:0 0 0 .5px var(--fio);font-weight:500;color:var(--tinta)}
+.op[aria-pressed="true"]{background:var(--selecao);box-shadow:inset 0 0 0 1.5px var(--acao);color:var(--tinta)}
+.op[aria-disabled="true"]{background:transparent;color:var(--tinta-3);cursor:not-allowed}
+.op .ic{width:14px;height:14px}
+.dica{font-size:13px;color:var(--tinta-3)}
+.mini-espaco{border-radius:0;padding:2px 0;font-size:13px;color:var(--tinta-2);display:flex;gap:8px;align-items:center}
+.mini-espaco .ic{width:14px;height:14px;color:var(--tinta-3)}
+.prev{display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center}
+.vert{aspect-ratio:9/16;border-radius:12px;overflow:hidden;display:grid;grid-template-rows:32% 68%;background:#000;box-shadow:0 0 0 .5px var(--fio)}
+.vert img{width:100%;height:100%;object-fit:cover}
+.vert .face{object-position:8% 12%}.vert .jogo{object-position:58% 60%}
+.troca{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--fio)}
+.sw{width:40px;height:24px;border-radius:12px;background:var(--fio-forte);position:relative;flex:none}.sw::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+.sw.on{background:var(--ok)}.sw.on::after{left:19px}
+.cortar{justify-content:center;height:46px;font-size:14px}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-lives" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="3"/><path d="M8 21h8M10 9.5l4 1.5-4 1.5z"/></symbol>
+<symbol id="i-fila" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+<symbol id="i-revisao" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M10 9l5 3-5 3z"/></symbol>
+<symbol id="i-publicacao" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></symbol>
+<symbol id="i-fontes" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.6-3.4 3-5.5 6-5.5s5.4 2.1 6 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.4.9 2.3 2.6 2.5 5.2"/></symbol>
+<symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+<symbol id="i-saude" viewBox="0 0 24 24"><path d="M3 12h4l2-5 4 10 2-5h6"/></symbol>
+<symbol id="i-aprend" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></symbol>
+<symbol id="i-radar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 12l5-5"/></symbol>
+<symbol id="i-config" viewBox="0 0 24 24"><path d="M10.3 3h3.4l.5 2.6 1.9 1.1 2.5-.9 1.7 2.9-2 1.7v2.2l2 1.7-1.7 2.9-2.5-.9-1.9 1.1-.5 2.6h-3.4l-.5-2.6-1.9-1.1-2.5.9-1.7-2.9 2-1.7v-2.2l-2-1.7 1.7-2.9 2.5.9 1.9-1.1z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-cad" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-av" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-traco" viewBox="0 0 24 24"><path d="M7 12h10"/></symbol>
+<symbol id="i-vivo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4"/></symbol>
+<symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+<symbol id="i-seta" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+<symbol id="i-polegar" viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2.2 2.6L12.6 10H19a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.8 20H7"/></symbol>
+<symbol id="i-polegar-b" viewBox="0 0 24 24"><path d="M7 13V4H4v9zM7 13l4 7c1.5 0 2.5-1 2.2-2.6L12.6 14H19a2 2 0 0 0 2-2.3l-1.2-6A2 2 0 0 0 17.8 4H7"/></symbol>
+<symbol id="i-estrela" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/></symbol>
+<symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+<symbol id="i-render" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18M8 5v4M16 5v4"/></symbol>
+</svg>
+<div class="app"><nav class="side" aria-label="Navegação principal">
+  <a class="marca" href="lives.html"><img src="../brand/picorte-icone.svg" alt=""><span>Picorte</span></a>
+  <a class="it" href="lives.html" data-k="lives" aria-current="page"><svg class="ic"><use href="#i-lives"/></svg><span class="rot">Lives</span></a>
+  <a class="it" href="#" data-k="fila"><svg class="ic"><use href="#i-fila"/></svg><span class="cont num">1</span><span class="rot">Fila</span></a>
+  <a class="it" href="revisao.html" data-k="revisao"><svg class="ic"><use href="#i-revisao"/></svg><span class="cont num">2</span><span class="rot">Revisão</span></a>
+  <a class="it" href="#" data-k="publicacao"><svg class="ic"><use href="#i-publicacao"/></svg><span class="cont num">1</span><span class="rot">Publicação</span></a>
+  <a class="it" href="#"><svg class="ic"><use href="#i-fontes"/></svg><span class="cont alerta num">1</span><span class="rot">Fontes · 1 pede você</span></a>
+  <a class="it" href="#"><svg class="ic"><use href="#i-escudo"/></svg><span class="rot">Escudo</span></a>
+  <a class="it" href="#"><svg class="ic"><use href="#i-saude"/></svg><span class="rot">Saúde</span></a>
+  <a class="it" href="#"><svg class="ic"><use href="#i-aprend"/></svg><svg class="ic cad"><use href="#i-cad"/></svg><span class="rot">Aprendizado · travado</span></a>
+  <a class="it" href="#"><svg class="ic"><use href="#i-radar"/></svg><svg class="ic cad"><use href="#i-cad"/></svg><span class="rot">Radar · travado</span></a>
+  <div class="sist" aria-label="Estado do sistema">
+    <div class="sep"></div>
+    <div class="sl" id="sl-gpu" title="GPU · Renderizando 16/17 · Davy Jones"><span class="anel" style="--p:94%"></span><span class="rot"><b>GPU</b> · Renderizando 16/17</span></div>
+    <div class="sl"><span class="mk ok"><svg class="ic s"><use href="#i-ok"/></svg></span><span class="rot"><b>Ollama</b> · Ligado · qwen3.5:9b</span></div>
+    <div class="sl"><span class="mk av"><svg class="ic s"><use href="#i-av"/></svg></span><span class="rot"><b>Gemini</b> · sem cota desde 21/11</span></div>
+    <div class="sl"><span class="mk ok"><svg class="ic s"><use href="#i-ok"/></svg></span><span class="rot"><b>Claude</b> · Ligado</span></div>
+    <div class="sl"><span class="mk ok"><svg class="ic s"><use href="#i-vivo"/></svg></span><span class="rot"><b>Tempo real</b> · conectado</span></div>
+    <button class="tema" type="button" onclick="trocarTema()"><svg class="ic"><use href="#i-sol"/></svg><span class="rot">Tema claro / escuro</span></button>
+    <a class="it" href="#"><svg class="ic"><use href="#i-config"/></svg><span class="rot">Configurações</span></a>
+  </div>
+</nav>
+<main class="main">
+  <a class="voltar" href="lives.html"><svg class="ic s"><use href="#i-voltar"/></svg>Lives</a>
+  <div class="sala">
+    <section class="palco">
+      <div class="player"><img src="https://i.ytimg.com/vi/x50ONQrBPRM/maxresdefault.jpg" alt=""><span class="play"><svg viewBox="0 0 24 24"><path d="M8 5l12 7-12 7z"/></svg></span></div>
+      <h1>GTA 6 É AGORA, O INÍCIO DA GAMEPLAY</h1>
+      <span class="meta">Davy Jones · GTA 6 · <span class="num">11:20:15</span> · há 2 dias · dados da API oficial, verificado há 14 min</span>
+      <p class="fraco" style="font-size:12px;margin-top:8px">Protótipo de design: título, duração e thumb reais; estado do Gemini e opções escolhidas são ilustrativos; o custo dos frames foi medido na auditoria de 20/11.</p>
+    </section>
+
+    <aside class="painel folha" aria-label="Painel de corte">
+      <div class="portao"><span class="mk ok"><svg class="ic s"><use href="#i-ok"/></svg></span><span><b>Davy Jones · liberado</b><br><span class="fraco">tolerância pública · portão P1</span></span></div>
+
+      <div class="passo"><span class="rotulo">Formato</span>
+        <div class="opcoes"><button class="op" aria-pressed="true">9:16 Short</button><button class="op" aria-pressed="false">16:9</button><span class="op" aria-disabled="true"><svg class="ic"><use href="#i-cad"/></svg>Par Short + Longo · 3.7.3</span></div></div>
+
+      <div class="passo"><span class="rotulo">Enquadramento</span>
+        <div class="opcoes"><button class="op" aria-pressed="true">Games · facecam no topo</button><button class="op" aria-pressed="false">Rosto único</button><span class="op" aria-disabled="true"><svg class="ic"><use href="#i-cad"/></svg>Layout dinâmico · 3.7.2</span></div></div>
+
+      <div class="passo"><span class="rotulo">Motor de IA</span>
+        <div class="opcoes"><button class="op" aria-pressed="true">Ollama · qwen3.5:9b</button><button class="op" aria-pressed="false">Claude</button><span class="op" aria-disabled="true"><svg class="ic"><use href="#i-av"/></svg>Gemini · sem cota desde 21/11</span><button class="op" aria-pressed="false">Dupla</button><button class="op" aria-pressed="false">Sem IA</button></div>
+        <span class="dica">Padrão: o último motor que funcionou.</span></div>
+
+      <div class="passo"><span class="rotulo">Caça</span><div class="opcoes"><button class="op" aria-pressed="false">Rápida</button><button class="op" aria-pressed="true">Profunda</button></div></div>
+
+      <div class="passo"><span class="rotulo">Efeitos de retenção</span>
+        <div class="mini-espaco"><svg class="ic"><use href="#i-cad"/></svg>Cold Open 1,5 s e Seamless Loop chegam na história 3.7.1.</div></div>
+
+      <div class="passo"><span class="rotulo">Preview do enquadramento</span>
+        <div class="prev"><div class="vert"><img class="face" src="https://i.ytimg.com/vi/x50ONQrBPRM/maxresdefault.jpg" alt=""><img class="jogo" src="https://i.ytimg.com/vi/x50ONQrBPRM/maxresdefault.jpg" alt=""></div>
+        <span class="dica">Aplicado sobre a thumb real deste vídeo. Muda quando você troca o formato ou o enquadramento.</span></div></div>
+
+      <div class="troca"><span><b>LLM vê os frames</b><br><span class="dica">Claude Sonnet · ~US$ 0,26 por VOD, medido em 20/11 (limite da assinatura)</span></span><span class="sw" role="switch" aria-checked="false"></span></div>
+      <div class="troca"><span><b>Renderizar sozinho</b><br><span class="dica">Os cortes aprovados pelos portões vão para o Pacote do Dia</span></span><span class="sw on" role="switch" aria-checked="true"></span></div>
+
+      <a class="pilula cortar" href="revisao.html">Cortar este vídeo</a>
+    </aside>
+  </div>
+</main></div>
+<script>
+function trocarTema(){var r=document.documentElement,a=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'),n=a==='light'?'dark':'light';r.setAttribute('data-theme',n);try{localStorage.setItem('picorte-tema',n)}catch(e){}}
+(function(){try{var t=localStorage.getItem('picorte-tema');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}var q=new URLSearchParams(location.search).get('tema');if(q)document.documentElement.setAttribute('data-theme',q)})();
+</script>
+</body></html>

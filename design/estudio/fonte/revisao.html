@@ -1,0 +1,107 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revisão · Picorte</title><link rel="stylesheet" href="estudio.css">
+<style>
+.topo{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.topo h1{font-size:23px;font-weight:650;line-height:1.2}
+.topo .meta{font-size:14px}
+.resumo{font-size:14px;color:var(--tinta-2)}
+.topo .confi{margin-left:auto;background:var(--poco);box-shadow:inset 0 0 0 .5px var(--fio);border-radius:var(--raio-ctrl);padding:6px 14px;font-size:13px;color:var(--tinta-2);display:flex;gap:8px;align-items:center}
+.topo .confi .ic{width:14px;height:14px;color:var(--tinta-3)}
+.vod{padding:12px 14px}.vod-cab{display:flex;gap:12px;align-items:baseline;margin-bottom:8px;font-size:13px}.vod-cab .leg{margin-left:auto;display:flex;gap:6px;align-items:center;color:var(--tinta-3);font-size:12px}.leg i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-left:8px}.l-ouro{background:var(--ouro)}.l-forte{background:color-mix(in srgb,var(--tinta) 28%,transparent)}.l-atual{background:var(--marca)}
+.rev{display:grid;grid-template-columns:420px minmax(420px,1fr) 480px;gap:20px;align-items:start}
+.lista{padding:12px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 150px);overflow:auto}
+.agrupa{display:flex;align-items:center;gap:10px;font-size:12.5px}.agrupa .aba{height:24px;padding:0 10px;font-size:12.5px}
+.filtros{display:flex;gap:6px;flex-wrap:wrap;padding:2px 2px 8px;border-bottom:1px solid var(--fio)}
+.filtros span{height:26px;padding:0 10px;border-radius:var(--raio-ctrl);background:var(--folha-2);display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--tinta-2)}
+.item{display:grid;grid-template-columns:auto 1fr;align-items:start;gap:10px;padding:10px;border-radius:10px}
+.item:hover{background:var(--folha-2)}
+.item[aria-current="true"]{background:var(--selecao)}
+.item .plaq{position:static;height:22px;background:var(--capsula);color:var(--capsula-tinta);-webkit-backdrop-filter:none;backdrop-filter:none}
+.item h3{font-size:13.5px;font-weight:600;line-height:1.3}
+.item .lin{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:5px;font-size:12px;color:var(--tinta-3)}
+.item.desc h3{text-decoration:line-through;color:var(--tinta-3)}
+.palco{display:flex;flex-direction:column;gap:12px;align-items:center}
+.vert{position:relative;border:0;height:min(64vh,720px);aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:#000;display:grid;grid-template-rows:32% 68%}
+.vert img{width:100%;height:100%;object-fit:cover}.vert .face{object-position:6% 10%}.vert .jogo{object-position:55% 55%}
+.vert .plaq{z-index:3}
+.vert .faixa{position:absolute;left:50%;top:21%;transform:translateX(-50%);background:#FFD60A;color:#1C1C1E;font-weight:800;font-size:14px;padding:4px 10px;border-radius:var(--raio-ctrl);white-space:nowrap}
+.vert .leg{position:absolute;left:8%;right:8%;bottom:24%;text-align:center;color:#fff;font-weight:900;font-size:23px;text-shadow:0 2px 0 #000,0 0 6px #000}
+.onda{width:100%;position:relative;padding:10px 12px}
+.onda svg{display:block;width:100%;height:74px}
+.alca{position:absolute;top:4px;bottom:4px;width:4px;border-radius:var(--pilula);background:var(--acao)}
+.tempos{display:flex;justify-content:space-between;font-size:12px;color:var(--tinta-3);margin-top:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.k{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:5px 10px;border-radius:7px;box-shadow:0 0 0 .5px var(--fio-forte);font-size:13px;font-weight:600;color:var(--tinta-2)}
+kbd{font:inherit;font-weight:600;color:var(--tinta);background:var(--folha-2);border:1px solid var(--fio-forte);border-radius:5px;padding:0 5px;font-size:12px}
+.pilula:not(.sec) kbd{background:rgba(0,0,0,.22);border-color:rgba(255,255,255,.35);color:#fff}
+.ficha{padding:18px;display:flex;flex-direction:column;gap:14px}
+.ficha .cab{display:flex;align-items:center;gap:8px}
+.campo{display:flex;flex-direction:column;gap:5px}.campo span{font-size:12px;font-weight:700;color:var(--tinta-3)}
+.campo textarea{font:inherit;font-weight:500;line-height:1.35;color:var(--tinta);resize:none;padding:8px 10px;border:0;border-radius:var(--raio-ctrl);background:var(--folha-2);box-shadow:inset 0 0 0 .5px var(--fio-forte)}
+.campo textarea:focus{outline:none;box-shadow:inset 0 0 0 .5px var(--fio-forte),0 0 0 3px var(--foco)}
+.grupo h3{font-size:13px;font-weight:650;margin-bottom:8px}
+.tab-s{display:grid;grid-template-columns:150px 1fr;gap:7px 12px;font-size:14px}
+.tab-s .nome{color:var(--tinta-2)}
+.acoes{display:flex;gap:8px;flex-wrap:wrap;padding-top:6px;border-top:1px solid var(--fio)}
+.acoes .pilula{height:38px;padding:0 14px}
+.mini-espaco{border-radius:0;padding:2px 0;font-size:13px;color:var(--tinta-2);display:flex;gap:8px;align-items:center}
+.mini-espaco .ic{width:14px;height:14px;color:var(--tinta-3)}
+</style></head><body>
+<!--@SPRITE-->
+<div class="app"><!--@SIDE:revisao-->
+<main class="main">
+  <header class="topo">
+    <div><h1>CAÇANDO TESOURO! - GRAND THEFT AUTO 6 - Parte 2</h1>
+      <span class="meta">Alanzoka · GTA 6 · <span class="num">15</span> cortes · motor Gemini · produção</span><br>
+      <span class="resumo">Este projeto mediu só a energia do áudio e o texto: sem visão, sem chat e sem comentários (é anterior à ligação desses sinais).</span></div>
+    <span class="confi"><svg class="ic"><use href="#i-cad"/></svg>Confiança do projeto · chega na 3.6.5</span>
+  </header>
+
+  <section class="vod folha" aria-label="Minimapa do VOD"><div class="vod-cab"><b>VOD inteiro</b><span class="fraco">energia do áudio · 15 cortes no lugar real · clique para ir</span><span class="leg"><i class="l-ouro"></i>Ouro<i class="l-forte"></i>Forte / Experimental<i class="l-atual"></i>Selecionado</span></div><!--@MINIMAPA--></section>
+  <div class="rev">
+    <section class="lista folha" aria-label="Cortes"><h2 class="sr">Cortes</h2>
+      <div class="agrupa"><span class="fraco">Agrupar</span><div class="abas" role="group"><button class="aba" aria-selected="true">Nenhum</button><button class="aba" aria-selected="false">Jogo</button><button class="aba" aria-selected="false">Arquétipo</button></div></div>
+      <div class="filtros"><span>Tier</span><span>Arquétipo</span><span>Sinal medido</span><span>P1</span><span>Rótulo</span></div>
+      <!--@ITENS-->
+    </section>
+
+    <section class="palco" aria-label="Player">
+      <div class="vert ouro"><span class="plaq num">Nº 01</span><img class="face" src="https://i.ytimg.com/vi/yWvnOWILFk0/maxresdefault.jpg" alt=""><img class="jogo" src="https://i.ytimg.com/vi/yWvnOWILFk0/maxresdefault.jpg" alt="">
+        <span class="faixa">BANHO INTERATIVO NO GTA 6!</span><span class="leg">TESTA OS LIMITES</span></div>
+      <div class="onda folha"><!--@ONDA--></div>
+      <div class="ctrl">
+        <span class="k"><kbd>K</kbd>anterior</span><span class="k"><kbd>Espaço</kbd>play</span><span class="k"><kbd>J</kbd>próximo</span>
+        <span class="k"><kbd>I</kbd><kbd>O</kbd>início / fim</span><span class="k">1× · <b>1,5×</b> · 2×</span><span class="k">Avançar sozinho · ligado</span></div>
+    </section>
+
+    <aside class="ficha folha" aria-label="Ficha do corte"><h2 class="sr">Ficha do corte</h2>
+      <div class="cab"><span class="plaq num">Nº 01</span><span class="tier ouro">Ouro</span><span class="arq">descoberta_detalhe</span></div>
+      <label class="campo"><span>Título</span><textarea rows="2">Alanzoka descobre a mecânica de banho interativo no GTA 6 e testa os limites</textarea></label>
+      <label class="campo"><span>Faixa de 2 s</span><textarea rows="1">BANHO INTERATIVO NO GTA 6!</textarea></label>
+      <label class="campo"><span>1º comentário</span><textarea rows="2">A Rockstar foi longe demais colocando simulador de banho ou esse nível de detalhe é genial?</textarea></label>
+      <div class="grupo"><h3>Pico de origem</h3><!--@PICO--><p class="fraco" style="font-size:12.5px;margin-top:6px">Camada medida: energia do áudio. Chat, comentários e heatmap não foram medidos neste vídeo, por isso não aparecem.</p></div>
+      <div class="grupo"><h3>Sinais</h3><div class="tab-s">
+        <span class="nome">Energia do áudio</span><span class="est ok"><svg class="ic s"><use href="#i-ok"/></svg>medido</span>
+        <span class="nome">Riso</span><span class="est nm"><svg class="ic s"><use href="#i-traco"/></svg>não medido · projeto anterior à prosódia</span>
+        <span class="nome">Comentário do público</span><span class="est nm"><svg class="ic s"><use href="#i-traco"/></svg>não medido · projeto anterior</span>
+        <span class="nome">Chat</span><span class="est nm"><svg class="ic s"><use href="#i-traco"/></svg>não medido · vídeo sem chat</span>
+        <span class="nome">Facecam e HUD</span><span class="est nm"><svg class="ic s"><use href="#i-traco"/></svg>não medido · a visão não rodou</span></div></div>
+      <div class="grupo"><h3>Escudo P1 por rede</h3><div class="tab-s">
+        <span class="nome">YouTube Shorts</span><span class="est av"><svg class="ic s"><use href="#i-av"/></svg>sem veredito · re-auditar</span>
+        <span class="nome">TikTok</span><span class="est av"><svg class="ic s"><use href="#i-av"/></svg>sem veredito · re-auditar</span>
+        <span class="nome">Reels e Facebook</span><span class="est av"><svg class="ic s"><use href="#i-av"/></svg>sem veredito · re-auditar</span></div>
+        <p class="fraco" style="font-size:13px;margin-top:6px">Renderizado antes do Escudo existir.</p></div>
+      <div class="mini-espaco"><svg class="ic"><use href="#i-cad"/></svg>Entende sozinho? · nota standalone chega na 3.6.5</div>
+      <div class="acoes">
+        <button class="pilula sec"><svg class="ic s"><use href="#i-polegar"/></svg>Bom <kbd>1</kbd></button>
+        <button class="pilula sec"><svg class="ic s"><use href="#i-polegar-b"/></svg>Ruim <kbd>2</kbd></button>
+        <button class="pilula"><svg class="ic s"><use href="#i-render"/></svg>Renderizar <kbd>R</kbd></button>
+        <button class="pilula sec"><svg class="ic s"><use href="#i-lixo"/></svg>Descartar <kbd>D</kbd></button>
+        <button class="pilula sec"><svg class="ic s"><use href="#i-estrela"/></svg>Exemplo Ouro <kbd>E</kbd></button>
+      </div>
+    </aside>
+  </div>
+  <p class="fraco" style="font-size:12px">Protótipo de design: títulos, tiers, arquétipos e durações são os 15 cortes reais do projeto; curvas de energia vêm do áudio real do projeto; descarte, rótulo e estados de P1 são ilustrativos.</p>
+</main></div>
+<!--@SCRIPT-->
+</body></html>

@@ -6,14 +6,14 @@
 
 web + local GPU engine
 
-Uso igual em desktop e celular (decisão do usuário, 2026-11-16): fluxos completos nos dois, cada um com layout próprio. O celular não é o desktop espremido, e o desktop não é o celular esticado.
+Só desktop (decisão do dono, 2026-11-21): o painel roda local no computador, em Windows 11 (PC de mesa, alvo 2560×1440) e Linux (notebook). Não há layout de celular. Substitui a decisão de 2026-11-16 (desktop e celular).
 
 ## Stack
 
 Arquitetura híbrida local-first (definida na E3.5 em 2026-11-18 e detalhada na E5):
 - **Motor de Vídeo e IA (Python na GPU — RTX 4060 Ti 8 GB):** chassi baseado no `mehbul/chopify` (MIT: `faster-whisper`, `opencv-python`/YuNet, `numpy`, `yt-dlp`, `FFmpeg/NVENC` com legendas `.ass`), turbinado com módulos transplantados do `fralapo/clippyme` (MIT: `live_monitor.py` para lives ao vivo na Twitch/Kick/YouTube) e do `FujiwaraChoki/supoclip` (`reaction_layout.py` para Facecam + Jogo, `social/` para publicação OAuth e `mcp/` para controle por agente), mais detectores próprios de **Visão Computacional** (HUD/Killfeed, micro-expressões na facecam, Sniper Crop, Detector de React Perigoso, Fábrica de Thumbnails) e **Cirurgia de Áudio** (`Demucs` seletivo + Selo Verde 15s).
-- **Cérebro e Persistência (PostgreSQL local):** banco relacional para fontes, políticas por publisher/jogo, campanhas pagas de clipping, vídeos/lives, cortes, publicações, snapshots de métricas (1h/24h/7d), claims e pesos do Bandit.
-- **Frontend ("Estúdio do Criador"):** painel web responsivo (PC e celular) vestindo o motor local com os tokens e componentes do `DESIGN.md`.
+- **Cérebro e Persistência (banco local `picorte.db`, SQLite; PostgreSQL opcional — decisão do dono, 2026-11-21):** banco relacional para fontes, políticas por publisher/jogo, campanhas pagas de clipping, vídeos/lives, cortes, publicações, snapshots de métricas (1h/24h/7d), claims e pesos do Bandit.
+- **Frontend ("Estúdio do Criador"):** painel web só desktop (Windows e Linux), React + FastAPI, onde cada função aparece com o status real decidido pelo backend (ligado, parcial, travado; travado nunca é falso). Visual definido em `DESIGN.md`.
 
 ## Users
 
@@ -52,7 +52,7 @@ Ferramentas pagas de autoclip (Opus Clip, Cortaí) cobram mensalidade por minuto
 
 - Nome da ferramenta: **Picorte** (pico + corte).
 - Canal de cortes de games: **Bomba Clips** (independente e sem ligação visível com a marca Picorte — P1).
-- Identidade visual: **"Estúdio do Criador"** com a assinatura **"Curva do Mais Repetido"** (`DESIGN.md`, `design/tokens/tokens.css`, `design/brand/`).
+- Identidade visual (redefinida em 2026-11-21): acabamento de app de sistema (referência do dono: apps do macOS), cinzas neutros e uma única cor de marca, o laranja do logotipo; mundo "Álbum de figurinhas" discreto (numeração Nº dos cortes e o encaixe "colar a figurinha"); peça de dado: o pico de origem. Detalhes em `DESIGN.md`. O logotipo (`design/brand/`) continua o mesmo.
 - Voz: português do Brasil, direto e honesto.
 
 ## Evidence on Hand
