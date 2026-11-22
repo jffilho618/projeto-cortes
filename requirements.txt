@@ -5,3 +5,6 @@ opencv-python>=4.10.0
 numpy>=1.26.0
 filelock>=3.16.0
 pytest>=8.4.0
+fastapi==0.165.0
+uvicorn==0.54.0
+httpx>=0.28.0

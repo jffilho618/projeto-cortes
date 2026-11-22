@@ -1,0 +1,113 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lives · Picorte</title><link rel="stylesheet" href="estudio.css">
+<style>
+.hero{display:grid;grid-template-columns:462px minmax(340px,1fr) minmax(320px,560px);gap:28px;padding:4px 0 8px;align-items:stretch;border-bottom:.5px solid var(--fio-forte)}
+.hero .info{min-width:0}
+.hero .espaco{align-items:center;justify-content:center;text-align:center}
+.hero .espaco .pilula{align-self:center}
+.espaco .tt.tt-sub{font-weight:500;color:var(--tinta-3)}
+.impresso{font-size:18px;font-weight:650;color:var(--tinta)}
+.hero .espaco .falta{max-width:46ch}
+.hero .cromo{width:462px;height:260px}
+.hero .info{display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0}
+.hero h2{font-size:29px;line-height:1.15;font-weight:650;letter-spacing:-.015em;text-wrap:balance}
+.hero .acoes{display:flex;gap:10px;margin-top:10px;align-items:center}
+.cromo img{width:100%;height:100%;object-fit:cover;display:block}
+.barra{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.barra h2{font-size:23px;font-weight:650;letter-spacing:-.015em}
+.mesa-t{font-size:12px;font-weight:600;margin-right:6px}
+.prat{display:flex;flex-direction:column;gap:10px}
+.prat header{display:flex;align-items:baseline;gap:12px}
+.prat h3{font-size:18px;font-weight:650}
+.prat header .fraco{font-size:13px}.prat header a{margin-left:6px;font-size:13px;font-weight:600;color:var(--acao-texto)}
+.prats{display:flex;flex-wrap:wrap;gap:30px 40px;align-items:flex-start}
+.prat{flex:0 1 calc(var(--n,1) * 300px + (var(--n,1) - 1) * 18px);min-width:0}
+@media (min-width:2200px){.prat{flex-grow:var(--n,1);max-width:calc(var(--n,1) * 480px + (var(--n,1) - 1) * 18px)}}
+.prat .fileira{grid-template-columns:repeat(var(--n,1),minmax(0,1fr))}
+.mslot{height:22px;margin-top:2px}.mslot>span.st{display:flex;align-items:center;height:22px;padding:0 8px;border-radius:5px;background:var(--poco);font-size:12px;color:var(--tinta-3)}
+.fig.pronta .mslot .st{display:none}
+.fileira{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.card{display:flex;flex-direction:column;gap:8px;border-radius:var(--raio);padding:6px;margin:-6px;transition:background .15s}
+.card:hover{background:var(--capsula)}
+.card h4{font-size:14px;font-weight:600;line-height:1.3;text-wrap:pretty}
+.card .meta{font-size:13px}
+.esq{display:flex;flex-direction:column;gap:8px}
+.esq .cromo{background:var(--capsula);animation:pulsa 1.6s ease-in-out infinite}.esq i{display:block;height:11px;border-radius:6px;background:var(--capsula)}
+@keyframes pulsa{50%{opacity:.55}}
+.fig:not(.pronta) .selo,.fig:not(.pronta) .novo{display:none}
+.vaga{position:absolute;inset:0;z-index:4;border-radius:inherit;background:rgba(20,20,22,.55);-webkit-backdrop-filter:blur(10px) saturate(140%);backdrop-filter:blur(10px) saturate(140%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:600;color:#fff}
+.vaga::after{content:"";width:46%;height:4px;border-radius:var(--pilula);background:linear-gradient(90deg,var(--marca) 94%,rgba(255,255,255,.25) 94%)}
+.fig.pronta .vaga{display:none}
+.fig:not(.pronta) .mvod-wrap{display:none}
+.fig .novo{top:7px;bottom:auto}
+.vazio{grid-column:1/-1;font-size:14px;color:var(--tinta-3);padding:12px 0}
+.nota{font-size:12px;color:var(--tinta-3);margin-top:8px}
+</style></head><body>
+<!--@SPRITE-->
+<div class="app"><!--@SIDE:lives-->
+<main class="main">
+  <h1 class="sr">Lives</h1>
+  <section class="mesa" aria-label="Na sua mesa"><h2 class="mesa-t">Na sua mesa</h2>
+    <a class="chip alerta" href="#" title="BisteconeLive não está cadastrado; nada foi baixado">Pede você <b class="num">1</b><span class="fraco">· fonte barrada: BisteconeLive</span></a>
+    <a class="chip" href="revisao.html">Revisar <b class="num" id="n-revisar">2</b></a>
+    <a class="chip" href="#">Links pendentes <b class="num">1</b></a>
+    <a class="chip" id="chip-fila" href="#">Na fila <b class="num">1</b><span class="fraco">· Renderizando 16/17</span></a>
+  </section>
+
+  <div class="abas" role="tablist" aria-label="Vitrine">
+    <button class="aba" role="tab" aria-selected="false"><svg class="ic"><use href="#i-cad"/></svg>Ao vivo</button>
+    <button class="aba" role="tab" aria-selected="false"><svg class="ic"><use href="#i-cad"/></svg>Em alta</button>
+    <button class="aba" role="tab" aria-selected="true">Recentes</button>
+  </div>
+
+  <section class="hero" aria-label="Destaque">
+    <div class="cromo"><img src="https://i.ytimg.com/vi/x50ONQrBPRM/hqdefault.jpg" alt=""><span class="dur num">11:20:15</span></div>
+    <div class="info">
+      <h2>GTA 6 É AGORA, O INÍCIO DA GAMEPLAY</h2>
+      <span class="meta">Davy Jones · GTA 6 · há 2 dias · mais novo ainda não cortado</span>
+      <span class="est ok"><svg class="ic s"><use href="#i-ok"/></svg>Portão P1 · liberado (tolerância pública)</span>
+      <div class="acoes"><a class="pilula" href="sala.html">Abrir na Sala do vídeo<svg class="ic s"><use href="#i-seta"/></svg></a></div>
+    </div>
+    <div class="espaco" aria-label="Ao vivo, travado">
+      <span class="impresso">Ao vivo</span>
+      <span class="tt tt-sub"><svg class="ic"><use href="#i-cad"/></svg>Travado · falta configurar</span>
+      <span class="falta">Falta configurar o app da Twitch (grátis) para ver quem dos seus streamers está ao vivo.</span>
+      <span class="depende">Cortar a live ao vivo chega na história 5.2.</span>
+      <a class="pilula sec" href="#">Configurar</a>
+    </div>
+  </section>
+
+  <div class="barra"><h2>Recentes dos streamers cadastrados</h2>
+    <div class="alterna" role="group" aria-label="Organizar"><span aria-pressed="true">Por streamer</span><span aria-pressed="false">Por jogo</span><span aria-pressed="false">Tudo por data</span></div></div>
+
+  <div class="prats">
+  <section class="prat" style="--n:2"><header><h3>Davy Jones</h3><span class="fraco">verificado há 14 min</span><a href="#">ver mais</a></header>
+    <div class="fileira">
+      <article class="card"><div class="cromo"><img src="https://i.ytimg.com/vi/x50ONQrBPRM/hqdefault.jpg" alt=""><span class="dur num">11:20:15</span></div><div class="mslot"><span class="st">ainda não cortado</span></div><h4>GTA 6 É AGORA, O INÍCIO DA GAMEPLAY</h4><span class="meta">há 2 dias</span></article>
+      <article class="card fig" id="fig-w546" aria-live="polite"><div class="cromo"><img src="https://i.ytimg.com/vi/w546blqOvVU/hqdefault.jpg" alt=""><span class="selo ok">Pronto para revisar</span><span class="novo">Novo</span><span class="dur num">4:10:36</span><span class="vaga">Renderizando 16/17</span></div><div class="mslot"><span class="st">renderizando…</span><span class="mvod-wrap"><!--@MINIVOD-B273--></span></div><h4>GTA 6 GAMEPLAY ATÉ EU NÃO AGUENTAR MAIS</h4><span class="meta">há 4 dias</span></article>
+    </div></section>
+
+  <section class="prat" style="--n:1"><header><h3>Alanzoka</h3><span class="fraco">verificado há 14 min</span><a href="#">ver mais</a></header>
+    <div class="fileira">
+      <article class="card"><div class="cromo ouro"><img src="https://i.ytimg.com/vi/yWvnOWILFk0/hqdefault.jpg" alt=""><span class="plaq num">Nº 01–15</span><span class="selo ok">15 cortes · 2 publicados</span><span class="dur num">2:05:36</span></div><div class="mslot"><!--@MINIVOD-2501--></div><h4>CAÇANDO TESOURO! - GRAND THEFT AUTO 6 - Parte 2</h4><span class="meta">há 3 dias · já cortado</span></article>
+    </div></section>
+
+  <section class="prat" style="--n:1"><header><h3>Bistecone</h3><span class="fraco">verificado há 14 min</span></header>
+    <div class="fileira">
+      <article class="card"><div class="cromo"><img src="https://i.ytimg.com/vi/5P8qh7jZti8/hqdefault.jpg" alt=""><span class="selo fila">Escolhendo cortes</span></div><div class="mslot"><span class="st">escolhendo cortes…</span></div><h4>🔴AO VIVO BISTECONE🔴 O PROTAGONISTA VOLTOU!!! JOGANDO GRANNY NOVAMENTE</h4><span class="meta">conjunto de prova</span></article>
+    </div></section>
+
+  <section class="prat" style="--n:1"><header><h3>BRKsEDU</h3><span class="fraco">verificado há 14 min</span></header>
+    <div class="fileira">
+      <article class="card"><div class="cromo"><img src="https://i.ytimg.com/vi/VpK0u6MhVvY/hqdefault.jpg" alt=""><span class="selo falha"><svg class="ic s"><use href="#i-av"/></svg>Falhou · trocar motor</span></div><div class="mslot"><span class="st">sem cortes: falhou antes</span></div><h4>HOLLOW KNIGHT SILKSONG #12 - Completando Entregas!</h4><span class="meta">Editor-Chefe sem cota do Gemini</span></article>
+    </div></section>
+
+  <section class="prat" aria-busy="true" style="--n:6"><header><h3>Coringa</h3><span class="fraco">carregando da API…</span></header>
+    <div class="fileira"><div class="esq" aria-hidden="true"><div class="cromo"></div><i style="width:78%"></i><i style="width:38%"></i></div><div class="esq" aria-hidden="true"><div class="cromo"></div><i style="width:78%"></i><i style="width:38%"></i></div><div class="esq" aria-hidden="true"><div class="cromo"></div><i style="width:78%"></i><i style="width:38%"></i></div><div class="esq" aria-hidden="true"><div class="cromo"></div><i style="width:78%"></i><i style="width:38%"></i></div><div class="esq" aria-hidden="true"><div class="cromo"></div><i style="width:78%"></i><i style="width:38%"></i></div><div class="esq" aria-hidden="true"><div class="cromo"></div><i style="width:78%"></i><i style="width:38%"></i></div></div></section>
+  </div>
+
+  <p class="nota">Protótipo de design: títulos, durações e thumbs são de VODs reais dos streamers cadastrados; estados de fila, destaque e contagens são ilustrativos para mostrar cada situação. A prateleira do Coringa mostra o estado "carregando"; o card de "GTA 6 GAMEPLAY ATÉ EU NÃO AGUENTAR MAIS" simula o evento de tempo real "render terminou" 1,5 s depois de abrir: o render em andamento vira o card pronto (assinatura "colar a figurinha") e a fila, a GPU e o "Revisar" se atualizam juntos. As mini-curvas dos vídeos já cortados são a energia real do áudio com os cortes reais.</p>
+</main></div>
+<!--@SCRIPT-->
+<script>setTimeout(function(){var f=document.getElementById("fig-w546");if(!f)return;f.classList.add("pronta","colada");var n=document.getElementById("n-revisar");if(n)n.textContent="3";var c=document.getElementById("chip-fila");if(c)c.remove();var q=document.querySelector(".it[data-k=fila] .cont");if(q)q.remove();var r=document.querySelector(".it[data-k=revisao] .cont");if(r)r.textContent="3";var g=document.getElementById("sl-gpu");if(g){g.title="GPU livre";g.querySelector(".anel").style.setProperty("--p","0%");g.querySelector(".rot").innerHTML="<b>GPU</b> · livre";}},1500);</script>
+</body></html>

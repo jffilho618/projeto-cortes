@@ -1,6 +1,8 @@
 """Fachada unificada de domínio consumida pelo Painel Web e pelo Servidor MCP (AD-10)."""
 from __future__ import annotations
 
+import re
+from pathlib import Path
 from typing import Any
 
 from picorte.config import detect_gpu_profile
@@ -17,15 +19,18 @@ class StudioService:
 
     def status_fila(self) -> dict[str, Any]:
         sources = self.repos.sources.list_sources()
-        videos = self.repos.videos.list_videos()
-        clips = self.repos.clips.list_clips()
+        videos = [v for v in self.repos.videos.list_videos() if not v.get("archived_at")]
+        n_clips = self.db.fetch_one("SELECT COUNT(*) AS n FROM clips WHERE archived_at IS NULL")["n"]
+        arq_v = self.db.fetch_one("SELECT COUNT(*) AS n FROM videos WHERE archived_at IS NOT NULL")["n"]
+        arq_c = self.db.fetch_one("SELECT COUNT(*) AS n FROM clips WHERE archived_at IS NOT NULL")["n"]
         return {
             "gpu_profile": detect_gpu_profile(),
             "total_sources": len(sources),
             "total_videos": len(videos),
-            "total_clips": len(clips),
+            "total_clips": int(n_clips),
             "queued_videos": sum(1 for v in videos if v.get("status") == "queued"),
             "blocked_p1": sum(1 for v in videos if v.get("status") == "blocked_p1"),
+            "arquivados": {"videos": int(arq_v), "clips": int(arq_c)},
         }
 
     def list_sources(self) -> list[dict[str, Any]]:
@@ -108,26 +113,27 @@ class StudioService:
             source_id, permission_status, evidence_url=evidence_url
         )
 
-    def enqueue_video(
-        self,
-        *,
-        source_url: str,
-        source_id: str | None = None,
-        origin_type: str = "vod",
-        game_slug: str = "",
-        workdir_path: str = "",
-    ) -> dict[str, Any]:
-        return self.repos.videos.create_video(
-            source_id=source_id,
-            origin_type=origin_type,
-            source_url=source_url,
-            game_slug=game_slug,
-            workdir_path=workdir_path,
-            status="queued",
-        )
+    def enqueue_video(self, *, source_url: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Fila única (B5): cria o projeto real na fila do Estúdio, o mesmo caminho do painel."""
+        from picorte.services import estudio_conexao
+
+        return estudio_conexao.enfileirar_no_estudio([source_url], options)
 
     def list_clips(self, video_id: str | None = None) -> list[dict[str, Any]]:
         return self.repos.clips.list_clips(video_id=video_id)
+
+    def _fonte_do_portao(self, portao: Any) -> str | None:
+        """B1: id da fonte aprovada pelo portão P1; se o id veio de outro banco, casa pela @handle."""
+        portao = portao if isinstance(portao, dict) else {}
+        sid = str(portao.get("source_id") or "").strip()
+        if sid and self.db.fetch_one("SELECT id FROM sources WHERE id = ?", (sid,)):
+            return sid
+        handle = str(portao.get("channel_handle") or "").strip().lower()
+        if handle:
+            linha = self.db.fetch_one("SELECT id FROM sources WHERE lower(channel_handle) = ?", (handle,))
+            if linha:
+                return str(linha["id"])
+        return None
 
     def sync_studio_project(
         self,
@@ -138,95 +144,72 @@ class StudioService:
         workdir: Any = "",
         duration_seconds: float = 0.0,
     ) -> dict[str, Any]:
-        """Espelha um projeto do Studio/CLI para as tabelas canônicas videos e clips."""
+        """Espelha um projeto nas tabelas videos e clips gravando só o que foi medido (história 6.4)."""
         from datetime import datetime, timezone
+
+        from picorte.services.sinais import miniatura_do_corte, sinais_medidos, veredito_do_corte
 
         now = datetime.now(timezone.utc).isoformat()
         project_id = str(project_state["id"])
         video_id = f"studio-{project_id}"
         source_url = str(project_state.get("source") or project_state.get("video") or "")
+        origin_type = "vod" if re.match(r"^https?://", source_url, re.I) else "local_file"
         status = str(project_state.get("status") or "queued")
         options = project_state.get("options") or {}
         aspect = options.get("aspect", "9:16")
         fmt = "short_9_16" if aspect == "9:16" else ("long_16_9" if aspect == "16:9" else "square_1_1")
         ai_mode = str(options.get("ai_mode") or ("ollama" if options.get("llm") else "heuristic"))
+        source_id = self._fonte_do_portao(project_state.get("source_gate"))  # B1
+        game_slug = str((project_state.get("source_meta") or {}).get("detected_game") or "")
 
-        existing_video = self.db.fetch_one("SELECT * FROM videos WHERE id = ?", (video_id,))
-        if existing_video:
-            self.db.execute(
-                """UPDATE videos SET source_url = ?, duration_seconds = ?, workdir_path = ?,
-                   status = ?, updated_at = ? WHERE id = ?""",
-                (source_url, float(duration_seconds), str(workdir), status, now, video_id),
-            )
-        else:
-            self.db.execute(
-                """INSERT INTO videos
-                   (id, source_id, origin_type, source_url, game_slug, duration_seconds, workdir_path, status, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (video_id, None, "local_file", source_url, "", float(duration_seconds), str(workdir), status, now, now),
-            )
+        self.db.execute(
+            """INSERT INTO videos (id, source_id, origin_type, source_url, game_slug, duration_seconds,
+                                   workdir_path, status, archived_at, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET source_id = excluded.source_id, origin_type = excluded.origin_type,
+                 source_url = excluded.source_url, game_slug = excluded.game_slug,
+                 duration_seconds = excluded.duration_seconds, workdir_path = excluded.workdir_path,
+                 status = excluded.status, archived_at = NULL, updated_at = excluded.updated_at""",
+            (video_id, source_id, origin_type, source_url, game_slug, float(duration_seconds), str(workdir),
+             status, now, now),
+        )
 
-        out_list = list(outputs or [])
+        por_prefixo = {Path(o).name.split("-", 1)[0]: str(o) for o in (outputs or [])}
         synced_clips = []
         for idx, seg in enumerate(segments or [], 1):
             seg_id = str(seg.get("id") or f"{idx:03}")
             clip_id = f"{video_id}:{seg_id}"
-            mp4_path = out_list[idx - 1] if idx - 1 < len(out_list) else ""
-            mode_used = str(seg.get("llm_mode_used") or ai_mode)
-            title = str(seg.get("proposed_title") or seg.get("hook") or "")
-            ctx_banner = str(seg.get("context_banner_2s") or "")
-            pinned = str(seg.get("pinned_comment_debate") or "")
-            overall = float(seg.get("overall") or 0.0)
-            start_sec = float(seg.get("start") or 0.0)
-            end_sec = float(seg.get("end") or 0.0)
-
-            existing_clip = self.db.fetch_one("SELECT id FROM clips WHERE id = ?", (clip_id,))
-            if existing_clip:
+            mp4_path = por_prefixo.get(seg_id, "")
+            s = sinais_medidos(seg)  # B2
+            self.db.execute(
+                """INSERT INTO clips (id, video_id, parent_long_clip_id, format_type, ab_variant, start_sec, end_sec,
+                     score_chat, score_audio, score_visual, score_text, score_overall, ypp_transform_score,
+                     phash_signature, llm_mode_used, risk_status, mp4_path, thumbnail_path, proposed_title,
+                     context_banner_2s, pinned_comment_debate, archived_at, created_at)
+                   VALUES (?, ?, NULL, ?, 1, ?, ?, ?, ?, ?, ?, ?, NULL, '', ?, 'pending', ?, ?, ?, ?, ?, NULL, ?)
+                   ON CONFLICT(id) DO UPDATE SET format_type = excluded.format_type, start_sec = excluded.start_sec,
+                     end_sec = excluded.end_sec, score_chat = excluded.score_chat, score_audio = excluded.score_audio,
+                     score_visual = excluded.score_visual, score_text = excluded.score_text,
+                     score_overall = excluded.score_overall, llm_mode_used = excluded.llm_mode_used,
+                     mp4_path = excluded.mp4_path, thumbnail_path = excluded.thumbnail_path,
+                     proposed_title = excluded.proposed_title, context_banner_2s = excluded.context_banner_2s,
+                     pinned_comment_debate = excluded.pinned_comment_debate, archived_at = NULL""",
+                (clip_id, video_id, fmt, float(seg.get("start") or 0.0), float(seg.get("end") or 0.0),
+                 s["score_chat"], s["score_audio"], s["score_visual"], s["score_text"],
+                 float(seg.get("overall") or 0.0), str(seg.get("llm_mode_used") or ai_mode), mp4_path,
+                 miniatura_do_corte(mp4_path) if mp4_path else "",
+                 str(seg.get("proposed_title") or seg.get("hook") or ""), str(seg.get("context_banner_2s") or ""),
+                 str(seg.get("pinned_comment_debate") or ""), now),
+            )
+            veredito = veredito_do_corte(mp4_path) if mp4_path else None  # B3
+            if veredito:
                 self.db.execute(
-                    """UPDATE clips SET start_sec = ?, end_sec = ?, score_overall = ?,
-                       llm_mode_used = ?, mp4_path = ?, proposed_title = ?,
-                       context_banner_2s = ?, pinned_comment_debate = ? WHERE id = ?""",
-                    (start_sec, end_sec, overall, mode_used, mp4_path, title, ctx_banner, pinned, clip_id),
-                )
-            else:
-                self.db.execute(
-                    """INSERT INTO clips
-                       (id, video_id, parent_long_clip_id, format_type, ab_variant, start_sec, end_sec,
-                        score_chat, score_audio, score_visual, score_text, score_overall,
-                        ypp_transform_score, phash_signature, llm_mode_used, risk_status,
-                        mp4_path, thumbnail_path, proposed_title, context_banner_2s, pinned_comment_debate, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (
-                        clip_id,
-                        video_id,
-                        None,
-                        fmt,
-                        1,
-                        start_sec,
-                        end_sec,
-                        0.0,
-                        0.0,
-                        0.0,
-                        overall,
-                        overall,
-                        0,
-                        "",
-                        mode_used,
-                        "pending",
-                        mp4_path,
-                        "",
-                        title,
-                        ctx_banner,
-                        pinned,
-                        now,
-                    ),
+                    "UPDATE clips SET risk_status = ?, ypp_transform_score = ?, phash_signature = ? WHERE id = ?",
+                    (veredito["risk_status"], veredito["ypp_transform_score"], veredito["phash_signature"], clip_id),
                 )
             synced_clips.append(self.db.fetch_one("SELECT * FROM clips WHERE id = ?", (clip_id,)))
 
-        return {
-            "video": self.db.fetch_one("SELECT * FROM videos WHERE id = ?", (video_id,)),
-            "clips": synced_clips,
-        }
+        return {"video": self.db.fetch_one("SELECT * FROM videos WHERE id = ?", (video_id,)), "clips": synced_clips}
 
     def record_manual_publication(
         self,
@@ -242,7 +225,9 @@ class StudioService:
 
         now = datetime.now(timezone.utc).isoformat()
         video_id = f"studio-{project_id}"
-        clip_id = f"{video_id}:{clip_stem}"
+        prefixo = str(clip_stem).split("-", 1)[0]
+        do_sync = f"{video_id}:{prefixo}"
+        clip_id = do_sync if self.db.fetch_one("SELECT id FROM clips WHERE id = ?", (do_sync,))             else f"{video_id}:{clip_stem}"
 
         if not self.db.fetch_one("SELECT id FROM videos WHERE id = ?", (video_id,)):
             self.db.execute(
@@ -261,7 +246,7 @@ class StudioService:
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     clip_id, video_id, None, "short_9_16", 1, 0.0, 0.0,
-                    0.0, 0.0, 0.0, 0.0, 0.0, 0, "", "manual", "approved",
+                    None, None, None, None, 0.0, None, "", "manual", "approved",
                     "", "", clip_stem, "", "", now,
                 ),
             )

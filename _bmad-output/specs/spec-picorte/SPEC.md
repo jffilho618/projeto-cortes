@@ -63,8 +63,8 @@ O operador (**Bomba**) quer maximizar a receita própria com canais de cortes se
   - **intent:** O sistema calcula o Score de Transformação YPP (P2) e verifica a impressão digital perceptual (`pHash` visual + similaridade textual) de cada corte antes de aprová-lo para a fila de publicação.
   - **success:** Cortes sem elementos mínimos de transformação ou cujo `pHash`/transcrição colida com um corte já existente no banco são bloqueados automaticamente antes de entrar na fila de publicação.
 - **CAP-14**
-  - **intent:** O operador controla todo o ciclo de vida do sistema tanto por conversa com agentes (Claude Code e Gemini Antigravity via MCP e Skill) quanto pelo painel web responsivo "Estúdio do Criador" no desktop e no celular.
-  - **success:** Todas as operações de gestão de fontes, disparo de cortes, inspeção de notas multimodais, revisão da fila e leitura de alertas de risco funcionam via ferramentas MCP e pelo painel web nas resoluções desktop e mobile.
+  - **intent:** O operador controla todo o ciclo de vida do sistema tanto por conversa com agentes (Claude Code e Gemini Antigravity via MCP e Skill) quanto pelo painel web "Estúdio do Criador" no computador (Windows e Linux), que mostra cada função com o status real decidido pelo backend (ligado, parcial ou travado).
+  - **success:** Todas as operações de gestão de fontes, disparo de cortes (inclusive a partir da vitrine de lives e vídeos recentes dos streamers cadastrados), inspeção de notas multimodais, revisão da fila e leitura de alertas de risco funcionam via ferramentas MCP e pelo painel web no desktop. Toda função ainda não pronta aparece travada com o que falta para destravar, e nenhuma tela exibe número de exemplo ou estimativa como se fosse dado real.
 - **CAP-15**
   - **intent:** O sistema publica (ou entrega pacote pronto no modo assistido pré-auditoria) em YouTube Shorts, YouTube Longo, TikTok, Instagram Reels e Facebook com título e legenda próprios por rede, crédito automático à fonte, vínculo *Related Video* (Short → Longo) e 1º Comentário Fixado "Isca de Debate".
   - **success:** Cada publicação registrada no banco possui título/descrição/crédito específicos da rede, comentário inicial de debate gerado e, no YouTube Shorts, referência preenchida para o vídeo longo correspondente quando existir.
@@ -93,6 +93,7 @@ O operador (**Bomba**) quer maximizar a receita própria com canais de cortes se
 - **Não é um editor manual quadro a quadro (A1):** não construir timeline multipista estilo Premiere/CapCut; toda edição é algorítmica, cabendo ao operador apenas aprovar, ajustar início/fim simples ou trocar o gancho/legenda.
 - **Não é um agendador genérico de posts (A3):** não suportar postagens avulsas de texto ou imagem sem corte de vídeo.
 - **Sem Jump-Cut de Tempos Mortos + Compressor de Áudio:** funcionalidade explicitamente descartada pelo operador na decisão da E3.5.
+- **Sem layout de celular:** o painel roda local e é usado só no computador; não construir versão móvel nem responsividade para telas de celular (decisão do operador em 2026-11-21).
 
 ## Success signal
 

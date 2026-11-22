@@ -1,907 +1,1136 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-16T21:46:02+00:00",
+  "generatedAt": "2026-11-21T17:01:09+00:00",
   "title": "Design System: Picorte",
   "extensions": {
     "colorMeta": {
       "fundo": {
         "role": "neutral",
-        "displayName": "Grafite Fundo",
-        "canonical": "#0f0f10",
+        "displayName": "Fundo de Sistema (escuro)",
+        "cssVar": "--fundo",
+        "theme": "escuro",
+        "canonical": "#1C1C1E",
+        "oklch": "oklch(22.7% 0.004 286.1)",
         "tonalRamp": [
-          "#0b0b0c",
+          "#0B0B0B",
           "#252526",
           "#424243",
-          "#616162",
-          "#828283",
-          "#a5a5a6",
-          "#c9c9ca",
-          "#eeeef0"
-        ]
-      },
-      "superficie": {
-        "role": "neutral",
-        "displayName": "Grafite Superfície",
-        "canonical": "#18181a",
-        "tonalRamp": [
-          "#0b0b0d",
-          "#252527",
-          "#424244",
-          "#616163",
-          "#828285",
-          "#a5a5a7",
-          "#c9c9cc",
-          "#eeeef1"
-        ]
-      },
-      "superficie-2": {
-        "role": "neutral",
-        "displayName": "Grafite 2",
-        "canonical": "#212123",
-        "tonalRamp": [
-          "#0b0b0d",
-          "#252527",
-          "#424244",
           "#616163",
           "#828284",
-          "#a5a5a7",
-          "#c9c9cb",
-          "#eeeef1"
+          "#A5A5A7",
+          "#C9C9CA",
+          "#EEEEEF"
         ]
       },
-      "superficie-3": {
+      "trilho": {
         "role": "neutral",
-        "displayName": "Grafite 3",
-        "canonical": "#2b2b2e",
+        "displayName": "Trilho Translúcido (escuro)",
+        "cssVar": "--trilho",
+        "theme": "escuro",
+        "canonical": "rgba(40,40,42,.78)"
+      },
+      "folha": {
+        "role": "neutral",
+        "displayName": "Folha (escuro)",
+        "cssVar": "--folha",
+        "theme": "escuro",
+        "canonical": "#2C2C2E",
+        "oklch": "oklch(29.4% 0.004 286.2)",
         "tonalRamp": [
-          "#0b0b0d",
-          "#252528",
-          "#424245",
-          "#616164",
-          "#828285",
-          "#a4a4a8",
-          "#c9c9cc",
-          "#eeeef2"
+          "#0B0B0B",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CA",
+          "#EEEEEF"
         ]
       },
-      "texto": {
+      "folha-2": {
         "role": "neutral",
-        "displayName": "Texto",
-        "canonical": "#f1f1f1",
+        "displayName": "Folha Elevada (escuro)",
+        "cssVar": "--folha-2",
+        "theme": "escuro",
+        "canonical": "#3A3A3C",
+        "oklch": "oklch(34.9% 0.003 286.2)",
         "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
+          "#0B0B0B",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CA",
+          "#EEEEEF"
         ]
       },
-      "texto-2": {
+      "poco": {
         "role": "neutral",
-        "displayName": "Texto 2",
-        "canonical": "#aaaaaa",
+        "displayName": "Poço (escuro)",
+        "cssVar": "--poco",
+        "theme": "escuro",
+        "canonical": "#232325",
+        "oklch": "oklch(25.7% 0.004 286.1)",
         "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
+          "#0B0B0B",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CA",
+          "#EEEEEF"
         ]
       },
       "fio": {
         "role": "neutral",
-        "displayName": "Fio",
-        "canonical": "#2e2e31",
+        "displayName": "Fio (escuro)",
+        "cssVar": "--fio",
+        "theme": "escuro",
+        "canonical": "rgba(255,255,255,.09)"
+      },
+      "fio-forte": {
+        "role": "neutral",
+        "displayName": "Fio Forte (escuro)",
+        "cssVar": "--fio-forte",
+        "theme": "escuro",
+        "canonical": "rgba(255,255,255,.16)"
+      },
+      "tinta": {
+        "role": "neutral",
+        "displayName": "Tinta (escuro)",
+        "cssVar": "--tinta",
+        "theme": "escuro",
+        "canonical": "#F5F5F7",
+        "oklch": "oklch(97.1% 0.003 286.4)",
         "tonalRamp": [
-          "#0b0b0d",
-          "#252528",
-          "#424245",
-          "#616164",
-          "#828285",
-          "#a4a4a8",
-          "#c9c9cc",
-          "#eeeef2"
+          "#0B0B0B",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828284",
+          "#A5A5A6",
+          "#C9C9CA",
+          "#EEEEEF"
         ]
       },
-      "barra": {
+      "tinta-2": {
         "role": "neutral",
-        "displayName": "Barra de Gráfico",
-        "canonical": "#707074",
+        "displayName": "Tinta Secundária (escuro)",
+        "cssVar": "--tinta-2",
+        "theme": "escuro",
+        "canonical": "#C7C7CC",
+        "oklch": "oklch(83.1% 0.007 286.2)",
         "tonalRamp": [
-          "#0b0b0e",
-          "#252528",
-          "#424245",
-          "#616165",
+          "#0B0B0C",
+          "#252526",
+          "#424244",
+          "#616164",
           "#828286",
-          "#a4a4a9",
-          "#c9c9cd",
-          "#eeeef2"
+          "#A4A4A8",
+          "#C9C9CC",
+          "#EEEEF0"
+        ]
+      },
+      "tinta-3": {
+        "role": "neutral",
+        "displayName": "Tinta Terciária (escuro)",
+        "cssVar": "--tinta-3",
+        "theme": "escuro",
+        "canonical": "#8E8E93",
+        "oklch": "oklch(64.8% 0.007 286.2)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#252527",
+          "#424244",
+          "#616165",
+          "#828287",
+          "#A4A4A9",
+          "#C9C9CC",
+          "#EEEEF0"
+        ]
+      },
+      "capsula": {
+        "role": "neutral",
+        "displayName": "Cápsula (escuro)",
+        "cssVar": "--capsula",
+        "theme": "escuro",
+        "canonical": "rgba(255,255,255,.12)"
+      },
+      "capsula-tinta": {
+        "role": "neutral",
+        "displayName": "Tinta da Cápsula (escuro)",
+        "cssVar": "--capsula-tinta",
+        "theme": "escuro",
+        "canonical": "#D1D1D6",
+        "oklch": "oklch(86.2% 0.007 286.3)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#252526",
+          "#424244",
+          "#616164",
+          "#828286",
+          "#A4A4A8",
+          "#C9C9CC",
+          "#EEEEF0"
+        ]
+      },
+      "material": {
+        "role": "neutral",
+        "displayName": "Material sobre Thumb (escuro)",
+        "cssVar": "--material",
+        "theme": "escuro",
+        "canonical": "rgba(20,20,22,.74)"
+      },
+      "thumb": {
+        "role": "neutral",
+        "displayName": "Miolo de Thumb (escuro)",
+        "cssVar": "--thumb",
+        "theme": "escuro",
+        "canonical": "#2C2C2E",
+        "oklch": "oklch(29.4% 0.004 286.2)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CA",
+          "#EEEEEF"
+        ]
+      },
+      "thumb-2": {
+        "role": "neutral",
+        "displayName": "Miolo de Thumb 2 (escuro)",
+        "cssVar": "--thumb-2",
+        "theme": "escuro",
+        "canonical": "#3A3A3C",
+        "oklch": "oklch(34.9% 0.003 286.2)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CA",
+          "#EEEEEF"
         ]
       },
       "marca": {
         "role": "primary",
-        "displayName": "Laranja-Brasa",
-        "canonical": "#ff6a3d",
+        "displayName": "Laranja do Logotipo, vivo",
+        "cssVar": "--marca",
+        "theme": "ambos",
+        "canonical": "#FF6A3D",
+        "oklch": "oklch(70.4% 0.192 37.1)",
         "tonalRamp": [
-          "#1c0300",
-          "#451102",
-          "#761f00",
-          "#a93204",
-          "#dc4917",
-          "#ff764e",
-          "#feb59f",
-          "#fee9e3"
+          "#1B0300",
+          "#451002",
+          "#742205",
+          "#A7340C",
+          "#DB4B1A",
+          "#F47E5C",
+          "#FFAE93",
+          "#FFDDC9"
         ]
       },
-      "marca-forte": {
+      "acao": {
         "role": "primary",
-        "displayName": "Brasa Forte",
-        "canonical": "#ff8559",
+        "displayName": "Laranja Queimado",
+        "cssVar": "--acao",
+        "theme": "ambos",
+        "canonical": "#CF4520",
+        "oklch": "oklch(58.1% 0.181 35.3)",
         "tonalRamp": [
-          "#1a0400",
-          "#441200",
-          "#722604",
-          "#a33b0c",
-          "#cf592c",
-          "#f77d52",
-          "#fcb69d",
-          "#ffe9e2"
+          "#1A0401",
+          "#441206",
+          "#722410",
+          "#A4381C",
+          "#D74F2B",
+          "#F18164",
+          "#FFAF98",
+          "#FFDDCC"
         ]
       },
-      "marca-texto": {
+      "acao-hover": {
         "role": "primary",
-        "displayName": "Texto sobre Brasa",
-        "canonical": "#16120f",
+        "displayName": "Laranja Queimado, hover",
+        "cssVar": "--acao-hover",
+        "theme": "ambos",
+        "canonical": "#BC3B17",
+        "oklch": "oklch(53.7% 0.171 35.4)",
         "tonalRamp": [
-          "#0e0a08",
-          "#282421",
-          "#46413d",
-          "#65605c",
-          "#87817d",
-          "#a9a4a0",
-          "#cec8c3",
-          "#f3ede9"
+          "#1A0401",
+          "#421408",
+          "#702714",
+          "#A13B21",
+          "#D45332",
+          "#ED8368",
+          "#FFB19B",
+          "#FFDECE"
         ]
       },
-      "marca-suave": {
+      "acao-tinta": {
         "role": "primary",
-        "displayName": "Brasa Suave",
-        "canonical": "rgb(255 106 61 / .16)",
+        "displayName": "Branco sobre Queimado",
+        "cssVar": "--acao-tinta",
+        "theme": "ambos",
+        "canonical": "#FFFFFF",
+        "oklch": "oklch(100.0% 0.000 89.9)",
         "tonalRamp": [
-          "#1c0300",
-          "#451102",
-          "#761f00",
-          "#a93204",
-          "#dc4917",
-          "#ff764e",
-          "#feb59f",
-          "#fee9e3"
-        ],
-        "note": "Cor translúcida; a rampa usa a cor base opaca."
-      },
-      "curva": {
-        "role": "neutral",
-        "displayName": "Área da Curva",
-        "canonical": "rgb(241 242 244 / .22)",
-        "tonalRamp": [
-          "#0a0b0c",
-          "#242526",
-          "#414243",
-          "#606163",
-          "#818284",
-          "#a4a5a7",
-          "#c8c9cb",
-          "#edeef0"
-        ],
-        "note": "Cor translúcida; a rampa usa a cor base opaca."
-      },
-      "pede": {
-        "role": "secondary",
-        "displayName": "Âmbar de Chamada",
-        "canonical": "#ffc53d",
-        "tonalRamp": [
-          "#110a00",
-          "#312201",
-          "#543e06",
-          "#7b5c0f",
-          "#a57b09",
-          "#cf9c12",
-          "#f9bf35",
-          "#feedca"
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
         ]
       },
-      "pede-texto": {
-        "role": "secondary",
-        "displayName": "Texto sobre Âmbar",
-        "canonical": "#16120f",
+      "acao-texto": {
+        "role": "primary",
+        "displayName": "Laranja de Texto (escuro)",
+        "cssVar": "--acao-texto",
+        "theme": "escuro",
+        "canonical": "#FF8A66",
+        "oklch": "oklch(75.5% 0.151 37.9)",
         "tonalRamp": [
-          "#0e0a08",
-          "#282421",
-          "#46413d",
-          "#65605c",
-          "#87817d",
-          "#a9a4a0",
-          "#cec8c3",
-          "#f3ede9"
+          "#180502",
+          "#3F170B",
+          "#6B2C18",
+          "#9A4328",
+          "#CB5C3A",
+          "#E5896D",
+          "#FEB59E",
+          "#FFE1D1"
         ]
       },
-      "pede-suave": {
-        "role": "secondary",
-        "displayName": "Âmbar Suave",
-        "canonical": "rgb(255 197 61 / .12)",
-        "tonalRamp": [
-          "#110a00",
-          "#312201",
-          "#543e06",
-          "#7b5c0f",
-          "#a57b09",
-          "#cf9c12",
-          "#f9bf35",
-          "#feedca"
-        ],
-        "note": "Cor translúcida; a rampa usa a cor base opaca."
+      "selecao": {
+        "role": "primary",
+        "displayName": "Véu de Seleção (escuro)",
+        "cssVar": "--selecao",
+        "theme": "escuro",
+        "canonical": "rgba(255,106,61,.16)"
       },
-      "sobe": {
+      "foco": {
+        "role": "primary",
+        "displayName": "Anel de Foco (escuro)",
+        "cssVar": "--foco",
+        "theme": "escuro",
+        "canonical": "rgba(255,106,61,.55)"
+      },
+      "alerta-fundo": {
         "role": "tertiary",
-        "displayName": "Verde de Alta",
-        "canonical": "#3dd68c",
+        "displayName": "Vermelho de Alerta (escuro)",
+        "cssVar": "--alerta-fundo",
+        "theme": "escuro",
+        "canonical": "#CC2E24",
+        "oklch": "oklch(55.4% 0.196 28.9)",
         "tonalRamp": [
-          "#000f06",
-          "#022e19",
-          "#094f2f",
-          "#157348",
-          "#119b60",
-          "#1bc37a",
-          "#55e99d",
-          "#c7fedc"
+          "#1B0302",
+          "#460E09",
+          "#761E17",
+          "#A92F25",
+          "#DE4437",
+          "#F77A6A",
+          "#FFAB9D",
+          "#FFDBCF"
         ]
       },
-      "desce": {
+      "ouro": {
         "role": "tertiary",
-        "displayName": "Vermelho de Queda",
-        "canonical": "#ff6b81",
+        "displayName": "Ouro (escuro)",
+        "cssVar": "--ouro",
+        "theme": "escuro",
+        "canonical": "#E5B53B",
+        "oklch": "oklch(79.6% 0.144 86.3)",
         "tonalRamp": [
-          "#1e0004",
-          "#4a0316",
-          "#7b0e2b",
-          "#b01b41",
-          "#d84761",
-          "#fb7385",
-          "#fbb3b8",
-          "#ffe8e9"
+          "#120A00",
+          "#322200",
+          "#573D00",
+          "#7E5B00",
+          "#A77A00",
+          "#C5A048",
+          "#E2C687",
+          "#FFEDC1"
         ]
       },
-      "carimbo-ok": {
+      "forte": {
         "role": "tertiary",
-        "displayName": "Carimbo Liberado",
-        "canonical": "#3dd68c",
+        "displayName": "Forte (escuro)",
+        "cssVar": "--forte",
+        "theme": "escuro",
+        "canonical": "#8E8E93",
+        "oklch": "oklch(64.8% 0.007 286.2)",
         "tonalRamp": [
-          "#000f06",
-          "#022e19",
-          "#094f2f",
-          "#157348",
-          "#119b60",
-          "#1bc37a",
-          "#55e99d",
-          "#c7fedc"
+          "#0B0B0C",
+          "#252527",
+          "#424244",
+          "#616165",
+          "#828287",
+          "#A4A4A9",
+          "#C9C9CC",
+          "#EEEEF0"
         ]
       },
-      "carimbo-retido": {
+      "exp": {
         "role": "tertiary",
-        "displayName": "Carimbo Retido (azul)",
-        "canonical": "#7ab8ff",
+        "displayName": "Experimental (escuro)",
+        "cssVar": "--exp",
+        "theme": "escuro",
+        "canonical": "#5E5E63",
+        "oklch": "oklch(48.4% 0.008 286.1)",
         "tonalRamp": [
-          "#000b1d",
-          "#01254a",
-          "#05427b",
-          "#2663a3",
-          "#4985c9",
-          "#6ba9ef",
-          "#a4cdfc",
-          "#e4f0fe"
+          "#0B0B0C",
+          "#252527",
+          "#424245",
+          "#616165",
+          "#828287",
+          "#A4A4A9",
+          "#C9C9CC",
+          "#EEEEF1"
         ]
       },
-      "carimbo-pausado": {
+      "ok": {
         "role": "tertiary",
-        "displayName": "Carimbo Pausado",
-        "canonical": "#ff6b81",
+        "displayName": "Verde OK (escuro)",
+        "cssVar": "--ok",
+        "theme": "escuro",
+        "canonical": "#30D158",
+        "oklch": "oklch(75.6% 0.208 147.0)",
         "tonalRamp": [
-          "#1e0004",
-          "#4a0316",
-          "#7b0e2b",
-          "#b01b41",
-          "#d84761",
-          "#fb7385",
-          "#fbb3b8",
-          "#ffe8e9"
+          "#001001",
+          "#003004",
+          "#00530C",
+          "#007916",
+          "#00A026",
+          "#50C063",
+          "#90E098",
+          "#C9FFCD"
+        ]
+      },
+      "aviso": {
+        "role": "tertiary",
+        "displayName": "Amarelo Aviso (escuro)",
+        "cssVar": "--aviso",
+        "theme": "escuro",
+        "canonical": "#FFD60A",
+        "oklch": "oklch(88.5% 0.181 94.8)",
+        "tonalRamp": [
+          "#110A00",
+          "#312300",
+          "#553F00",
+          "#7C5D00",
+          "#A57D00",
+          "#C2A315",
+          "#E0C973",
+          "#FEEFB5"
+        ]
+      },
+      "barrado": {
+        "role": "tertiary",
+        "displayName": "Vermelho Barrado (escuro)",
+        "cssVar": "--barrado",
+        "theme": "escuro",
+        "canonical": "#FF453A",
+        "oklch": "oklch(66.3% 0.224 28.3)",
+        "tonalRamp": [
+          "#1D0101",
+          "#4A0605",
+          "#7C110E",
+          "#B21D19",
+          "#E92F28",
+          "#FF7162",
+          "#FFA697",
+          "#FFD7CC"
         ]
       },
       "fundo-claro": {
         "role": "neutral",
-        "displayName": "Grafite Fundo (tema claro)",
-        "canonical": "#f7f7f7",
+        "displayName": "Fundo de Sistema (claro)",
+        "cssVar": "--fundo",
+        "theme": "claro",
+        "canonical": "#F5F5F7",
+        "oklch": "oklch(97.1% 0.003 286.4)",
         "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
+          "#0B0B0B",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828284",
+          "#A5A5A6",
+          "#C9C9CA",
+          "#EEEEEF"
         ]
       },
-      "superficie-claro": {
+      "trilho-claro": {
         "role": "neutral",
-        "displayName": "Grafite Superfície (tema claro)",
-        "canonical": "#ffffff",
+        "displayName": "Trilho Translúcido (claro)",
+        "cssVar": "--trilho",
+        "theme": "claro",
+        "canonical": "rgba(232,232,237,.80)"
+      },
+      "folha-claro": {
+        "role": "neutral",
+        "displayName": "Folha (claro)",
+        "cssVar": "--folha",
+        "theme": "claro",
+        "canonical": "#FFFFFF",
+        "oklch": "oklch(100.0% 0.000 89.9)",
         "tonalRamp": [
-          "#0b0b0b",
+          "#0B0B0B",
           "#252525",
           "#424242",
           "#616161",
           "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
         ]
       },
-      "superficie-2-claro": {
+      "folha-2-claro": {
         "role": "neutral",
-        "displayName": "Grafite 2 (tema claro)",
-        "canonical": "#f0f0f0",
+        "displayName": "Folha Elevada (claro)",
+        "cssVar": "--folha-2",
+        "theme": "claro",
+        "canonical": "#F2F2F7",
+        "oklch": "oklch(96.3% 0.007 286.3)",
         "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
+          "#0B0B0C",
+          "#252526",
+          "#424244",
+          "#616164",
+          "#828286",
+          "#A4A4A8",
+          "#C9C9CC",
+          "#EEEEF0"
         ]
       },
-      "superficie-3-claro": {
+      "poco-claro": {
         "role": "neutral",
-        "displayName": "Grafite 3 (tema claro)",
-        "canonical": "#e5e5e5",
+        "displayName": "Poço (claro)",
+        "cssVar": "--poco",
+        "theme": "claro",
+        "canonical": "#ECECF0",
+        "oklch": "oklch(94.4% 0.005 286.3)",
         "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
-        ]
-      },
-      "texto-claro": {
-        "role": "neutral",
-        "displayName": "Texto (tema claro)",
-        "canonical": "#141414",
-        "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
-        ]
-      },
-      "texto-2-claro": {
-        "role": "neutral",
-        "displayName": "Texto 2 (tema claro)",
-        "canonical": "#555555",
-        "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
+          "#0B0B0C",
+          "#252526",
+          "#424244",
+          "#616164",
+          "#828285",
+          "#A5A5A8",
+          "#C9C9CB",
+          "#EEEEF0"
         ]
       },
       "fio-claro": {
         "role": "neutral",
-        "displayName": "Fio (tema claro)",
-        "canonical": "#e3e3e3",
-        "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
-        ]
+        "displayName": "Fio (claro)",
+        "cssVar": "--fio",
+        "theme": "claro",
+        "canonical": "rgba(0,0,0,.09)"
       },
-      "barra-claro": {
+      "fio-forte-claro": {
         "role": "neutral",
-        "displayName": "Barra de Gráfico (tema claro)",
-        "canonical": "#8a8a8a",
-        "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
-        ]
+        "displayName": "Fio Forte (claro)",
+        "cssVar": "--fio-forte",
+        "theme": "claro",
+        "canonical": "rgba(0,0,0,.16)"
       },
-      "marca-claro": {
-        "role": "primary",
-        "displayName": "Laranja-Brasa (tema claro)",
-        "canonical": "#c43c10",
-        "tonalRamp": [
-          "#1c0200",
-          "#451002",
-          "#771d00",
-          "#aa3005",
-          "#d84f28",
-          "#fa7a57",
-          "#ffb4a0",
-          "#fee9e3"
-        ]
-      },
-      "marca-forte-claro": {
-        "role": "primary",
-        "displayName": "Brasa Forte (tema claro)",
-        "canonical": "#a8320c",
-        "tonalRamp": [
-          "#1c0300",
-          "#470e00",
-          "#761f04",
-          "#a8320d",
-          "#d05736",
-          "#f87b5a",
-          "#fdb5a1",
-          "#fee9e4"
-        ]
-      },
-      "marca-texto-claro": {
-        "role": "primary",
-        "displayName": "Texto sobre Brasa (tema claro)",
-        "canonical": "#ffffff",
-        "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
-        ]
-      },
-      "marca-suave-claro": {
-        "role": "primary",
-        "displayName": "Brasa Suave (tema claro)",
-        "canonical": "rgb(196 60 16 / .1)",
-        "tonalRamp": [
-          "#1c0200",
-          "#451002",
-          "#771d00",
-          "#aa3005",
-          "#d84f28",
-          "#fa7a57",
-          "#ffb4a0",
-          "#fee9e3"
-        ],
-        "note": "Cor translúcida; a rampa usa a cor base opaca."
-      },
-      "curva-claro": {
+      "tinta-claro": {
         "role": "neutral",
-        "displayName": "Área da Curva (tema claro)",
-        "canonical": "rgb(20 22 27 / .16)",
+        "displayName": "Tinta (claro)",
+        "cssVar": "--tinta",
+        "theme": "claro",
+        "canonical": "#1D1D1F",
+        "oklch": "oklch(23.2% 0.004 286.1)",
         "tonalRamp": [
-          "#090b10",
-          "#23252a",
-          "#3f4248",
-          "#5f6167",
-          "#7f8289",
-          "#a2a5ac",
-          "#c6c9d0",
-          "#ebeef6"
-        ],
-        "note": "Cor translúcida; a rampa usa a cor base opaca."
-      },
-      "pede-claro": {
-        "role": "secondary",
-        "displayName": "Âmbar de Chamada (tema claro)",
-        "canonical": "#8a5600",
-        "tonalRamp": [
-          "#140800",
-          "#361f01",
-          "#5c3907",
-          "#855511",
-          "#ac7530",
-          "#d19855",
-          "#f7bd79",
-          "#feebd7"
+          "#0B0B0B",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CA",
+          "#EEEEEF"
         ]
       },
-      "pede-texto-claro": {
-        "role": "secondary",
-        "displayName": "Texto sobre Âmbar (tema claro)",
-        "canonical": "#ffffff",
+      "tinta-2-claro": {
+        "role": "neutral",
+        "displayName": "Tinta Secundária (claro)",
+        "cssVar": "--tinta-2",
+        "theme": "claro",
+        "canonical": "#424245",
+        "oklch": "oklch(38.0% 0.005 286.2)",
         "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
+          "#0B0B0C",
+          "#252526",
+          "#424244",
+          "#616163",
+          "#828285",
+          "#A5A5A7",
+          "#C9C9CB",
+          "#EEEEF0"
         ]
       },
-      "pede-suave-claro": {
-        "role": "secondary",
-        "displayName": "Âmbar Suave (tema claro)",
-        "canonical": "#fff4d6",
+      "tinta-3-claro": {
+        "role": "neutral",
+        "displayName": "Tinta Terciária (claro)",
+        "cssVar": "--tinta-3",
+        "theme": "claro",
+        "canonical": "#5F5F64",
+        "oklch": "oklch(48.7% 0.008 286.1)",
         "tonalRamp": [
-          "#100a00",
-          "#2d240b",
-          "#4a4128",
-          "#6a6147",
-          "#8c8267",
-          "#afa488",
-          "#d3c9ac",
-          "#f9eed0"
+          "#0B0B0C",
+          "#252527",
+          "#424245",
+          "#616165",
+          "#828287",
+          "#A4A4A9",
+          "#C9C9CC",
+          "#EEEEF1"
         ]
       },
-      "sobe-claro": {
+      "capsula-claro": {
+        "role": "neutral",
+        "displayName": "Cápsula (claro)",
+        "cssVar": "--capsula",
+        "theme": "claro",
+        "canonical": "rgba(0,0,0,.07)"
+      },
+      "capsula-tinta-claro": {
+        "role": "neutral",
+        "displayName": "Tinta da Cápsula (claro)",
+        "cssVar": "--capsula-tinta",
+        "theme": "claro",
+        "canonical": "#3A3A3C",
+        "oklch": "oklch(34.9% 0.003 286.2)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CA",
+          "#EEEEEF"
+        ]
+      },
+      "material-claro": {
+        "role": "neutral",
+        "displayName": "Material sobre Thumb (claro)",
+        "cssVar": "--material",
+        "theme": "claro",
+        "canonical": "rgba(28,28,30,.72)"
+      },
+      "thumb-claro": {
+        "role": "neutral",
+        "displayName": "Miolo de Thumb (claro)",
+        "cssVar": "--thumb",
+        "theme": "claro",
+        "canonical": "#E5E5EA",
+        "oklch": "oklch(92.3% 0.007 286.3)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#252526",
+          "#424244",
+          "#616164",
+          "#828286",
+          "#A4A4A8",
+          "#C9C9CC",
+          "#EEEEF0"
+        ]
+      },
+      "thumb-2-claro": {
+        "role": "neutral",
+        "displayName": "Miolo de Thumb 2 (claro)",
+        "cssVar": "--thumb-2",
+        "theme": "claro",
+        "canonical": "#D8D8DD",
+        "oklch": "oklch(88.4% 0.007 286.3)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#252526",
+          "#424244",
+          "#616164",
+          "#828286",
+          "#A4A4A8",
+          "#C9C9CC",
+          "#EEEEF0"
+        ]
+      },
+      "acao-texto-claro": {
+        "role": "primary",
+        "displayName": "Laranja de Texto (claro)",
+        "cssVar": "--acao-texto",
+        "theme": "claro",
+        "canonical": "#C2410C",
+        "oklch": "oklch(55.3% 0.174 38.4)",
+        "tonalRamp": [
+          "#1A0401",
+          "#421405",
+          "#70270D",
+          "#A13C18",
+          "#D45427",
+          "#EE8462",
+          "#FFB197",
+          "#FFDFCC"
+        ]
+      },
+      "selecao-claro": {
+        "role": "primary",
+        "displayName": "Véu de Seleção (claro)",
+        "cssVar": "--selecao",
+        "theme": "claro",
+        "canonical": "rgba(255,106,61,.14)"
+      },
+      "foco-claro": {
+        "role": "primary",
+        "displayName": "Anel de Foco (claro)",
+        "cssVar": "--foco",
+        "theme": "claro",
+        "canonical": "rgba(255,106,61,.5)"
+      },
+      "alerta-fundo-claro": {
         "role": "tertiary",
-        "displayName": "Verde de Alta (tema claro)",
-        "canonical": "#0a7a44",
+        "displayName": "Vermelho de Alerta (claro)",
+        "cssVar": "--alerta-fundo",
+        "theme": "claro",
+        "canonical": "#C41E1E",
+        "oklch": "oklch(52.7% 0.199 27.5)",
         "tonalRamp": [
-          "#010f05",
-          "#022e16",
-          "#0a4f2b",
-          "#167442",
-          "#379860",
-          "#5ebc81",
-          "#83e1a5",
-          "#c7fed8"
+          "#1C0202",
+          "#470D0A",
+          "#771C18",
+          "#AB2D27",
+          "#E04139",
+          "#F9796C",
+          "#FFAA9E",
+          "#FFDAD0"
         ]
       },
-      "desce-claro": {
+      "ouro-claro": {
         "role": "tertiary",
-        "displayName": "Vermelho de Queda (tema claro)",
-        "canonical": "#c21f38",
+        "displayName": "Ouro (claro)",
+        "cssVar": "--ouro",
+        "theme": "claro",
+        "canonical": "#B07D00",
+        "oklch": "oklch(62.5% 0.129 79.9)",
         "tonalRamp": [
-          "#1f0002",
-          "#4a040f",
-          "#7f011d",
-          "#b6082e",
-          "#df404f",
-          "#fb7579",
-          "#fcb4b2",
-          "#ffe8e8"
+          "#120900",
+          "#332100",
+          "#583C00",
+          "#805900",
+          "#AA7800",
+          "#C79E55",
+          "#E4C48F",
+          "#FFEBC6"
         ]
       },
-      "carimbo-ok-claro": {
+      "forte-claro": {
         "role": "tertiary",
-        "displayName": "Carimbo Liberado (tema claro)",
-        "canonical": "#0a7a44",
+        "displayName": "Forte (claro)",
+        "cssVar": "--forte",
+        "theme": "claro",
+        "canonical": "#6E6E73",
+        "oklch": "oklch(54.0% 0.008 286.1)",
         "tonalRamp": [
-          "#010f05",
-          "#022e16",
-          "#0a4f2b",
-          "#167442",
-          "#379860",
-          "#5ebc81",
-          "#83e1a5",
-          "#c7fed8"
+          "#0B0B0C",
+          "#252527",
+          "#424244",
+          "#616165",
+          "#828287",
+          "#A4A4A9",
+          "#C9C9CC",
+          "#EEEEF0"
         ]
       },
-      "carimbo-retido-claro": {
+      "exp-claro": {
         "role": "tertiary",
-        "displayName": "Carimbo Retido (azul) (tema claro)",
-        "canonical": "#1f5fbf",
+        "displayName": "Experimental (claro)",
+        "cssVar": "--exp",
+        "theme": "claro",
+        "canonical": "#AEAEB2",
+        "oklch": "oklch(75.2% 0.006 286.3)",
         "tonalRamp": [
-          "#000924",
-          "#012254",
-          "#063d8a",
-          "#1c5cbc",
-          "#4080e3",
-          "#6ea5fb",
-          "#abcbfc",
-          "#e6effe"
+          "#0B0B0C",
+          "#252526",
+          "#424244",
+          "#616164",
+          "#828286",
+          "#A5A5A8",
+          "#C9C9CB",
+          "#EEEEF0"
         ]
       },
-      "carimbo-pausado-claro": {
+      "ok-claro": {
         "role": "tertiary",
-        "displayName": "Carimbo Pausado (tema claro)",
-        "canonical": "#c21f38",
+        "displayName": "Verde OK (claro)",
+        "cssVar": "--ok",
+        "theme": "claro",
+        "canonical": "#1E8E3E",
+        "oklch": "oklch(56.8% 0.152 148.0)",
         "tonalRamp": [
-          "#1f0002",
-          "#4a040f",
-          "#7f011d",
-          "#b6082e",
-          "#df404f",
-          "#fb7579",
-          "#fcb4b2",
-          "#ffe8e8"
+          "#010F03",
+          "#072D11",
+          "#134F22",
+          "#1F7435",
+          "#319A4A",
+          "#6CBA79",
+          "#A0DAA7",
+          "#D3FBD7"
+        ]
+      },
+      "aviso-claro": {
+        "role": "tertiary",
+        "displayName": "Amarelo Aviso (claro)",
+        "cssVar": "--aviso",
+        "theme": "claro",
+        "canonical": "#9A6200",
+        "oklch": "oklch(54.4% 0.117 70.8)",
+        "tonalRamp": [
+          "#130901",
+          "#352004",
+          "#5A3A0C",
+          "#835616",
+          "#AD7525",
+          "#CA9B62",
+          "#E7C297",
+          "#FFEACC"
+        ]
+      },
+      "barrado-claro": {
+        "role": "tertiary",
+        "displayName": "Vermelho Barrado (claro)",
+        "cssVar": "--barrado",
+        "theme": "claro",
+        "canonical": "#D70015",
+        "oklch": "oklch(55.3% 0.225 27.3)",
+        "tonalRamp": [
+          "#1E0101",
+          "#4A0606",
+          "#7D1010",
+          "#B31B1C",
+          "#EA2D2C",
+          "#FF7064",
+          "#FFA598",
+          "#FFD7CC"
         ]
       }
     },
     "typographyMeta": {
       "display": {
         "displayName": "Display",
-        "purpose": "Título da página, Antonio caixa-alta."
+        "purpose": "Título do destaque na vitrine de Lives."
       },
       "headline": {
         "displayName": "Headline",
-        "purpose": "Nome do grupo de assunto e títulos de cartão."
-      },
-      "numero": {
-        "displayName": "Número",
-        "purpose": "Nota do corte, tabular."
+        "purpose": "Título de seção e título do vídeo na Revisão."
       },
       "title": {
         "displayName": "Title",
-        "purpose": "Título do corte, navegação, abas, chips, botões."
+        "purpose": "Nome do streamer na prateleira e nome do espaço travado."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Texto corrido e o \"por quê\" do corte (até 62ch)."
+        "purpose": "Texto base e metadados."
       },
-      "dado": {
-        "displayName": "Dado",
-        "purpose": "Células da tabela, tabular."
+      "body-strong": {
+        "displayName": "Body strong",
+        "purpose": "Títulos de card e de item, botões e chips."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Cabeçalho da tabela, metadados, legendas."
+        "purpose": "Rótulos de passo, tier, 'Na sua mesa'; caixa normal."
       },
-      "selo": {
-        "displayName": "Selo",
-        "purpose": "Carimbos e selos de pico, caixa-alta."
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Duração e Nº sobre a thumb, eixos, contagens; numerais tabulares."
       }
     },
+    "fonts": [
+      {
+        "family": "Onest",
+        "source": "assets/fonts/onest-latin.woff2, assets/fonts/onest-latin-ext.woff2",
+        "weights": "100 900 (variável)",
+        "display": "swap"
+      }
+    ],
     "shadows": [
       {
-        "name": "anel-pede",
-        "value": "inset 0 0 0 1.5px var(--pede)",
-        "purpose": "Contorno do bloco e da faixa \"Pede você\". Única elevação de cor."
+        "name": "flutuante",
+        "value": "0 10px 30px rgba(0,0,0,.45), 0 0 0 .5px rgba(255,255,255,.08)",
+        "valueClaro": "0 10px 30px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.08)",
+        "purpose": "Sidebar aberta flutuando sobre o conteúdo (--sombra)."
       },
       {
-        "name": "sombra",
-        "value": "0 4px 16px rgb(0 0 0 / .35), 0 1px 2px rgb(0 0 0 / .3)",
-        "purpose": "Definida em tokens.css (claro: 0 2px 10px rgb(20 22 27 / .08), 0 1px 2px rgb(20 22 27 / .06)), mas sem uso na interface construída."
+        "name": "folha",
+        "value": "0 0 0 .5px var(--fio), 0 1px 2px rgba(0,0,0,.06)",
+        "purpose": "Painéis e fichas."
+      },
+      {
+        "name": "controle",
+        "value": "0 0 0 .5px var(--fio-forte), 0 1px 1px rgba(0,0,0,.08)",
+        "purpose": "Chips e botão secundário."
+      },
+      {
+        "name": "segmento-selecionado",
+        "value": "0 1px 3px rgba(0,0,0,.18), 0 0 0 .5px var(--fio)",
+        "purpose": "Segmento ativo sobre o trilho do controle segmentado."
+      },
+      {
+        "name": "botao-principal",
+        "value": "inset 0 .5px 0 rgba(255,255,255,.22), 0 1px 2px rgba(0,0,0,.2)",
+        "purpose": "Brilho de meio pixel no topo do laranja queimado."
+      },
+      {
+        "name": "poco",
+        "value": "inset 0 0 0 .5px var(--fio)",
+        "purpose": "Superfície rebaixada do travado."
+      },
+      {
+        "name": "foco",
+        "value": "outline: 3px solid var(--foco); outline-offset: 1px",
+        "purpose": "Anel de :focus-visible."
+      }
+    ],
+    "materials": [
+      {
+        "name": "trilho",
+        "value": "background: var(--trilho); backdrop-filter: blur(30px) saturate(180%)",
+        "purpose": "Sidebar translúcida."
+      },
+      {
+        "name": "rotulo-sobre-thumb",
+        "value": "background: var(--material); backdrop-filter: blur(14px) saturate(160%); color: #fff",
+        "purpose": "Nº, duração e selo sobre miniaturas."
+      },
+      {
+        "name": "vaga-de-render",
+        "value": "background: rgba(20,20,22,.55); backdrop-filter: blur(10px) saturate(140%)",
+        "purpose": "Thumb em render, com progresso laranja de 4px."
       }
     ],
     "motion": [
       {
-        "name": "ease-saida",
-        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "Curva padrão de todas as transições e animações."
+        "name": "ease-sistema",
+        "value": "cubic-bezier(.2,.8,.2,1)",
+        "purpose": "Saída suave padrão (sidebar, encaixe)."
       },
       {
-        "name": "dur-curta",
-        "value": "160ms",
-        "purpose": "Hover, foco, troca de fundo e cor, dicas e ações da linha."
+        "name": "hover",
+        "value": "150ms",
+        "purpose": "Troca de fundo em hover de botão e card."
       },
       {
-        "name": "dur-curva",
-        "value": "1100ms",
-        "purpose": "Traçado da Curva do Mais Repetido ao abrir."
+        "name": "sidebar-abrir",
+        "value": "width 200ms cubic-bezier(.2,.8,.2,1), delay 150ms",
+        "purpose": "Sidebar desliza por cima do conteúdo; fecha sem espera."
       },
       {
-        "name": "curva-aparece",
-        "value": "600ms, atraso 500ms",
-        "purpose": "Área, trecho e linha do pico surgem depois do traçado."
+        "name": "colar-encaixe",
+        "value": "220ms cubic-bezier(.2,.8,.2,1); scale .965 → 1.008 → 1, opacity .5 → 1",
+        "purpose": "Assinatura 'colar a figurinha': o card pronto encaixa."
       },
       {
-        "name": "digito-vira",
-        "value": "450ms",
-        "purpose": "Dígitos da cotação que mudam viram no lugar."
+        "name": "colar-brilho",
+        "value": "900ms cubic-bezier(.45,0,.55,1), delay 120ms; faixa de 42% em soft-light de -120% a 340%",
+        "purpose": "Faixa de brilho atravessando a thumb ao colar."
       },
       {
-        "name": "barras",
-        "value": "500ms",
-        "purpose": "Altura e cor das barras de 48h ao atualizar."
+        "name": "esqueleto",
+        "value": "1.6s ease-in-out infinite, opacity até .55",
+        "purpose": "Carregamento das prateleiras."
       },
       {
-        "name": "movimento-reduzido",
-        "value": "prefers-reduced-motion: reduce",
-        "purpose": "Curvas prontas, dígitos sem virar, atualização ao vivo começa pausada."
+        "name": "reduced-motion",
+        "value": "animation: none; transition: none",
+        "purpose": "prefers-reduced-motion troca o estado sem encaixe nem brilho."
       }
     ],
     "breakpoints": [
       {
-        "name": "celular",
-        "value": "max-width: 900px"
+        "name": "alvo",
+        "value": "2560px",
+        "purpose": "Desktop 2560×1440; só desktop, sem layout de celular."
       },
       {
-        "name": "coluna-unica",
-        "value": "max-width: 1240px"
-      },
-      {
-        "name": "trilho",
-        "value": "901px a 1599px"
-      },
-      {
-        "name": "lateral-completa",
-        "value": "min-width: 1600px"
+        "name": "prateleira-larga",
+        "value": "2200px",
+        "purpose": "Prateleiras crescem até n × 480px."
       }
-    ],
-    "tema": {
-      "padrao": "escuro",
-      "variante": "[data-tema=\"claro\"]",
-      "tokens": "design/tokens/tokens.css",
-      "stack": "Indefinida; decidida na E10 (arquitetura). Tokens em CSS custom properties puras."
-    },
-    "marca": {
-      "logo": "design/brand/picorte-logo.svg",
-      "logoNegativo": "design/brand/picorte-logo-negativo.svg",
-      "icone": "design/brand/picorte-icone.svg",
-      "fontes": "design/fonts/ (Antonio, Archivo; OFL)"
-    }
+    ]
   },
   "components": [
     {
       "name": "Botão principal",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Ação principal: invertido em repouso, laranja-brasa no hover.",
-      "html": "<button class=\"ds-bt ds-bt-pri\">Registrar autorização</button>",
-      "css": ".ds-bt{font:600 var(--t-dado,0.875rem)/1.2 var(--fonte-ui,Archivo,system-ui,sans-serif);padding:9px 14px;border-radius:99px;border:0;cursor:pointer;transition:background var(--dur-curta,160ms) var(--ease-saida,cubic-bezier(.16,1,.3,1)),color var(--dur-curta,160ms) var(--ease-saida,cubic-bezier(.16,1,.3,1))}.ds-bt-pri{background:var(--texto,#f1f1f1);color:var(--fundo,#0f0f10)}.ds-bt-pri:hover{background:var(--marca,#ff6a3d);color:var(--marca-texto,#16120f)}.ds-bt:focus-visible{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}.ds-bt:disabled{opacity:.45;cursor:not-allowed}"
+      "description": "Ação principal da tela em laranja queimado com texto branco; uma por contexto.",
+      "html": "<button class=\"ds-btn\">Abrir na Sala do vídeo</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 16px;border:0;border-radius:var(--raio-ctrl,7px);background:var(--acao,#CF4520);color:var(--acao-tinta,#FFFFFF);font:600 14px/1 Onest,system-ui,sans-serif;box-shadow:inset 0 .5px 0 rgba(255,255,255,.22),0 1px 2px rgba(0,0,0,.2);cursor:pointer;transition:background .15s}.ds-btn:hover{background:var(--acao-hover,#BC3B17)}.ds-btn:focus-visible{outline:3px solid var(--foco,rgba(255,106,61,.55));outline-offset:1px}"
     },
     {
       "name": "Botão secundário",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "Segunda ação de um pedido ou cartão.",
-      "html": "<button class=\"ds-bt2\">Manter bloqueada</button>",
-      "css": ".ds-bt2{font:600 0.875rem/1.2 var(--fonte-ui,Archivo,system-ui,sans-serif);padding:9px 14px;border-radius:99px;border:0;cursor:pointer;background:var(--superficie-3,#2b2b2e);color:var(--texto,#f1f1f1);transition:background 160ms cubic-bezier(.16,1,.3,1)}.ds-bt2:hover{background:var(--fio,#2e2e31)}.ds-bt2:focus-visible{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}"
+      "description": "Ação de apoio em folha com contorno de meio pixel.",
+      "html": "<button class=\"ds-btn-sec\">Configurar</button>",
+      "css": ".ds-btn-sec{display:inline-flex;align-items:center;height:34px;padding:0 16px;border:0;border-radius:var(--raio-ctrl,7px);background:var(--folha,#2C2C2E);color:var(--tinta,#F5F5F7);font:600 14px/1 Onest,system-ui,sans-serif;box-shadow:0 0 0 .5px var(--fio-forte,rgba(255,255,255,.16)),0 1px 1px rgba(0,0,0,.08);cursor:pointer;transition:background .15s}.ds-btn-sec:hover{background:var(--folha-2,#3A3A3C)}.ds-btn-sec:focus-visible{outline:3px solid var(--foco,rgba(255,106,61,.55));outline-offset:1px}"
     },
     {
-      "name": "Busca",
-      "kind": "input",
-      "refersTo": "busca",
-      "description": "Campo de busca em pílula na barra superior.",
-      "html": "<label class=\"ds-busca\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"m16 16 4.5 4.5\"/></svg><input placeholder=\"Buscar cortes, assuntos ou fontes\"></label>",
-      "css": ".ds-busca{display:flex;align-items:center;gap:8px;max-width:520px;padding:9px 16px;border:1px solid var(--fio,#2e2e31);border-radius:99px;background:var(--superficie,#18181a);color:var(--texto-2,#aaaaaa)}.ds-busca input{flex:1;border:0;background:transparent;color:var(--texto,#f1f1f1);font:400 0.875rem var(--fonte-ui,Archivo,system-ui,sans-serif);outline:0}.ds-busca:focus-within{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}"
-    },
-    {
-      "name": "Chips de assunto",
+      "name": "Chip da mesa",
       "kind": "chip",
-      "refersTo": "chip",
-      "description": "Filtro por assunto com cotação (seta e número) e selo de pico.",
-      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">Tudo</button><button class=\"ds-chip\" aria-pressed=\"false\">GTA 6 <span class=\"ds-pico\">pico</span> <span class=\"ds-s\">&#8593;38%</span></button><button class=\"ds-chip\" aria-pressed=\"false\">Valorant <span class=\"ds-d\">&#8595;3%</span></button></div>",
-      "css": ".ds-chips{display:flex;gap:8px;flex-wrap:wrap}.ds-chip{border:0;background:var(--superficie-2,#212123);color:var(--texto,#f1f1f1);padding:7px 12px;border-radius:6px;font:600 0.875rem var(--fonte-ui,Archivo,system-ui,sans-serif);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background 160ms cubic-bezier(.16,1,.3,1)}.ds-chip:hover{background:var(--superficie-3,#2b2b2e)}.ds-chip[aria-pressed=\"true\"]{background:var(--texto,#f1f1f1);color:var(--fundo,#0f0f10)}.ds-chip:focus-visible{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}.ds-pico{background:var(--marca,#ff6a3d);color:var(--marca-texto,#16120f);font:700 11px/1 var(--fonte-ui,Archivo,sans-serif);text-transform:uppercase;letter-spacing:.04em;padding:3px 5px;border-radius:3px}.ds-s{color:var(--sobe,#3dd68c);font-weight:700;font-size:.75rem;font-variant-numeric:tabular-nums}.ds-d{color:var(--desce,#ff6b81);font-weight:700;font-size:.75rem;font-variant-numeric:tabular-nums}"
+      "refersTo": "chip-mesa",
+      "description": "Pendência na faixa 'Na sua mesa' com contagem em cápsula; a variante de alerta pinta a cápsula de vermelho.",
+      "html": "<a class=\"ds-chip ds-alerta\" href=\"#\">Pede você <b>1</b></a> <a class=\"ds-chip\" href=\"#\">Revisar <b>2</b></a>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px 0 12px;border-radius:var(--raio-ctrl,7px);background:var(--folha,#2C2C2E);color:var(--tinta,#F5F5F7);font:500 14px/1 Onest,system-ui,sans-serif;text-decoration:none;box-shadow:0 0 0 .5px var(--fio-forte,rgba(255,255,255,.16)),0 1px 1px rgba(0,0,0,.08)}.ds-chip:hover{background:var(--folha-2,#3A3A3C)}.ds-chip:focus-visible{outline:3px solid var(--foco,rgba(255,106,61,.55));outline-offset:1px}.ds-chip b{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--capsula,rgba(255,255,255,.12));color:var(--capsula-tinta,#D1D1D6);font-size:12px;font-weight:600;display:grid;place-items:center;font-variant-numeric:tabular-nums}.ds-chip.ds-alerta b{background:var(--alerta-fundo,#CC2E24);color:#fff}"
     },
     {
-      "name": "Navegação lateral",
+      "name": "Controle segmentado",
+      "kind": "custom",
+      "refersTo": "segmented-track",
+      "description": "Escolha exclusiva entre vistas; segmento travado leva cadeado.",
+      "html": "<div class=\"ds-seg\" role=\"tablist\"><button role=\"tab\" aria-selected=\"false\"><svg viewBox=\"0 0 24 24\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\"/><path d=\"M8 11V7a4 4 0 0 1 8 0v4\"/></svg>Ao vivo</button><button role=\"tab\" aria-selected=\"false\">Em alta</button><button role=\"tab\" aria-selected=\"true\">Recentes</button></div>",
+      "css": ".ds-seg{display:inline-flex;gap:2px;padding:3px;border-radius:9px;background:var(--capsula,rgba(255,255,255,.12))}.ds-seg button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 14px;border:0;border-radius:var(--raio-ctrl,7px);background:none;color:var(--tinta-2,#C7C7CC);font:500 14px/1 Onest,system-ui,sans-serif;cursor:pointer}.ds-seg button:hover{color:var(--tinta,#F5F5F7)}.ds-seg button:focus-visible{outline:3px solid var(--foco,rgba(255,106,61,.55));outline-offset:1px}.ds-seg button[aria-selected=true]{background:var(--folha,#2C2C2E);color:var(--tinta,#F5F5F7);box-shadow:0 1px 3px rgba(0,0,0,.18),0 0 0 .5px var(--fio,rgba(255,255,255,.09))}.ds-seg svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.7}"
+    },
+    {
+      "name": "Item da sidebar",
       "kind": "nav",
       "refersTo": "nav-item",
-      "description": "Menu do estúdio; ativo com ícone em brasa, alertas com contador âmbar.",
-      "html": "<nav class=\"ds-nav\"><a href=\"#\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"5\" height=\"9\" rx=\"1.5\"/><path d=\"M11 6h10M11 10h7M3 17h18M3 20.5h12\"/></svg>Fila<span class=\"ds-cont\">14</span></a><a href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 18c3-1 4-9 7-9s3 6 5 6 3-8 6-11\"/><path d=\"M3 21h18\"/></svg>Radar</a><a href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z\"/><path d=\"M10 20.5a2 2 0 0 0 4 0\"/></svg>Alertas<span class=\"ds-cont ds-cont-pede\">2</span></a></nav>",
-      "css": ".ds-nav{display:grid;gap:2px;width:208px;padding:8px;background:var(--fundo,#0f0f10)}.ds-nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;color:var(--texto-2,#aaaaaa);text-decoration:none;font:600 0.875rem var(--fonte-ui,Archivo,system-ui,sans-serif);transition:background 160ms cubic-bezier(.16,1,.3,1),color 160ms cubic-bezier(.16,1,.3,1)}.ds-nav a:hover{background:var(--superficie,#18181a);color:var(--texto,#f1f1f1)}.ds-nav a[aria-current]{background:var(--superficie-2,#212123);color:var(--texto,#f1f1f1)}.ds-nav a[aria-current] svg{color:var(--marca,#ff6a3d)}.ds-nav a:focus-visible{outline:2px solid var(--marca,#ff6a3d);outline-offset:2px}.ds-cont{margin-left:auto;font-size:.75rem;color:var(--texto-2,#aaaaaa);font-variant-numeric:tabular-nums}.ds-cont-pede{background:var(--pede,#ffc53d);color:var(--pede-texto,#16120f);padding:2px 7px;border-radius:99px;font-weight:700}"
+      "description": "Item de navegação no trilho translúcido; ativo com véu de seleção e ícone no laranja vivo; contagem em cápsula.",
+      "html": "<nav class=\"ds-side\"><a class=\"ds-it\" aria-current=\"page\" href=\"#\"><svg viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M10 9l4 2-4 2z\"/></svg>Lives</a><a class=\"ds-it\" href=\"#\"><svg viewBox=\"0 0 24 24\"><path d=\"M4 7h16M4 12h16M4 17h10\"/></svg>Fila<span>1</span></a><a class=\"ds-it\" href=\"#\"><svg viewBox=\"0 0 24 24\"><circle cx=\"9\" cy=\"8\" r=\"3\"/><path d=\"M3 19c0-3 3-5 6-5s6 2 6 5\"/></svg>Fontes<span class=\"ds-al\">1</span></a></nav>",
+      "css": ".ds-side{width:264px;padding:12px 8px;display:flex;flex-direction:column;gap:1px;background:var(--trilho,rgba(40,40,42,.78));-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);border-right:.5px solid var(--fio-forte,rgba(255,255,255,.16))}.ds-it{display:flex;align-items:center;gap:12px;height:36px;padding:0 16px;border-radius:8px;color:var(--tinta-2,#C7C7CC);font:500 14px/1 Onest,system-ui,sans-serif;text-decoration:none}.ds-it svg{width:18px;height:18px;fill:none;stroke:var(--tinta-3,#8E8E93);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-it:hover{background:var(--capsula,rgba(255,255,255,.12))}.ds-it:focus-visible{outline:3px solid var(--foco,rgba(255,106,61,.55));outline-offset:1px}.ds-it[aria-current=page]{background:var(--selecao,rgba(255,106,61,.16));color:var(--tinta,#F5F5F7)}.ds-it[aria-current=page] svg{stroke:var(--marca,#FF6A3D)}.ds-it span{margin-left:auto;min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--capsula,rgba(255,255,255,.12));color:var(--capsula-tinta,#D1D1D6);font-size:11px;font-weight:600;display:grid;place-items:center;font-variant-numeric:tabular-nums}.ds-it span.ds-al{background:var(--alerta-fundo,#CC2E24);color:#fff}"
     },
     {
-      "name": "Carimbos de estado",
-      "kind": "custom",
-      "refersTo": "carimbo-ok",
-      "description": "Estado estampado no corte: ícone + palavra, inclinado; retido é azul.",
-      "html": "<div class=\"ds-carimbos\"><span class=\"ds-carimbo ds-ok\"><svg viewBox=\"0 0 16 16\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3.5 8.5 3 3 6-7\"/></svg>Liberada</span><span class=\"ds-carimbo ds-retido\"><svg viewBox=\"0 0 16 16\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 1.75 2.75 3.5v4c0 3.2 2.2 5.6 5.25 6.75 3.05-1.15 5.25-3.55 5.25-6.75v-4Z\"/><path d=\"M8 5.25v3M8 10.6v.15\"/></svg>Retido: spoiler</span><span class=\"ds-carimbo ds-pausado\"><svg viewBox=\"0 0 16 16\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"><path d=\"M6 4v8M10 4v8\"/></svg>Pausado</span></div>",
-      "css": ".ds-carimbos{display:flex;gap:12px;flex-wrap:wrap}.ds-carimbo{display:inline-flex;align-items:center;gap:4px;font:700 11px/1 var(--fonte-ui,Archivo,system-ui,sans-serif);letter-spacing:.06em;text-transform:uppercase;border:1.5px solid currentColor;padding:3px 6px;border-radius:4px;transform:rotate(-2deg);white-space:nowrap}.ds-ok{color:var(--carimbo-ok,#3dd68c)}.ds-retido{color:var(--carimbo-retido,#7ab8ff)}.ds-pausado{color:var(--carimbo-pausado,#ff6b81)}"
+      "name": "Etiqueta de tier",
+      "kind": "chip",
+      "refersTo": "tier-tag",
+      "description": "Bolinha + nome, à maneira do Finder: Ouro, Forte, Experimental (anel vazio).",
+      "html": "<span class=\"ds-tier ds-ouro\">Ouro</span> <span class=\"ds-tier\">Forte</span> <span class=\"ds-tier ds-exp\">Experimental</span>",
+      "css": ".ds-tier{display:inline-flex;align-items:center;gap:6px;margin-right:12px;font:600 12.5px/1.45 Onest,system-ui,sans-serif;color:var(--tinta-2,#C7C7CC)}.ds-tier::before{content:\"\";width:9px;height:9px;border-radius:50%;background:var(--forte,#8E8E93)}.ds-tier.ds-ouro{color:var(--tinta,#F5F5F7)}.ds-tier.ds-ouro::before{background:var(--ouro,#E5B53B);box-shadow:0 0 0 .5px rgba(0,0,0,.2)}.ds-tier.ds-exp::before{background:transparent;box-shadow:inset 0 0 0 1.5px var(--exp,#5E5E63)}"
     },
     {
-      "name": "Curva do Mais Repetido",
-      "kind": "custom",
-      "refersTo": "marca",
-      "description": "Assinatura: curva de interesse do vídeo-fonte com o trecho do corte marcado no pico; dica no hover.",
-      "html": "<div class=\"ds-curva\" tabindex=\"0\"><svg viewBox=\"0 -2 168 42\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><defs><clipPath id=\"ds-cc\"><rect x=\"84\" y=\"-2\" width=\"20\" height=\"36\"/></clipPath></defs><path class=\"ds-area\" d=\"M0,26 C10,26 10,22 20,24 C30,26 30,20 40,23 C50,26 50,21 60,22 C70,23 76,20 84,14 C90,2 92,2 96,3 C100,4 102,16 108,22 C118,26 128,21 138,24 C148,26 158,22 168,24 L168,34 L0,34 Z\"/><rect class=\"ds-trecho\" x=\"84\" y=\"-2\" width=\"20\" height=\"36\" rx=\"2\"/><path class=\"ds-linha\" d=\"M0,26 C10,26 10,22 20,24 C30,26 30,20 40,23 C50,26 50,21 60,22 C70,23 76,20 84,14 C90,2 92,2 96,3 C100,4 102,16 108,22 C118,26 128,21 138,24 C148,26 158,22 168,24\"/><path class=\"ds-pico-l\" clip-path=\"url(#ds-cc)\" d=\"M0,26 C10,26 10,22 20,24 C30,26 30,20 40,23 C50,26 50,21 60,22 C70,23 76,20 84,14 C90,2 92,2 96,3 C100,4 102,16 108,22 C118,26 128,21 138,24 C148,26 158,22 168,24\"/><line class=\"ds-base\" x1=\"0\" x2=\"168\" y1=\"34.5\" y2=\"34.5\"/><rect class=\"ds-seg\" x=\"90\" y=\"36\" width=\"8\" height=\"3\" rx=\"1.5\"/></svg><span class=\"ds-tip\">Pico em 1:41:46 · 2,4× a média do vídeo</span><small>Live de 3h12 · trecho em 1:41:46</small></div>",
-      "css": ".ds-curva{position:relative;width:156px;margin-top:40px;font-family:var(--fonte-ui,Archivo,system-ui,sans-serif);outline:0}.ds-curva svg{display:block;width:156px;height:40px;overflow:visible}.ds-area{fill:var(--curva,rgb(241 242 244 / .22))}.ds-linha{fill:none;stroke:var(--texto-2,#aaaaaa);stroke-width:1.25;opacity:.7}.ds-trecho{fill:var(--marca-suave,rgb(255 106 61 / .16))}.ds-pico-l{fill:none;stroke:var(--marca,#ff6a3d);stroke-width:2.25}.ds-base{stroke:var(--fio,#2e2e31);stroke-width:1}.ds-seg{fill:var(--marca,#ff6a3d)}.ds-curva small{display:block;font-size:11px;color:var(--texto-2,#aaaaaa);margin-top:3px;white-space:nowrap;font-variant-numeric:tabular-nums}.ds-tip{position:absolute;bottom:calc(100% + 6px);left:58%;transform:translateX(-50%);background:var(--texto,#f1f1f1);color:var(--fundo,#0f0f10);font-size:.75rem;font-weight:600;padding:6px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 160ms cubic-bezier(.16,1,.3,1),transform 160ms cubic-bezier(.16,1,.3,1)}.ds-curva:hover .ds-tip,.ds-curva:focus-visible .ds-tip{opacity:1;transform:translateX(-50%) translateY(-2px)}"
-    },
-    {
-      "name": "Bloco Pede você",
+      "name": "Miniatura com material",
       "kind": "card",
-      "refersTo": "cartao",
-      "description": "Único lugar do âmbar: anel interno, contador e ícone de cada pedido.",
-      "html": "<section class=\"ds-pede\"><h2>Pede você <span class=\"ds-q\">2</span></h2><div class=\"ds-pedido\"><h3><svg viewBox=\"0 0 16 16\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 1.75 2.75 3.5v4c0 3.2 2.2 5.6 5.25 6.75 3.05-1.15 5.25-3.55 5.25-6.75v-4Z\"/><path d=\"M8 5.25v3M8 10.6v.15\"/></svg>A fonte em alta está como desconhecida.</h3><p>Nada foi baixado nem cortado.</p></div></section>",
-      "css": ".ds-pede{background:var(--superficie,#18181a);color:var(--texto,#f1f1f1);border-radius:10px;padding:16px;box-shadow:inset 0 0 0 1.5px var(--pede,#ffc53d);max-width:336px;font-family:var(--fonte-ui,Archivo,system-ui,sans-serif)}.ds-pede h2{font:700 1.25rem/1 var(--fonte-titulo,Antonio,\"Arial Narrow\",sans-serif);text-transform:uppercase;letter-spacing:.02em;margin:0 0 12px;display:flex;align-items:center;gap:8px}.ds-q{background:var(--pede,#ffc53d);color:var(--pede-texto,#16120f);font:700 13px/1 var(--fonte-ui,Archivo,sans-serif);padding:3px 8px;border-radius:99px}.ds-pedido h3{margin:0 0 4px;font:700 .875rem/1.35 var(--fonte-ui,Archivo,sans-serif);display:flex;gap:8px}.ds-pedido h3 svg{color:var(--pede,#ffc53d);flex:none;margin-top:1px}.ds-pedido p{margin:0 0 0 26px;font-size:.75rem;color:var(--texto-2,#aaaaaa)}"
+      "refersTo": "thumbnail",
+      "description": "Thumb 16:9 com rótulos em material translúcido: Nº, selo de estado com ponto e duração tabular.",
+      "html": "<div class=\"ds-cromo\"><span class=\"ds-plaq\">Nº 01–15</span><span class=\"ds-selo\">15 cortes · 2 publicados</span><span class=\"ds-dur\">2:05:36</span></div>",
+      "css": ".ds-cromo{position:relative;width:320px;aspect-ratio:16/9;border-radius:var(--raio-p,10px);overflow:hidden;background:linear-gradient(160deg,var(--thumb-2,#3A3A3C),var(--thumb,#2C2C2E));box-shadow:0 0 0 .5px var(--fio,rgba(255,255,255,.09));font:600 11.5px/1 Onest,system-ui,sans-serif;font-variant-numeric:tabular-nums}.ds-cromo span{position:absolute;display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 7px;border-radius:5px;background:var(--material,rgba(20,20,22,.74));color:#fff;-webkit-backdrop-filter:blur(14px) saturate(160%);backdrop-filter:blur(14px) saturate(160%)}.ds-plaq{left:7px;top:7px}.ds-dur{right:7px;bottom:7px}.ds-selo{right:7px;top:7px;height:22px!important;border-radius:6px!important;font-size:12px}.ds-selo::before{content:\"\";width:7px;height:7px;border-radius:50%;background:#30D158}"
+    },
+    {
+      "name": "Poço travado",
+      "kind": "card",
+      "refersTo": "poco-travado",
+      "description": "Espaço impresso esperando a figurinha: diz o que falta e de que depende, sem dado de exemplo.",
+      "html": "<div class=\"ds-poco\"><strong>Ao vivo</strong><span class=\"ds-tt\"><svg viewBox=\"0 0 24 24\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\"/><path d=\"M8 11V7a4 4 0 0 1 8 0v4\"/></svg>Travado · falta configurar</span><span>Falta configurar o app da Twitch (grátis) para ver quem dos seus streamers está ao vivo.</span><small>Cortar a live ao vivo chega na história 5.2.</small><button>Configurar</button></div>",
+      "css": ".ds-poco{max-width:420px;display:flex;flex-direction:column;gap:5px;padding:18px 20px;border-radius:var(--raio,12px);background:var(--poco,#232325);box-shadow:inset 0 0 0 .5px var(--fio,rgba(255,255,255,.09));color:var(--tinta-2,#C7C7CC);font:400 13.5px/1.45 Onest,system-ui,sans-serif}.ds-poco strong{font-size:17px;font-weight:650;color:var(--tinta,#F5F5F7)}.ds-tt{display:flex;align-items:center;gap:7px;color:var(--tinta-3,#8E8E93);font-weight:500}.ds-tt svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-poco small{font-size:12.5px;color:var(--tinta-3,#8E8E93)}.ds-poco button{align-self:flex-start;margin-top:8px;height:30px;padding:0 16px;border:0;border-radius:var(--raio-ctrl,7px);background:var(--folha,#2C2C2E);color:var(--tinta,#F5F5F7);font:600 14px/1 Onest,system-ui,sans-serif;box-shadow:0 0 0 .5px var(--fio-forte,rgba(255,255,255,.16));cursor:pointer}.ds-poco button:hover{background:var(--folha-2,#3A3A3C)}.ds-poco button:focus-visible{outline:3px solid var(--foco,rgba(255,106,61,.55));outline-offset:1px}"
+    },
+    {
+      "name": "Opção da Sala",
+      "kind": "button",
+      "refersTo": "option-toggle",
+      "description": "Escolha de formato, enquadramento ou motor; pressionada ganha véu de seleção e contorno queimado.",
+      "html": "<div class=\"ds-ops\"><button class=\"ds-op\" aria-pressed=\"true\">9:16 Short</button><button class=\"ds-op\" aria-pressed=\"false\">16:9</button><button class=\"ds-op\" aria-disabled=\"true\">Par Short + Longo · 3.7.3</button></div>",
+      "css": ".ds-ops{display:flex;flex-wrap:wrap;gap:8px}.ds-op{display:inline-flex;align-items:center;height:30px;padding:0 12px;border:0;border-radius:var(--raio-ctrl,7px);background:var(--folha-2,#3A3A3C);box-shadow:0 0 0 .5px var(--fio,rgba(255,255,255,.09));color:var(--tinta,#F5F5F7);font:500 14px/1 Onest,system-ui,sans-serif;cursor:pointer}.ds-op:focus-visible{outline:3px solid var(--foco,rgba(255,106,61,.55));outline-offset:1px}.ds-op[aria-pressed=true]{background:var(--selecao,rgba(255,106,61,.16));box-shadow:inset 0 0 0 1.5px var(--acao,#CF4520)}.ds-op[aria-disabled=true]{background:transparent;color:var(--tinta-3,#8E8E93);cursor:not-allowed}"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "Área de texto da ficha da Revisão (título, faixa de 2 s, 1º comentário).",
+      "html": "<label class=\"ds-campo\"><span>Faixa de 2 s</span><textarea rows=\"1\">BANHO INTERATIVO NO GTA 6!</textarea></label>",
+      "css": ".ds-campo{display:flex;flex-direction:column;gap:5px;width:360px}.ds-campo span{font:700 12px/1.45 Onest,system-ui,sans-serif;color:var(--tinta-3,#8E8E93)}.ds-campo textarea{font:500 14px/1.35 Onest,system-ui,sans-serif;color:var(--tinta,#F5F5F7);resize:none;padding:8px 10px;border:0;border-radius:var(--raio-ctrl,7px);background:var(--folha-2,#3A3A3C);box-shadow:inset 0 0 0 .5px var(--fio-forte,rgba(255,255,255,.16))}.ds-campo textarea:hover{box-shadow:inset 0 0 0 .5px var(--tinta-3,#8E8E93)}.ds-campo textarea:focus{outline:none;box-shadow:inset 0 0 0 .5px var(--fio-forte,rgba(255,255,255,.16)),0 0 0 3px var(--foco,rgba(255,106,61,.55))}"
+    },
+    {
+      "name": "Pico de origem",
+      "kind": "custom",
+      "description": "Curva real de energia do áudio com o trecho do corte e o cume marcados; só camadas medidas.",
+      "html": "<figure class=\"ds-pico\"><svg viewBox=\"0 0 440 84\" preserveAspectRatio=\"none\" aria-label=\"Energia do áudio, corte de 0:33 a 1:24\"><rect class=\"t\" x=\"101\" y=\"0\" width=\"156\" height=\"84\"/><path class=\"a\" d=\"M0,60 L30,40 L60,70 L90,30 L120,50 L150,12 L180,44 L210,24 L240,58 L270,36 L300,66 L330,30 L360,52 L390,20 L440,46 L440,84 L0,84Z\"/><path class=\"l\" d=\"M0,60 L30,40 L60,70 L90,30 L120,50 L150,12 L180,44 L210,24 L240,58 L270,36 L300,66 L330,30 L360,52 L390,20 L440,46\"/><line class=\"c\" x1=\"150\" y1=\"0\" x2=\"150\" y2=\"84\"/></svg><figcaption><span>0:00</span><span>cume em 0:47</span><span>2:24</span></figcaption></figure>",
+      "css": ".ds-pico{margin:0;width:440px}.ds-pico svg{width:100%;height:84px;display:block;border-radius:8px;background:var(--poco,#232325)}.ds-pico .t{fill:var(--selecao,rgba(255,106,61,.16))}.ds-pico .a{fill:color-mix(in srgb,var(--marca,#FF6A3D) 16%,transparent)}.ds-pico .l{fill:none;stroke:var(--marca,#FF6A3D);stroke-width:1.4;vector-effect:non-scaling-stroke}.ds-pico .c{stroke:var(--tinta,#F5F5F7);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}.ds-pico figcaption{display:flex;justify-content:space-between;margin-top:4px;font:400 11.5px/1 Onest,system-ui,sans-serif;color:var(--tinta-3,#8E8E93);font-variant-numeric:tabular-nums}"
     }
   ],
   "narrative": {
-    "northStar": "Estúdio do Criador",
-    "overview": "O Picorte é operado como um estúdio de criador: a fila é a aba de conteúdo de um estúdio, só que de cortes que ainda vão sair. Superfícies grafite em camadas, uma tabela densa e legível, miniaturas 9:16 como a única imagem, e em cada linha a peça-assinatura do sistema: a **Curva do Mais Repetido**, a curva de interesse do vídeo-fonte com o trecho do corte marcado no pico. A tela explica por que cada corte foi escolhido e de onde ele saiu, em vez de empilhar cartões de métricas.\n\nA densidade é de ferramenta de trabalho para sessão longa: tema escuro por padrão, com variante clara completa (`data-tema=\"claro\"`). A cor é escassa e sempre tem função: laranja-brasa para o pico e o corte, âmbar só para o que pede o operador, verde e vermelho só para cotação com seta e número, azul para o que está retido. Títulos condensados em caixa-alta dão o tom de estúdio; a interface fica em uma grotesca de leitura rápida com números tabulares.\n\nA stack ainda não foi decidida (sai na E10, arquitetura). Os tokens são propriedades personalizadas de CSS puras, em `design/tokens/tokens.css`, sem framework; as fontes ficam em `design/fonts/` e a marca em `design/brand/`.\n\nO mundo recusa o painel genérico de SaaS com cartões e métricas, o visual gamer clichê, o preto e branco de jornal e a cara de loja online.",
+    "northStar": "O Álbum Sendo Completado",
+    "overview": "O Estúdio do Criador é um painel local, só desktop (alvo 2560×1440), com acabamento de app de sistema: a referência do dono são os apps do macOS. Cinzas neutros e precisos nos dois temas, sem fundo tingido; uma sidebar translúcida com desfoque; controles segmentados; contagens em cápsula cinza; rótulos sobre as thumbs em material translúcido. A calma vem da familiaridade: nada no chrome compete com as miniaturas, que são o conteúdo.\n\nPor baixo desse acabamento corre um álbum de figurinhas discreto. Cada corte é uma figurinha numerada (Nº 01, Nº 07) e cada função que ainda não existe é o espaço impresso esperando a figurinha: um poço rebaixado que diz o que falta, nunca um número inventado. Do álbum ficam só duas coisas visíveis, a numeração Nº e o encaixe \"colar a figurinha\" quando algo fica pronto. A peça de dado que assina o sistema é o **pico de origem**: a curva real de energia do áudio, por segundo, com o trecho do corte destacado.\n\nA paleta tem uma única voz de marca, o laranja do logotipo, em dois registros: vivo para sinal (seleção, anel da GPU, curvas, ícone ativo) e queimado, com texto branco, para tudo que é preenchido. Verde, amarelo e vermelho existem apenas para estado. O dono recusou explicitamente: azul cobalto ou \"azul de IA\" genérico, o visual preto e branco de loja, SaaS genérico, gamer RGB, clone do YouTube Studio, paletas tingidas de álbum, carimbos em caixa alta, nota do Editor-Chefe na tela e mini-curva de pico por item de lista.",
     "keyCharacteristics": [
-      "Grafite em quatro camadas tonais, sem sombras na interface.",
-      "Laranja-brasa como única cor de marca, ligada ao pico.",
-      "Curva de interesse com o trecho do corte em cada linha da fila.",
-      "Estados carimbados no próprio corte; nada some, tudo fica visível e explicado.",
-      "Antonio condensada em caixa-alta para títulos, Archivo para a interface, números tabulares.",
-      "Layouts próprios para desktop largo, desktop compacto e celular."
+      "Cinzas neutros de sistema nos dois temas (escuro é o padrão; claro por `prefers-color-scheme` ou `data-theme`).",
+      "Uma cor de marca, laranja do logotipo, em dois registros (vivo para sinal, queimado para preenchimento).",
+      "Profundidade por material e fio de meio pixel, não por sombra pesada.",
+      "Status sempre com forma ou texto além da cor (bolinha + nome, ícone + rótulo).",
+      "Travado é um poço rebaixado que explica o que falta, nunca dado de exemplo.",
+      "Letra Onest em todo o sistema, numerais tabulares em tudo que conta ou mede.",
+      "Duas assinaturas: \"colar a figurinha\" (interação) e \"pico de origem\" (dado)."
     ],
     "rules": [
       {
-        "name": "A Regra da Brasa",
-        "body": "O laranja-brasa marca o pico: trecho do corte, curvas, selos de pico, assunto no pico e o hover da ação principal. Não vira cor de fundo de seção, de botão em repouso nem de decoração.",
+        "name": "The Uma Voz Rule",
+        "body": "Só existe uma cor de marca, o laranja do logotipo. Nada de segundo acento, azul de interface ou cor por canal.",
         "section": "colors"
       },
       {
-        "name": "A Regra do Âmbar Reservado",
-        "body": "O âmbar aparece só em alertas \"pede você\". Nenhum outro estado, aviso ou destaque usa âmbar; \"em espera\" não é âmbar.",
+        "name": "The Vivo Sinaliza, Queimado Preenche Rule",
+        "body": "O laranja vivo nunca carrega texto branco; o queimado nunca aparece como traço fino. Preenchido com texto é sempre `acao` + branco.",
         "section": "colors"
       },
       {
-        "name": "A Regra do Retido Azul",
-        "body": "Retido é azul (`carimbo-retido`), no carimbo e no link do grupo (\"1 corte retido pelo freio de spoiler\"). Nunca reutiliza o âmbar.",
+        "name": "The Estado Só Para Estado Rule",
+        "body": "Verde, amarelo e vermelho só aparecem quando há um estado real a comunicar, e sempre junto de forma ou texto.",
         "section": "colors"
       },
       {
-        "name": "A Regra da Cotação",
-        "body": "Taxa sempre leva seta e número (`↑ 38%`, `↓ 3%`), com o verbo para leitor de tela (\"subiu\"/\"caiu\"). Cor sozinha nunca diz se subiu ou caiu.",
+        "name": "The Chão Neutro Rule",
+        "body": "Fundos, folhas e poços são cinzas sem matiz nos dois temas. Nenhuma superfície tingida de laranja, sépia ou papel de álbum.",
         "section": "colors"
       },
       {
-        "name": "A Regra das Cores de Terceiros",
-        "body": "Cores e logotipos de YouTube, TikTok, Instagram e Facebook aparecem só para identificar a rede, no formato oficial de cada uma. Nunca como paleta da interface. Na fila, as redes são citadas em texto.",
-        "section": "colors"
-      },
-      {
-        "name": "A Regra do Número Tabular",
-        "body": "Todo número que muda ou se compara (contadores, notas, horários, cotações, durações) usa `tabular-nums lining-nums`.",
+        "name": "The Número Tabular Rule",
+        "body": "Todo número que conta, mede ou marca tempo (contagens, Nº, durações, eixos, segundos) usa numerais tabulares.",
         "section": "typography"
       },
       {
-        "name": "A Regra da Caixa-Alta Condensada",
-        "body": "Caixa-alta é de Antonio (títulos) e dos selos. Texto de interface em Archivo fica em caixa normal.",
+        "name": "The Caixa Normal Rule",
+        "body": "Rótulos e selos da interface são em caixa normal. Caixa alta só aparece no conteúdo (títulos de VOD e legendas queimadas no vídeo), nunca em carimbo de UI.",
         "section": "typography"
       },
       {
-        "name": "A Regra da Elevação Reservada",
-        "body": "Nada se destaca por sombra. O único contorno de cor marca o que pede o operador.",
+        "name": "The Poço Diz o Que Falta Rule",
+        "body": "O que está travado afunda (poço, contorno interno) e escreve em texto o que falta e de que depende. Nunca mostra número, gráfico ou thumb de exemplo.",
         "section": "elevation"
       },
       {
-        "name": "A Regra do I Cortado",
-        "body": "O \"I\" do logotipo carrega o mesmo corte diagonal da marca: a parte de cima desliza sobre a diagonal. Não se redesenha o logotipo em texto vivo nem se remove o corte.",
-        "section": "shapes"
-      },
-      {
-        "name": "A Regra do Carimbo",
-        "body": "Estado se carimba no corte, com ícone e palavra, e nada some. Retido, pausado ou bloqueado continua listado, contado na sua aba e explicado em texto (\"Nada foi baixado nem cortado\", \"pausados em todas as redes às 19h02\").",
-        "section": "components"
+        "name": "The Vidro Só em Dois Lugares Rule",
+        "body": "Desfoque de fundo só no trilho da sidebar e nos rótulos sobre imagem (mais a vaga de render). Painéis e cards são opacos.",
+        "section": "elevation"
       }
     ],
     "dos": [
-      "**Do** usar o laranja-brasa (`marca`) só para pico, trecho do corte, curvas, selos de pico e o hover da ação principal.",
-      "**Do** reservar o âmbar (`pede`) só para alertas \"pede você\".",
-      "**Do** marcar retido em azul (`carimbo-retido`).",
-      "**Do** mostrar toda taxa com seta e número, e o verbo \"subiu\"/\"caiu\" para leitor de tela.",
-      "**Do** carimbar estados no corte com ícone e palavra, e manter retidos e pausados visíveis e contados.",
-      "**Do** usar números tabulares em contagens, notas, horários e cotações.",
-      "**Do** dar a cada largura o seu layout: trilho de 76px no desktop compacto e navegação inferior com tabela em blocos no celular.",
-      "**Do** respeitar `prefers-reduced-motion`: curvas prontas, dígitos sem virar, atualização ao vivo pausada.",
-      "**Do** usar o logotipo com o \"I\" cortado na diagonal, em tinta no tema claro e negativo no escuro, e o ícone de app no trilho compacto."
+      "Do manter fundos e superfícies em cinzas neutros sem matiz nos dois temas (`fundo` #1C1C1E no escuro, #F5F5F7 no claro).",
+      "Do usar o laranja vivo (#FF6A3D) só como sinal: seleção, anel da GPU, curvas, ícone ativo, progresso.",
+      "Do preencher com o laranja queimado (#CF4520) e texto branco toda ação principal, com uma só por tela.",
+      "Do escrever o status com forma ou texto além da cor: bolinha + nome no tier, ponto + frase no selo, ícone + rótulo no estado.",
+      "Do mostrar o travado como poço rebaixado que diz o que falta e de que depende.",
+      "Do desenhar o pico de origem só com dado medido, e dizer em texto quais camadas não foram medidas.",
+      "Do usar numerais tabulares em contagens, Nº, durações e eixos.",
+      "Do colocar rótulos sobre imagem em material translúcido escuro com desfoque.",
+      "Do manter o movimento em 150–250ms com saída suave e respeitar `prefers-reduced-motion` com troca simples."
     ],
     "donts": [
-      "**Don't** usar âmbar para \"em espera\", aviso genérico ou destaque.",
-      "**Don't** indicar subida, queda ou estado só por cor.",
-      "**Don't** esconder um corte retido, pausado ou bloqueado.",
-      "**Don't** usar cores ou logotipos de redes de terceiros fora da identificação da rede.",
-      "**Don't** mostrar R$, receita estimada ou qualquer promessa de ganho.",
-      "**Don't** criar profundidade com sombra; use as camadas tonais.",
-      "**Don't** transformar a fila em painel de cartões e métricas."
+      "Don't usar azul cobalto ou o azul genérico de IA em qualquer lugar da interface.",
+      "Don't cair no visual preto e branco de loja, nem em SaaS genérico de cartões de métrica.",
+      "Don't usar estética gamer RGB (neon, gradientes saturados, brilho colorido).",
+      "Don't clonar o YouTube Studio ou o layout do YouTube.",
+      "Don't tingir fundos com paleta de álbum (sépia, papel, cores por seção).",
+      "Don't usar selos-carimbo em caixa alta na interface.",
+      "Don't mostrar nota ou pontuação do Editor-Chefe na tela.",
+      "Don't pôr mini-curva de pico em cada item da lista de cortes; o pico de origem fica na ficha do corte selecionado e no minimapa do VOD.",
+      "Don't preencher espaço travado com número, gráfico ou thumb de exemplo.",
+      "Don't colocar texto branco sobre o laranja vivo, nem usar verde, amarelo ou vermelho como decoração."
     ]
   }
 }

@@ -8,15 +8,15 @@
 Máquina autônoma de uso próprio (focada 100% em **lucrar com os próprios canais de cortes**, sem SaaS) que transforma vídeos longos (VODs, lives gravadas), **lives ao vivo** (Twitch, Kick, YouTube) e **clipes virais de terceiros** em cortes de alta retenção para **YouTube Shorts, YouTube Longo (3–5 min com thumbnail automática), TikTok, Instagram Reels e Facebook**.
 
 **Estratégia Evolutiva (decidida na E3.5):**
-Em vez de construir o cortador do zero, **partimos da base open-source local auditada em `referencias/`** — tendo o **`mehbul/chopify` (MIT, Python)** como chassi principal do motor de vídeo, somado a peças transplantadas do **`fralapo/clippyme` (MIT)** (monitor de lives ao vivo e integrações Twitch/Kick/YT) e do **`FujiwaraChoki/supoclip`** (layout automático Facecam + Jogo em `reaction_layout.py`, publicadores OAuth diretos em `social/` e servidor MCP) — mais um **banco PostgreSQL local** para guardar fontes, políticas de risco, cortes, publicações, snapshots de métricas (1h/24h/7d), campanhas pagas e pesos do Bandit.
+Em vez de construir o cortador do zero, **partimos da base open-source local auditada em `referencias/`** — tendo o **`mehbul/chopify` (MIT, Python)** como chassi principal do motor de vídeo, somado a peças transplantadas do **`fralapo/clippyme` (MIT)** (monitor de lives ao vivo e integrações Twitch/Kick/YT) e do **`FujiwaraChoki/supoclip`** (layout automático Facecam + Jogo em `reaction_layout.py`, publicadores OAuth diretos em `social/` e servidor MCP) — mais um **banco local (SQLite, `picorte.db`; PostgreSQL opcional)** para guardar fontes, políticas de risco, cortes, publicações, snapshots de métricas (1h/24h/7d), campanhas pagas e pesos do Bandit.
 
 O sistema evolui em camadas:
 1. Primeiro funciona como clone local na GPU gerando os primeiros cortes `.mp4`;
-2. Depois ganha controle direto pelo Claude e pelo Gemini (via Skill + MCP + banco Postgres);
+2. Depois ganha controle direto pelo Claude e pelo Gemini (via Skill + MCP + banco local);
 3. Depois recebe **Visão Computacional de Games** (Facecam + Jogo, Troca Dinâmica de Layout, Sniper Crop, HUD/Killfeed, Micro-expressões), **Sismógrafo do Chat da Live** e **Engenharia de Retenção** (Cold Open Reverso 1,5s, Faixa de Contexto 2s, Seamless Loop, Compilação Cross-Streamer, Funil Short Isca → Vídeo Longo de 3–5 min + Thumbnail automática, 1º Comentário Fixado);
 4. Ganha o **Escudo Anti-Strike (P1)** (status da fonte, políticas por publisher/jogo, remoção seletiva de música via `Demucs` na GPU, Selo Verde nos primeiros 15s, Detector de React Perigoso, Score de Transformação YPP, Deduplicação `pHash` e pausa global automática ao primeiro claim);
 5. Ganha o **Olho para Fora** (Radar de alta na Twitch/YouTube + Calendário de eventos + Monitor de Lives ao Vivo + Caçador de clipes virais de terceiros + Detector de Treta/Pingue-Pongue + Multiplicador de Campanhas Pagas CPM);
-6. Publica sozinho nas 5 redes via OAuth com o painel web do nosso `DESIGN.md` ("Estúdio do Criador");
+6. Publica sozinho nas 5 redes via OAuth, operado pelo painel web **"Estúdio do Criador"** (só desktop, Windows e Linux), onde cada função aparece com o status real decidido pelo backend: o que não está pronto fica **travado, nunca com dado falso**;
 7. Fecha o ciclo com o **Cérebro que Aprende (P3)** (snapshots 1h/24h/7d, Bandit contextual/hierárquico com esquecimento do passado, Reciclagem A/B de Gancho e Autocaptura de Dataset Rotulado para treinar modelos próprios na RTX 4060 Ti).
 
 A visão detalhada e completa está em `_bmad-output/planning-artifacts/visao.md` e a auditoria de código dos clones está em `_bmad-output/planning-artifacts/concorrentes.md`.
@@ -58,7 +58,7 @@ Há vários frameworks instalados (disponíveis tanto no Claude Code quanto no A
 | Fase | Líder | Observação |
 |---|---|---|
 | Descoberta, especificação (`bmad-spec`), arquitetura de fusão (`bmad-architecture`), épicos/histórias (`bmad-create-epics-and-stories`) | **BMAD** (`bmad-*`) | Fonte da verdade do planejamento. Em vez de Product Brief + PRD de SaaS, usamos `bmad-spec` + `bmad-architecture`. |
-| Marca, paleta, tipografia, design system (o "art bible") e polimento de UI | **impeccable** | Já gerou `PRODUCT.md`, `DESIGN.md` e `design/`; lidera quando vestirmos o painel web. |
+| Marca, paleta, tipografia, design system (o "art bible") e polimento de UI | **impeccable** | Já gerou a primeira versão de `PRODUCT.md`, `DESIGN.md` e `design/`, que **não são restrição**. Lidera o visual do painel no **modo Operate** e substitui o `DESIGN.md` pela direção que o dono escolher. |
 | Pilares/anti-pilares (`cortes-pilares`), naming (`cortes-naming`) e operação do Picorte | **Skills próprias** (`skills/` → `.claude/skills/`) | Criadas com BMad Builder / skill-creator. |
 | Implementação dos Épicos 1 a 7: planos, TDD, subagentes, debugging, code review, verificação | **superpowers** | Executa as histórias de cada Épico (`writing-plans` → `test-driven-development` → `verification-before-completion`). |
 | Módulo de IA (chamadas a LLM por API vs Ollama local, prompts, custos) | **claude-api** | Consultar sempre antes de escolher modelo pago ou estimar preço de tokens. |

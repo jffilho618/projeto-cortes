@@ -2,7 +2,7 @@
 title: 'Épicos e Histórias — Picorte (Plano Mestre Evolutivo v2)'
 status: final
 created: '2026-11-18'
-updated: '2026-11-19'
+updated: '2026-11-21'
 sources:
   - ../specs/spec-picorte/SPEC.md
   - ./architecture.md
@@ -10,6 +10,8 @@ sources:
   - ./concorrentes.md
   - ./epic-3-5-motor-caca-extraordinaria.md
   - ./sprint-change-proposal-2026-11-19.md
+  - ./sprint-change-proposal-2026-11-21.md
+  - ./sprint-change-proposal-2026-11-21-painel.md
 ---
 
 # Épicos e Histórias — Picorte (`projeto-cortes`)
@@ -327,6 +329,11 @@ Como operador, quero trocar os pesos escolhidos "a olho" por pesos aprendidos do
 Ressalva do portão de pilares (A2): replay em câmera lenta só como recurso editorial pontual, nunca no corte inteiro.
 ### Story 3.7.4: Renderizar arcos de 2 atos e compilação por arquétipo, incl. "top vacilos" (A12)
 ### Story 3.7.5: Variação de template por arquétipo + freeze/seta no momento-chave (P2: regra do YouTube de 2026-10 contra "template em massa")
+**Nota (2026-11-21):** candidato para a camada de efeitos animados (freeze/seta, faixa 2s, transição do Cold Open da 3.7.1, variação por arquétipo): **HyperFrames** (HeyGen, Apache-2.0), em modelo híbrido.
+- O HyperFrames renderiza só os 2–3 s do efeito com fundo transparente (WebM VP9 / ProRes 4444).
+- O FFmpeg sobrepõe, como hoje.
+
+Antes de adotar, uma prova de conceito na 4060 Ti mede o tempo por efeito. Detalhes em `deferred-work.md` (W16).
 
 ---
 
@@ -442,9 +449,23 @@ Como operador, quero manter um perfil adaptativo por fonte autorizada contendo b
 
 ## Epic 6: Publicação Assistida e OAuth nas 5 Redes, Disjuntor de Claims e Painel "Estúdio do Criador"
 
-**Objetivo:** Entregar o fluxo de **Publicação Assistida Inicial** (pacote pronto + botões de copiar em 1 clique + vínculo de URL publicada) e os **Publicadores OAuth Oficiais** para as 5 redes (YouTube Shorts, YouTube Longo com Thumbnail e *Related Video*, TikTok, Instagram Reels e Facebook), o **Disjuntor Global de Claims (`claim_breaker.py`)** e o painel web responsivo **Estúdio do Criador** (PC e celular) seguindo o `DESIGN.md`.
+**Objetivo:** Entregar o fluxo de **Publicação Assistida Inicial** (pacote pronto + botões de copiar em 1 clique + vínculo de URL publicada) e os **Publicadores OAuth Oficiais** para as 5 redes (YouTube Shorts, YouTube Longo com Thumbnail e *Related Video*, TikTok, Instagram Reels e Facebook), o **Disjuntor Global de Claims (`claim_breaker.py`)** e o **painel web final "Estúdio do Criador"**. O painel é só desktop (Windows e Linux) e mostra cada função com o status real decidido pelo backend (ligado, parcial ou travado; travado nunca é falso). O visual sai da direção escolhida com o impeccable (Operate); o `DESIGN.md` atual não é restrição.
 **Capacidades cobertas:** `CAP-14`, `CAP-15`, `CAP-16`.
-**Regras de Arquitetura:** `AD-1`, `AD-4`, `AD-6`, `AD-7`, `AD-8`, `AD-9`, `AD-10`.
+**Regras de Arquitetura:** `AD-1`, `AD-4`, `AD-6`, `AD-7`, `AD-8`, `AD-9`, `AD-10`, `AD-11` + convenção "Travado nunca é falso".
+**Origem da mudança (2026-11-21):** [`sprint-change-proposal-2026-11-21-painel.md`](sprint-change-proposal-2026-11-21-painel.md) (pilares: AJUSTAR → SEGUE com C1–C4).
+
+**Ordem:**
+1. Pré-passo: `bmad-ux` + direção visual.
+2. Painel: 6.3 → 6.4 → 6.5 → 6.6 → 6.7 → 6.8, antes do 3.6.2+ e do E5.
+3. A 6.1 e a 6.2 vêm depois do E5.
+
+**Valem em todas as histórias do painel (6.3–6.8):**
+- **Condições dos pilares:**
+  - **C1:** só o cooldown manual pode ser limpo; liberar fonte exige base de permissão + evidência;
+  - **C2:** corte exportado sem link publicado vira pendência visível;
+  - **C3:** 👍/👎 é opcional;
+  - **C4:** Windows e Linux.
+- **Convivência com a sessão do motor:** não editar `score_clips.py`, `llm_router.py`, `benchmark.py`, `projects/` nem `benchmarks/`. As histórias do motor não editam `picorte/api/`, `picorte/web/` nem o `studio_service.py`.
 
 ### Story 6.1: Pacote de Publicação Assistida (`export_pack.py`) e Cofre OAuth + Publicadores das 5 Redes
 
@@ -468,21 +489,117 @@ Como operador, quero que qualquer claim de bloqueio ou strike detectado via API 
 1. `claim_breaker.trip(source_id, reason)` altera `sources.permission_status = 'pausada_por_claim'` e muda todas as publicações pendentes da fonte nas 5 redes para `pausada_emergencia`.
 2. Teste automatizado P0 simula um claim e verifica que nenhum corte da fonte pode ser publicado após o disparo.
 
-### Story 6.3: Painel Web "Estúdio do Criador" (Desktop e Celular — `DESIGN.md`)
+### Story 6.3: Base do Estúdio — FastAPI, Contrato de Capacidades e Casca da SPA
 
 **Descrição:**
-Como operador, quero operar a fila, o Seletor de IA (`Ollama` / `Claude` / `Gemini` / `Dupla`), os cartões de Publicação Assistida, as fontes/campanhas e os alertas de risco tanto no PC quanto no celular com o visual aprovado em `DESIGN.md` e `design/mock/fila.html`.
+Como operador, quero um backend novo que diga o status real de cada função do Picorte e uma casca de painel que mostre isso, para que nada na tela finja funcionar.
 
-**Skill líder de visual:** `impeccable`.
+**Insumo:** mapa de capacidades em [`brainstorm-intent.md`](../brainstorming/brainstorm-mapa-painel-estudio-do-criador-2026-11-21/brainstorm-intent.md); stack em [`research.md`](research/technical-stack-painel-estudio-do-criador-2026-11-21/research.md).
 
 **Critérios de Aceite (AC):**
-1. Interface aplica `design/tokens/tokens.css`, logos de `design/brand/` e fontes `Antonio`, `Archivo` e `JetBrains Mono`, com layouts dedicados para desktop e celular.
-2. Inclui o Seletor de Motor de IA (4 modos), visualização das 4 notas do corte com a "Curva do Mais Repetido", botões de 1 clique da Publicação Assistida e estados de risco acessíveis (nunca indicados só por cor — WCAG AA).
-3. A Fila exibe e permite filtrar os **10 arquétipos** e os **3 tiers (`Ouro / Forte / Experimental`)** com ícone + texto acessíveis (WCAG AA), além da galeria/preview de thumbnails (`_thumb.png`) e do botão de 1 clique **"Salvar como Exemplo Ouro"** (`golden_examples.json`).
-4. O painel oferece campo de **Busca por Pergunta Livre (*Query-Driven Clipping*)**, alternador para **Modo Caça Profunda (*Deep Hunt*)** e editor simples para **`game_dossiers/`** e perfis de piadas internas (`streamer_profiles`).
+1. O FastAPI substitui o `http.server` do `dashboard.py` e porta: Range/206, token anti-CSRF, CSP, checagem Host/Origin, fila serial única e fallback de SPA. Abrir ou ler nunca escreve em `project.json`.
+2. Lock por projeto entre processos (`filelock`): só vira "interrompido" o job cujo lock está livre (B9).
+3. `GET /api/capacidades`:
+   - cada função do mapa traz: status `ligado|parcial|travado`, `tipo_motivo` (`codigo|config|dado|temporario|escolha`), motivo, o que falta, fonte do dado, origem (épico/história/CAP), escopo (global/projeto/corte), `depende_de`, `verificado_em` e `ligou_em`;
+   - sondas com cache: Ollama e modelo, `agy` (429), Claude CLI, `yt-dlp`, `node`, `demucs`, GPU/VRAM e disco;
+   - a mesma função vira a ferramenta MCP `picorte_capacidades` (AD-10).
+4. `GET /api/taxonomia` (arquétipos, tiers, redes, modos de IA, presets): o front não fixa listas.
+5. SSE `/api/eventos`: progresso dos jobs e mudanças de capacidade.
+6. Teste de contrato A5: nenhum número sai para capacidade travada; sinal não medido sai `null`.
+7. Casca React (stack da pesquisa) com navegação e os estados vazio, carregando, erro e travado desenhados.
 
+### Story 6.4: Verdade no Banco — Sinais Medidos, Veredito P1, Fonte e Reconciliação
 
-**Nota (2026-11-21, correct-course):** inclui o painel "Saúde do motor" (W9) com `confianca_projeto` (3.6.5) e botões 👍/👎 por corte, que viram rótulo para a 3.6.6 e o Épico 7.
+**Descrição:**
+Como operador, quero que o banco guarde só o que foi medido de verdade e esteja ligado à fonte, para que o painel e o MCP leiam números reais.
+
+**Critérios de Aceite (AC):**
+1. **B1:** `videos.source_id` gravado a partir do `source_gate` do projeto (hoje NULL em 12/12).
+2. **B2:** notas por sinal (chat, áudio/prosódia, visual, texto) gravadas quando medidas e `NULL` quando não medidas; migração dos 0.0 existentes.
+3. **B3:** `risk_status`, `ypp_transform_score` e `phash_signature` persistidos a partir do `risk_verdict` (AC1 da 4.5).
+4. **B4:** reconciliação banco × disco. Vídeos e cortes de projetos apagados viram arquivados, sem perder o rastreio dos cortes publicados (P1).
+5. **B6:** `assets/policies/publishers.json` sincronizado com `publisher_policies` no boot.
+6. **B5 (fila única):** `picorte_enfileirar_video` cria o projeto real na fila do Estúdio, chamando a mesma função do painel.
+
+### Story 6.5: Lives — Página Inicial (Ao Vivo, Em Alta, Recentes) e "Na Sua Mesa"
+
+**Descrição:**
+Como operador, quero abrir o Picorte numa vitrine de lives e vídeos dos streamers cadastrados, no estilo das plataformas de vídeo, e cortar dali, com as pendências do dia à vista.
+
+**Critérios de Aceite (AC):**
+1. Abas **Ao vivo / Em alta / Recentes**:
+   - **Recentes** lista os vídeos recentes dos canais cadastrados pela API oficial (custo R$ 0, dentro da cota);
+   - cache de thumbs e metadados de no máximo 30 dias (AD-9).
+2. **Ao vivo** mostra quem está ao vivo quando houver credencial de app da Twitch configurada (grátis e revogável); sem ela, fica travada (`config`). Cortar a live ao vivo fica travado até a 5.2; **Em alta** fica travada até a 5.1. O backend escolhe a aba aberta por padrão (a primeira ligada).
+3. Clicar num vídeo abre a **Sala do vídeo**: uma página com endereço próprio (decisão do dono no `bmad-ux`), com o player e o painel de corte:
+   - o portão P1 responde antes de enfileirar;
+   - escolha do formato;
+   - motor de IA com a disponibilidade real;
+   - preview do enquadramento sobre uma imagem real do vídeo (nunca um mock).
+4. Faixa **"Na sua mesa"**: revisões pendentes, links pendentes (C2), jobs rodando e falhas com o próximo passo.
+5. O selo "AO VIVO" e o número de espectadores só aparecem com dado da API oficial + `verificado_em` (A5).
+
+### Story 6.6: Fila e Revisão de Cortes — Player, Waveform, Sinais e Rótulos
+
+**Descrição:**
+Como operador, quero revisar os cortes com o vídeo, a forma de onda e os sinais que realmente foram medidos, ensinar o motor com 1 toque e aprovar rápido pelo teclado.
+
+**Critérios de Aceite (AC):**
+1. **Fila:** título real do vídeo, streamer, jogo e estágio em PT-BR. Falha com ação (trocar motor e retomar, cadastrar fonte, retomar). O conjunto de prova (`benchmark_blind`) fica separado da produção.
+2. **Revisão em 3 colunas:**
+   - lista de cortes;
+   - player + waveform (peaks calculados no servidor) com ajuste de início e fim;
+   - arquétipo, tier, títulos, faixa 2s, 1º comentário, motivo, sinais ("não medido" no lugar de zero) e veredito P1 por rede ("sem veredito — re-auditar" quando faltar).
+3. 👍/👎 com motivo opcional gravado (B10), sem ser obrigatório para o corte seguir (C3); botão "Salvar como Exemplo Ouro" (`golden_examples.json`).
+4. **Filtros e ordem:** filtros por arquétipo, tier, sinal medido e status P1, vindos da taxonomia; ordem padrão por tier + sinais concordantes, não pela nota geral saturada.
+5. **Extras:** atalhos de teclado (próximo/anterior, play, 👍/👎, início/fim); editor de transcrição e legenda recolhido por padrão; Caça Profunda e busca por pergunta.
+6. **Motor padrão:** o último que funcionou; o determinístico exige escolha consciente, com aviso do que deixa de rodar.
+
+### Story 6.7: Fontes, Escudo, Saúde do Motor, Benchmark e Configurações
+
+**Descrição:**
+Como operador, quero gerir fontes e permissões, ver o escudo P1, a saúde do motor e o placar de acerto, e configurar o sistema, tudo com dado real.
+
+**Critérios de Aceite (AC):**
+1. **Fontes:**
+   - lista e cadastro;
+   - mudança de permissão só com base + evidência (C1);
+   - tentativas barradas pelo portão;
+   - políticas por jogo;
+   - cadastro de campanhas;
+   - pausas com histórico;
+   - editor de dossiês de jogo.
+2. **Escudo:**
+   - cooldowns por rede com contagem regressiva; só o cooldown criado pelo operador pode ser limpo (C1);
+   - claim registrado à mão aciona a pausa da fonte;
+   - o monitor automático aparece travado até a 6.2.
+3. **Saúde do motor (W9):**
+   - matriz projeto × parte do motor (`engine_health.json`) com o motivo de cada `na`/`failed`;
+   - frase-resumo do projeto;
+   - `confianca_projeto` travada até a 3.6.5.
+4. **Benchmark:**
+   - Precision@K por versão, contra o acaso e com o n de VODs;
+   - aviso de amostra pequena;
+   - progresso "x de 20 VODs com gabarito" para a 3.6.6.
+5. **Configurações:** motor de IA (disponibilidade real), preset de visão, marca e legendas, Modo Madrugada (parcial) e custos (parcial, regra 6).
+
+### Story 6.8: Publicação Assistida e Áreas que Ainda Não Existem
+
+**Descrição:**
+Como operador, quero publicar à mão com tudo pronto e sem perder o rastreio, e ver desde já, travado e honesto, o que o Picorte ainda vai fazer.
+
+**Critérios de Aceite (AC):**
+1. **Pacote do Dia:**
+   - cartões por rede;
+   - copiar em 1 clique (título, descrição + crédito, hashtags, 1º comentário) e abrir a pasta;
+   - cadência respeitada;
+   - projetos anteriores ao portão aparecem como "rodar o prepare de novo" (W5).
+2. **Links publicados:**
+   - colar a URL publicada no cartão do corte;
+   - exportado sem link vira pendência em "Na sua mesa" (C2);
+   - YouTube Longo aceito (B11).
+3. **Áreas travadas desenhadas, com o que falta e o `depende_de`:** contas OAuth das 5 redes, publicação automática, claims automático, métricas 1h/24h/7d, Bandit, dataset e Radar. Os contadores que já são reais (👍/👎, publicações com link) aparecem; nenhum número de exemplo.
+
 ---
 
 ## Epic 7: O Cérebro que Aprende — Snapshots 1h/24h/7d, Bandit com Esquecimento, Reciclagem A/B e Active Learning

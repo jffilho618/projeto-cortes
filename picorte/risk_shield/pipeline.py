@@ -115,6 +115,7 @@ def _compact(verdict: dict[str, Any]) -> dict[str, Any]:
         "gates": gates,
         "ypp_score": verdict.get("ypp_score"),
         "tiktok_originality_score": verdict.get("tiktok_originality_score"),
+        "phash_signature": verdict.get("phash_signature") or "",
         "auto_fixes_applied": verdict.get("auto_fixes_applied") or [],
         "checked_at": verdict.get("checked_at"),
     }
@@ -132,6 +133,7 @@ def attach_risk_verdict(
     game_slug: str = "",
     music_result: dict[str, Any] | None = None,
     cadence_state_path: Path | str | None = None,
+    clip_id: str | None = None,
 ) -> dict[str, Any]:
     """Audita o corte nos portões P1 e grava `risk_status` + `risk_verdict` no .meta.json (falha fechada)."""
     mp = Path(meta_path)
@@ -160,6 +162,7 @@ def attach_risk_verdict(
             has_cold_open=False,  # o teaser do Cold Open ainda não é renderizado no vídeo
             music_result=music_result,
             cadence_state_path=cadence_state_path,
+            clip_id=clip_id,  # a deduplicação não compara o corte com ele mesmo
         ))
     except Exception as exc:  # falha fechada: sem veredito válido, o corte não sai no Pacote do Dia
         verdict = {

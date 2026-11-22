@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Picorte">
+<title>Picorte</title>
+<defs>
+  <clipPath id="pc-l"><polygon points="0,0 57,0 37,100 0,100"/></clipPath>
+  <clipPath id="pc-r"><polygon points="63,0 100,0 100,100 43,100"/></clipPath>
+</defs>
+<rect width="32" height="32" rx="6" fill="#121314"/>
+<svg x="3" y="3" width="26" height="26" viewBox="0 0 100 100"><g clip-path="url(#pc-l)" fill="#EFF0EC"><polygon points="4,92 50,8 96,92"/></g><g clip-path="url(#pc-r)" fill="#FF6A3D"><g transform="translate(3,-9)"><polygon points="4,92 50,8 96,92"/></g></g></svg>
+</svg>

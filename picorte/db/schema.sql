@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS videos (
     duration_seconds REAL NOT NULL DEFAULT 0.0,
     workdir_path TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'queued',
+    archived_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -60,12 +61,12 @@ CREATE TABLE IF NOT EXISTS clips (
     ab_variant INTEGER NOT NULL DEFAULT 1,
     start_sec REAL NOT NULL,
     end_sec REAL NOT NULL,
-    score_chat REAL NOT NULL DEFAULT 0.0,
-    score_audio REAL NOT NULL DEFAULT 0.0,
-    score_visual REAL NOT NULL DEFAULT 0.0,
-    score_text REAL NOT NULL DEFAULT 0.0,
+    score_chat REAL,
+    score_audio REAL,
+    score_visual REAL,
+    score_text REAL,
     score_overall REAL NOT NULL DEFAULT 0.0,
-    ypp_transform_score INTEGER NOT NULL DEFAULT 0,
+    ypp_transform_score INTEGER,
     phash_signature TEXT NOT NULL DEFAULT '',
     llm_mode_used TEXT NOT NULL DEFAULT 'heuristic',
     risk_status TEXT NOT NULL DEFAULT 'pending',
@@ -74,6 +75,7 @@ CREATE TABLE IF NOT EXISTS clips (
     proposed_title TEXT NOT NULL DEFAULT '',
     context_banner_2s TEXT NOT NULL DEFAULT '',
     pinned_comment_debate TEXT NOT NULL DEFAULT '',
+    archived_at TEXT,
     created_at TEXT NOT NULL
 );
 
@@ -97,7 +99,8 @@ CREATE TABLE IF NOT EXISTS publications (
     related_video_external_id TEXT NOT NULL DEFAULT '',
     scheduled_for TEXT,
     published_at TEXT,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    motivo TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS metrics_snapshots (
@@ -139,4 +142,26 @@ CREATE TABLE IF NOT EXISTS dataset_samples (
     reward_value REAL NOT NULL,
     bundle_dir_path TEXT NOT NULL,
     created_at TEXT NOT NULL
+);
+
+-- História 6.6 (B10): decisões da Revisão por corte. 👍/👎 é opcional (C3) e separado do descarte.
+CREATE TABLE IF NOT EXISTS revisao_cortes (
+    clip_id TEXT PRIMARY KEY,
+    rotulo INTEGER,
+    motivo TEXT NOT NULL DEFAULT '',
+    descartado INTEGER NOT NULL DEFAULT 0,
+    exemplo_ouro INTEGER NOT NULL DEFAULT 0,
+    atualizado_em TEXT NOT NULL
+);
+
+-- História 6.7 (C1): toda mudança de permissão de fonte fica no histórico, com base, evidência e motivo.
+CREATE TABLE IF NOT EXISTS fontes_historico (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_id TEXT NOT NULL,
+    de TEXT NOT NULL DEFAULT '',
+    para TEXT NOT NULL,
+    base TEXT NOT NULL DEFAULT '',
+    evidencia TEXT NOT NULL DEFAULT '',
+    motivo TEXT NOT NULL,
+    em TEXT NOT NULL
 );

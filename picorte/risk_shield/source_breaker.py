@@ -51,7 +51,7 @@ def pause_source_globally(
             """SELECT p.id FROM publications p
                JOIN clips c ON c.id = p.clip_id
                JOIN videos v ON v.id = c.video_id
-               WHERE v.source_id = ? AND p.status IN ('fila', 'agendado')""",
+               WHERE v.source_id = ? AND p.status IN ('fila', 'agendado', 'exportado')""",
             (source_id,),
         )
         for row in pending:

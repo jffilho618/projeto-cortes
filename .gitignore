@@ -7,6 +7,8 @@ _bmad/custom/*.user.toml
 .DS_Store
 *.log
 node_modules/
+picorte/web/dist/
+.picorte/
 .env
 .env.*
 !.env.example

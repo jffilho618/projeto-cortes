@@ -43,23 +43,19 @@ class TestMcpAndService(unittest.TestCase):
         self.assertEqual(len(sources), 1)
         self.assertEqual(sources[0]["id"], source_id)
 
-        # 3. Enfileirar vídeo via MCP escolhendo modo dupla de IA
-        video = mcp.call_tool(
-            "picorte_enfileirar_video",
-            {
-                "source_id": source_id,
-                "source_url": "https://twitch.tv/videos/999",
-                "origin_type": "vod",
-                "game_slug": "cs2",
-            },
-        )
-        self.assertEqual(video["status"], "queued")
+        # 3. Enfileirar vídeo via MCP: fila única do Estúdio (B5, história 6.4)
+        from unittest import mock
+        with mock.patch("picorte.services.estudio_conexao.enfileirar_no_estudio",
+                        return_value={"projetos": [{"id": "abc123def456", "status": "queued"}]}) as fila:
+            video = mcp.call_tool("picorte_enfileirar_video", {"source_url": "https://twitch.tv/videos/999"})
+        fila.assert_called_once_with(["https://twitch.tv/videos/999"], None)
+        self.assertEqual(video["projetos"][0]["status"], "queued")
 
         # 4. Consultar status da fila e GPU via MCP
         status = mcp.call_tool("picorte_status_fila", {})
         self.assertIn("gpu_profile", status)
         self.assertEqual(status["total_sources"], 1)
-        self.assertEqual(status["total_videos"], 1)
+        self.assertEqual(status["total_videos"], 0)  # o MCP não cria mais linha "queued" fantasma
 
         # 5. Validar protocolo JSON-RPC MCP initialize + tools/list + tools/call
         init_resp = mcp.handle_jsonrpc({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})

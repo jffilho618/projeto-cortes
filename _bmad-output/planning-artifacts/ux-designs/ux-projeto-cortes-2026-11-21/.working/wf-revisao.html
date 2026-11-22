@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wireframe — Revisão</title>
+<style>
+/* WIREFRAME DE BAIXA FIDELIDADE — só estrutura. Governado por EXPERIENCE.md: IA (Revisão), Component Patterns (Lista de cortes,
+   Player + waveform, Ficha do corte, Rótulo 👍/👎, Descartar × 👎), State Patterns (Sinal não medido, Corte sem veredito P1),
+   Interaction Primitives (teclado), Flow 1. Spine vence em conflito. Valores ilustrativos (projeto real b273d9db8c56 / 2501be513575). */
+*{box-sizing:border-box}body{margin:0;font:14px/1.4 system-ui,sans-serif;color:#222;background:#f4f4f4}
+.app{display:grid;grid-template-columns:64px 1fr;min-height:100vh}.side{background:#ddd;border-right:2px solid #999}
+.status{padding:8px 16px;border-bottom:2px solid #999;background:#e6e6e6;font-size:12px}
+.head{padding:12px 24px;display:flex;gap:16px;align-items:baseline;border-bottom:1px solid #bbb}
+.cols{display:grid;grid-template-columns:400px 1fr 480px;gap:16px;padding:16px 24px}
+.box{border:2px solid #999;border-radius:12px;background:#fff;padding:12px;display:flex;flex-direction:column;gap:8px}
+.filters{display:flex;gap:6px;flex-wrap:wrap}.filters span{border:1.5px solid #888;border-radius:12px;padding:2px 8px;font-size:12px}
+.item{border:1.5px solid #bbb;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:3px}.item.cur{border:2.5px solid #333;background:#eee}
+.item .t{font-weight:600}.meta{font-size:12px;color:#555}
+.player{aspect-ratio:9/16;max-height:820px;margin:0 auto;background:repeating-linear-gradient(45deg,#ccc 0 10px,#d6d6d6 10px 20px);border:2px solid #888;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#555}
+.wave{height:90px;border:2px solid #888;border-radius:8px;position:relative;background:repeating-linear-gradient(90deg,#bbb 0 3px,#eee 3px 6px)}
+.h{position:absolute;top:-6px;bottom:-6px;width:10px;background:#444;border-radius:3px}.reg{position:absolute;top:0;bottom:0;background:#0002}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap}.ctrl span{border:1.5px solid #888;border-radius:6px;padding:4px 10px}
+.sig{display:grid;grid-template-columns:150px 1fr;gap:4px 10px;font-size:13px}.nm{color:#777;font-style:italic}
+.p1{display:grid;grid-template-columns:140px 1fr;gap:4px 10px;font-size:13px}
+.act{display:flex;gap:8px;flex-wrap:wrap}.act span{border:2px solid #444;border-radius:8px;padding:6px 10px;font-weight:700;background:#ddd}
+.edit{border:1.5px dashed #888;border-radius:6px;padding:4px 6px}
+.note{font-size:11px;background:#fffbe0;border:1px solid #c9b800;border-radius:6px;padding:6px 8px;color:#5a5000}
+h3{margin:0;font-size:14px}
+</style></head><body>
+<div class="app"><nav class="side"></nav><div>
+
+<div class="head"><b>CAÇANDO TESOURO! - GRAND THEFT AUTO 6 - Parte 2</b><span class="meta">ALANZOKA · GTA 6 · 15 cortes · motor Gemini · produção</span>
+  <span class="note" style="margin-left:auto">Frase-resumo do Motor: "Este vídeo rodou sem visão e sem chat (upload comum). Comentários do público medidos."</span></div>
+<div class="cols">
+  <section class="box" aria-label="Lista de cortes">
+    <h3>Cortes (ordem: tier + sinais concordantes)</h3>
+    <div class="filters"><span>tier ▾</span><span>arquétipo ▾</span><span>sinal medido ▾</span><span>P1 ▾</span><span>👍/👎 ▾</span></div>
+    <div class="item cur"><span class="t">Alanzoka descobre a mecânica de banho interativo no GTA 6 e testa os limites</span><span class="meta">OURO · descoberta_detalhe · 50,9 s · P1: sem veredito</span></div>
+    <div class="item"><span class="t">O detalhe insano do GTA 6 que deixou o alanzoka sem acreditar</span><span class="meta">OURO · descoberta_detalhe · 56,1 s · 👍</span></div>
+    <div class="item"><span class="t">A Rockstar corrigiu o erro da cerveja do trailer de GTA 6 — alanzoka conferiu</span><span class="meta">OURO · callback_oculto · 22 s</span></div>
+    <div class="item"><span class="t">Alanzoka capota o carro e surta com a mira no controle no GTA 6</span><span class="meta">FORTE · rage_tilt · 1m25s · publicado (Shorts)</span></div>
+    <div class="item" style="opacity:.5"><span class="t">Alanzoka tenta zerar GTA 6 no modo pacifista…</span><span class="meta">descartado · desfazer</span></div>
+    <div class="meta">… J / K percorre · lista pagina, sem rolagem infinita</div>
+  </section>
+
+  <section class="box" aria-label="Player e waveform">
+    <div class="player">PLAYER 9:16 (render ou preview 480p da seção)</div>
+    <div class="wave"><div class="reg" style="left:18%;right:22%"></div><div class="h" style="left:18%"></div><div class="h" style="right:22%"></div></div>
+    <div class="meta">Peaks calculados no servidor · alças = início/fim · I / O marcam na posição atual</div>
+    <div class="ctrl"><span>⏮ K</span><span>⏯ Espaço</span><span>J ⏭</span><span>← 2s</span><span>2s →</span><span>1× · 1,5× · 2×</span><span>☑ avançar sozinho</span></div>
+  </section>
+
+  <section class="box" aria-label="Ficha do corte">
+    <h3>descoberta_detalhe · OURO</h3>
+    <div><span class="meta">Título</span><div class="edit">Alanzoka descobre a mecânica de banho interativo no GTA 6 e testa os limites</div></div>
+    <div><span class="meta">Faixa 2s</span><div class="edit">BANHO INTERATIVO NO GTA 6!</div></div>
+    <div><span class="meta">1º comentário</span><div class="edit">A Rockstar foi longe demais colocando simulador de banho ou esse nível de detalhe é genial?</div></div>
+    <div><span class="meta">Por que este corte (Editor-Chefe)</span><div>motivo em texto, recolhível ▸</div></div>
+    <h3>Sinais</h3>
+    <div class="sig">
+      <span>Riso (prosódia)</span><span>medido</span>
+      <span>Comentário do público</span><span>medido · marcação perto deste trecho</span>
+      <span>Chat</span><span class="nm">não medido: vídeo sem chat (upload comum)</span>
+      <span>Facecam / HUD</span><span class="nm">não medido: a visão não rodou neste projeto</span>
+    </div>
+    <h3>Escudo P1 por rede</h3>
+    <div class="p1">
+      <span>YouTube Shorts</span><span class="nm">Renderizado antes do Escudo. Sem veredito — re-auditar</span>
+      <span>TikTok</span><span class="nm">sem veredito — re-auditar</span>
+      <span>Reels / Facebook</span><span class="nm">sem veredito — re-auditar</span>
+    </div>
+    <div class="act"><span>👍 1</span><span>👎 2</span><span>R Renderizar</span><span>D Descartar</span><span>E Exemplo Ouro</span></div>
+    <div class="note">👍/👎 é opcional (C3) e só ensina o motor. Descartar é outra ação (D), com desfazer. 2º toque no 👎 abre motivos de 1 clique.</div>
+  </section>
+</div></div></div>
+</body></html>

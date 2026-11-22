@@ -2,7 +2,7 @@
 # Gerado em conformidade com sprint-status-template.yaml do BMAD v6.12.4
 
 generated: 11-18-2026 03:36
-last_updated: 11-21-2026 02:30
+last_updated: 11-21-2026 05:30
 project: projeto-cortes
 project_key: PICORTE
 tracking_system: file-system
@@ -72,7 +72,13 @@ development_status:
   epic-6: backlog
   6-1-pacote-de-publicacao-assistida-export-pack-py-e-cofre-oauth-publicadores-das-5-redes: backlog
   6-2-monitor-de-claims-e-disjuntor-global-automatico-claim-breaker-py: backlog
-  6-3-painel-web-estudio-do-criador-desktop-e-celular-design-md: backlog
+  # 2026-11-21 (sprint-change-proposal-2026-11-21-painel.md): a 6.3 virou 6.3–6.8; painel antes do 3.6.2+ e do E5
+  6-3-base-do-estudio-fastapi-contrato-de-capacidades-e-casca-da-spa: backlog
+  6-4-verdade-no-banco-sinais-medidos-veredito-p1-fonte-e-reconciliacao: backlog
+  6-5-lives-pagina-inicial-ao-vivo-em-alta-recentes-e-na-sua-mesa: backlog
+  6-6-fila-e-revisao-de-cortes-player-waveform-sinais-e-rotulos: backlog
+  6-7-fontes-escudo-saude-do-motor-benchmark-e-configuracoes: backlog
+  6-8-publicacao-assistida-e-areas-travadas-oauth-claims-metricas-bandit-radar: backlog
   epic-6-retrospective: optional
 
   epic-7: backlog
