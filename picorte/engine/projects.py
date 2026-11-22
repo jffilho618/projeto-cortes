@@ -29,7 +29,7 @@ DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "embed_model": "nomic-embed-text", "brand": None,
                    "layout": "single", "centers": [0.25, 0.75], "caption": None,
                    "source_owner": None, "keyframes": False,
-                   "benchmark_blind": False}
+                   "benchmark_blind": False, "formatos_extras": True}
 
 
 def digest(value):
@@ -127,6 +127,8 @@ def validate_options(options):
         raise ValueError("keyframes must be true or false.")
     if not isinstance(result["benchmark_blind"], bool):
         raise ValueError("benchmark_blind must be true or false.")
+    if not isinstance(result["formatos_extras"], bool):
+        raise ValueError("formatos_extras must be true or false.")
     return result
 
 
@@ -152,6 +154,8 @@ def score_keys(transcript_key, data, options):
         for key in ("min_score", "max_clips", "llm", "ai_mode", "ai_filter", "ai_companion", "vision_preset", "query", "hunt_mode",
                     "keyframes")
     }
+    if options.get("formatos_extras") is False:  # 3.7.3: só entra na chave quando desligado (cache atual vale)
+        selection_options["formatos_extras"] = False
     selection_key = digest([discovery_key, selection_options])
     return discovery_key, selection_key
 
@@ -202,6 +206,30 @@ def edit_transcript(path, words):
     state["status"] = "review"
     save_project(path, state)
     return data
+
+
+TIKTOK_MAX_LEN = 75
+
+
+def link_format_family(segments):
+    """3.7.3: versão TikTok e Longo apontam para o Short do mesmo momento (`parent_short_id`)."""
+    short_by_moment = {s.get("moment_id"): s.get("id") for s in segments
+                       if s.get("moment_id") and s.get("formato", "short") == "short"}
+    out = []
+    for seg in segments:
+        rec = dict(seg)
+        if rec.get("formato") in ("tiktok_60", "longo_16x9") and short_by_moment.get(rec.get("moment_id")):
+            rec["parent_short_id"] = short_by_moment[rec["moment_id"]]
+        out.append(rec)
+    return out
+
+
+def render_params_for(seg, options):
+    """(aspect, layout, max_len do Cold Open) de cada segmento: o Longo sai 16:9, layout simples e sem Cold Open."""
+    if seg.get("formato") == "longo_16x9" or seg.get("aspect") == "16:9" and options["aspect"] != "16:9":
+        return "16:9", "single", None
+    max_len = TIKTOK_MAX_LEN if seg.get("formato") == "tiktok_60" else options.get("max_len")
+    return options["aspect"], options["layout"], max_len
 
 
 def _chat_peaks(path):
@@ -476,7 +504,8 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         query=options.get("query"),
                         hunt_mode=options.get("hunt_mode", "fast"),
                         keyframes=bool(options.get("keyframes", False)),
-                        max_len=options["max_len"])  # 3.6.4: limite do fim estendido até o riso acabar
+                        max_len=options["max_len"],  # 3.6.4: limite do fim estendido até o riso acabar
+                        formatos_extras=options.get("formatos_extras", True))  # 3.7.3
                     state["cache"]["selection"] = selection_key
                     save_project(path, state)
 
@@ -505,7 +534,7 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
             segments = [{**s, "id": f"{i:03}"} for i, s in enumerate(segments, 1)]
             try:
                 from picorte.engine.retention_engine import pair_short_and_long_clips
-                segments = pair_short_and_long_clips(segments)
+                segments = pair_short_and_long_clips(link_format_family(segments))
             except Exception:
                 pass
             segments = score_clips.pick_segments(segments, pick)
@@ -598,11 +627,16 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         render_source, W, H = loaded
                 try:
                     enriched_seg = {**segment, "id": segment["id"] + "-" + key[:8]}
+                    # 3.7.3: cada formato no seu aspecto (o Longo sai 16:9, layout simples, sem Cold Open)
+                    seg_aspect, seg_layout, co_max_len = render_params_for(segment, options)
                     try:
                         # 3.7.1: Cold Open só com clímax MEDIDO (pico de chat ou punchline), respeitando max_len
                         from picorte.engine.retention_engine import cold_open_for_segment
-                        plan = cold_open_for_segment(
-                            segment, data["words"], _chat_peaks(path), max_len=options.get("max_len"))
+                        if co_max_len is None:
+                            plan = {"enabled": False, "motivo": "formato 16:9 sem Cold Open (só verticais)"}
+                        else:
+                            plan = cold_open_for_segment(
+                                segment, data["words"], _chat_peaks(path), max_len=co_max_len)
                         if plan.get("novo_inicio") is not None:
                             enriched_seg["start"] = plan["novo_inicio"]
                         enriched_seg["cold_open"] = plan
@@ -610,9 +644,9 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                         enriched_seg["cold_open"] = {"enabled": False,
                                                      "motivo": f"erro no plano: {type(exc).__name__}: {exc}"}
                     output = render_clips.render(enriched_seg, data["words"], render_source, W, H, path,
-                        options["aspect"], out_dir=out, style=options["style"],
+                        seg_aspect, out_dir=out, style=options["style"],
                         do_tighten=options["tighten"], loudnorm=options["loudnorm"], preview=preview,
-                        brand=brand, layout=options["layout"], centers=options["centers"],
+                        brand=brand, layout=seg_layout, centers=options["centers"],
                         caption=options["caption"], source_offset=source_offset,
                         vision_preset=options.get("vision_preset", "auto"),
                         dominant_language=data.get("language"))
@@ -645,7 +679,7 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                             timestamp_s=thumb_ts if thumb_src == render_source else clip_dur * 0.4,
                             clip_start_s=clip_local_start if thumb_src == render_source else 0.0,
                             clip_end_s=clip_local_end if thumb_src == render_source else clip_dur,
-                            aspect=options["aspect"],
+                            aspect=seg_aspect,
                             vision_preset=options.get("vision_preset", "auto"),
                             facecam_box=enriched_seg.get("_detected_facecam_box"),
                             streamer_name=streamer_info.get("display_name") or None,
@@ -682,7 +716,7 @@ def run_project(path, action="all", preview=False, pick=None, resume=True, progr
                             seg=enriched_seg,
                             words=data["words"],
                             mp4_path=output,
-                            options=options,
+                            options={**options, "aspect": seg_aspect, "layout": seg_layout},
                             game_slug=str((state.get("source_meta") or {}).get("detected_game") or ""),
                             music_result=music_result,
                         )

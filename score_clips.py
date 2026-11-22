@@ -1042,6 +1042,10 @@ OPTIONAL_SEGMENT_KEYS = (
     "standalone",
     "tags",
     "transformacoes",  # 3.7: efeitos de formato aplicados (alimenta o Score de Transformação, P2)
+    "formato",         # 3.7.3: short | tiktok_60 | longo_16x9
+    "moment_id",
+    "aspect",
+    "miolo",
 )
 
 
@@ -1955,6 +1959,30 @@ def _apply_seamless_loop(workdir, segments, max_len=None):
     return out
 
 
+def _add_format_siblings(workdir, segments, source_duration):
+    """3.7.3: versão TikTok 60–75 s de cada Short e Longo 16:9 de 3–5 min dos ouro/forte (no fim, sem rank)."""
+    from picorte.engine import health as _health
+    from picorte.engine.formats import add_format_siblings
+    if not segments:
+        return segments
+    try:
+        words = json.loads((Path(workdir) / "transcript.json").read_text(encoding="utf-8-sig")).get("words") or []
+    except (OSError, ValueError):
+        words = []
+    sents = sentenceize(words) if words else []
+    duration = float(source_duration or (sents[-1]["end"] if sents else 0.0))
+    if not sents or duration <= 0:
+        _health.record(workdir, "formatos_extras", "na", "sem transcrição com frases")
+        return segments
+    peaks = _gabarito_heatmap_peaks(workdir, _load_source_meta(workdir))
+    out = add_format_siblings(segments, sents, heatmap_peaks=peaks, source_duration=duration)
+    tk = sum(1 for s in out if s.get("formato") == "tiktok_60")
+    lg = sum(1 for s in out if s.get("formato") == "longo_16x9")
+    _health.record(workdir, "formatos_extras", "ok",
+                   f"{tk} versões TikTok 60–75 s e {lg} Longos 16:9 de 3–5 min para {len(segments)} Shorts")
+    return out
+
+
 def _split_standalone(workdir, segments):
     """3.6.5 (AC4): corte com standalone < 5 sai dos Shorts e vai para longo_compilacao.json."""
     from picorte.engine.confidence import split_standalone
@@ -2314,7 +2342,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
            band=None, llm=None, host=OLLAMA_HOST, mode="heuristic",
            ai_mode="heuristic", ai_filter="ollama", ai_companion="claude",
-           query=None, hunt_mode="fast", keyframes=False, max_len=None):
+           query=None, hunt_mode="fast", keyframes=False, max_len=None, formatos_extras=True):
     """Read candidates.json, write segments.json and selection.json."""
     workdir = Path(workdir)
     candidates, discovery = load_candidates(workdir)
@@ -2473,6 +2501,8 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                                 source_duration=discovery.get("source_duration"))
     segments = _apply_seamless_loop(workdir, segments, max_len=max_len)
     segments = _split_standalone(workdir, segments)
+    if formatos_extras and not _benchmark_blind(workdir):
+        segments = _add_format_siblings(workdir, segments, discovery.get("source_duration"))
     _write_json(workdir / "segments.json", segments)
     _write_json(workdir / "selection.json", stats)
     _record_project_confidence(workdir)

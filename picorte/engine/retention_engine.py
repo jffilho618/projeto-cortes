@@ -284,9 +284,14 @@ def pair_short_and_long_clips(clips: list[dict[str, Any]]) -> list[dict[str, Any
                 if overlap > best_overlap:
                     best_overlap = overlap
                     best = lng
-            if best is not None and (best_overlap > 0.0 or longs):
+            # 3.7.3 (A11): só liga se o Longo contém o mesmo momento (≥ 50% do Short dentro dele).
+            # Antes ligava a QUALQUER longo (`best_overlap > 0.0 or longs`).
+            if best is not None and best_overlap >= PAIR_MIN_SHORT_FRACTION * max(1e-6, ce - cs):
                 clip["parent_long_clip_id"] = best.get("id")
     return out
+
+
+PAIR_MIN_SHORT_FRACTION = 0.5
 
 
 # ------------------------------------------------------------------ 3.7.1: Cold Open de verdade + Seamless Loop
