@@ -772,6 +772,7 @@ def write_meta(seg, out_path, source_meta=None):
         "parent_long_clip_id",
         "cold_open",
         "transformacoes",
+        "layout_timeline",
         "thumbnail_1280x720",
         "llm_mode_used",
         "archetype",
@@ -969,6 +970,47 @@ def _apply_green_seal(seg, cap_words, start, dur):
     return gs_plan["censored_words"]
 
 
+def _dynamic_games_chain(seg, render_src, local_start, dur, W, H, tw, th, face_box, vision_preset, workdir):
+    """3.7.2: filtro do layout dinâmico, ou None (layout fixo de hoje) com o motivo na saúde do projeto."""
+    from picorte.engine import health as _health
+    from picorte.engine.reframe_games import plan_dynamic_games
+    import cv2
+    plan = {"vf": None, "motivo": "sem facecam detectada", "timeline": [], "trocas": 0}
+    if face_box is not None:
+        frames, times = [], []
+        cap = cv2.VideoCapture(str(render_src))
+        try:
+            for k in range(max(2, int(dur))):
+                t = min(float(dur) - 0.05, k + 0.5)
+                cap.set(cv2.CAP_PROP_POS_MSEC, (local_start + t) * 1000.0)
+                ok, frame = cap.read()
+                if ok and frame is not None:
+                    scale = 480.0 / max(1, frame.shape[1])
+                    frames.append(cv2.resize(frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA))
+                    times.append(t)
+        finally:
+            cap.release()
+        try:
+            plan = plan_dynamic_games(frames, face_box=tuple(face_box), source_w=W, source_h=H, out_w=tw,
+                                      out_h=th, times=times, duration=dur, vision_preset=vision_preset)
+        except Exception as exc:
+            plan = {"vf": None, "motivo": f"erro: {type(exc).__name__}: {exc}", "timeline": [], "trocas": 0}
+    seg["layout_timeline"] = plan.get("timeline") or []
+    if plan.get("vf") and plan.get("trocas"):
+        seg.setdefault("transformacoes", []).append(
+            {"nome": "layout_dinamico", "trocas": plan["trocas"],
+             "layouts": [s["layout"] for s in plan["timeline"]]})
+    try:
+        if plan.get("vf"):
+            _health.record(workdir, "layout_dinamico", "ok",
+                           f"{plan['trocas']} troca(s): " + " → ".join(s["layout"] for s in plan["timeline"]))
+        else:
+            _health.record(workdir, "layout_dinamico", "na", str(plan.get("motivo")))
+    except Exception:
+        pass
+    return plan.get("vf")
+
+
 def _apply_cold_open(seg, out, start, preview=False, tightened=False):
     """3.7.1: cola o teaser do clímax no 0:00 do mp4 já renderizado (medido ou desligado, com motivo)."""
     plan = seg.get("cold_open")
@@ -1160,15 +1202,20 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
             focus_y_norm=0.5,
         )
         mode = "games facecam+gameplay"
+        # 3.7.2: layout dinâmico (História / Reação / Ação + Sniper Crop) medido no próprio corte
+        base_chain = _dynamic_games_chain(seg, render_src, local_start, dur, W, H, tw, th, face_box,
+                                          vision_preset, workdir) or rl["filter_chain"]
+        if base_chain is not rl["filter_chain"]:
+            mode = "games layout dinâmico"
 
         if badge_path is not None:
             vf = (
-                rl["filter_chain"]
+                base_chain
                 + f",setsar=1[games_bg];[games_bg][1:v]overlay=(W-w)/2:{badge_seam_top}"
                 + f":enable='between(t,0,{badge_end_sec:.3f})',subtitles=_caption.ass"
             )
         else:
-            vf = rl["filter_chain"] + ",setsar=1,subtitles=_caption.ass"
+            vf = base_chain + ",setsar=1,subtitles=_caption.ass"
     elif needs_track:
         track = smooth_track(detect_track(render_src, local_start, dur, W, workdir), W, cw)
         build_sendcmd(track, cw, out_dir / "_crop.cmd")
