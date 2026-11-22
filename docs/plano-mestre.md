@@ -63,7 +63,7 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
              Editor-Chefe v2 + golden_examples + game_dossiers + Keyframes Seletivos + Query-Driven + Deep Hunt)
    │
    ▼
-  Épico 4: Escudo Anti-Strike P1 (Status da fonte, Políticas por Publisher/GTA 6, Cirurgia de Música com Demucs seletivo, ⏳ PRÓXIMO
+  Épico 4: Escudo Anti-Strike P1 (Status da fonte, Políticas por Publisher/GTA 6, Cirurgia de Música com Demucs seletivo, ✅
            Selo Verde 15s, Detector Visual de React Perigoso, Score YPP, Deduplicação pHash)
    │
    ▼
@@ -72,7 +72,8 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
    │
    ▼
   Épico 6: Publicação Autônoma nas 5 Redes (Shorts + Related Video -> Longo, YT Longo, TikTok, Reels, FB + 1º Comentário Fixado)
-           + Monitor de Claims com Disjuntor Global + Painel Web "Estúdio do Criador" (`DESIGN.md`, 10 Arquétipos/3 Tiers, Query-Driven/Deep Hunt)
+           + Monitor de Claims com Disjuntor Global + Painel Web final "Estúdio do Criador" (só desktop; status real por função)
+           ⏩ 2026-11-21: o painel (6.3–6.8) vem ANTES de terminar o 3.6 (3.6.2+) e o 5; a 6.1 e a 6.2 ficam depois do E5
    │
    ▼
   Épico 7: O Cérebro que Aprende (Coletor de Snapshots 1h/24h/7d + Bandit Contextual por Arquétipo/Tier com Esquecimento +
@@ -277,7 +278,7 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 
 ---
 
-### ÉPICO 3.6 · Motor Calibrado e Medido (Leva 1 — seleção) ⏳ PRÓXIMO
+### ÉPICO 3.6 · Motor Calibrado e Medido (Leva 1 — seleção) ⏳ em andamento (3.6.1); 3.6.2+ depois do painel (6.3–6.8)
 - **Por quê:** o code review do Épico 4 levou o dono a pausar o Épico 5 (2026-11-20) e endurecer o motor de seleção. Auditoria → pesquisa 2a → brainstorming 2b → `bmad-correct-course` + `cortes-pilares` (SEGUE) em 2026-11-21: [`sprint-change-proposal-2026-11-21.md`](../_bmad-output/planning-artifacts/sprint-change-proposal-2026-11-21.md).
 - **Histórias:** 3.6.1 gabarito automático + baseline de Precision@K (primeiro, obrigatório) · 3.6.2 Sismógrafo 2.0 (atraso do chat ~30 s compensado, anti-ruído, tipo de reação) · 3.6.3 arquétipos `nobada_vacilo` e `mico_constrangimento` (10 → 12) · 3.6.4 bordas por frase, fim após o riso, Editor-Chefe sem viés de ordem · 3.6.5 silêncio digital, ouro com 2 sinais, nota de confiança, heatmap rebaixado · 3.6.6 pesos calibrados pelo gabarito (só com ≥ 20 VODs).
 - **Critério de saída:** Precision@K depois ≥ baseline em pelo menos 2 de 3 VODs; nenhum sinal sem registro de saúde; suíte verde; espelhos raiz ↔ `picorte/engine/` idênticos. Depois: code review dirigido do E3/E3.5/E3.6 (de preferência no Gemini) e correções.
@@ -308,21 +309,24 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
      - Varre as transcrições procurando menções aos nomes/apelidos dos outros streamers monitorados. Quando o Streamer A fala do Streamer B, busca nos clipes/VODs recentes do Streamer B menções de volta e sugere a montagem de um corte combinado.
      - **Consenso Cross-Streamer do Mesmo Dia:** quando **3 ou mais fontes monitoradas** reagem ao mesmo detalhe, cena ou assunto do jogo em 24h, eleva automaticamente a prioridade na fila e sugere compilação cross-streamer.
   5. **Perfis Adaptativos e Memória de Piadas Internas (`streamer_profiles.py`):**
-     - Mantém perfil vivo por fonte autorizada (`streamer_profiles` no PostgreSQL) com bordões, *running gags* (piadas recorrentes), referências da comunidade e baseline de voz/energia do streamer, injetado no Scout e no Editor-Chefe v2 (Épico 3.5) para reconhecer ironias e piadas internas com alta precisão.
+     - Mantém perfil vivo por fonte autorizada (`streamer_profiles` no banco local) com bordões, *running gags* (piadas recorrentes), referências da comunidade e baseline de voz/energia do streamer, injetado no Scout e no Editor-Chefe v2 (Épico 3.5) para reconhecer ironias e piadas internas com alta precisão.
 - **Critério de saída do Épico 5:** o Radar lista os jogos/streamers em alta agora, emite alerta para fontes não liberadas, o `live_monitor` captura e corta um segmento de teste de live/VOD e o `clip_hunter` importa e re-transforma um clipe curto dentro das regras P1/P2.
 
 ---
 
-### ÉPICO 6 · Publicação Autônoma nas 5 Redes + Disjuntor de Claims + Painel "Estúdio do Criador" (`DESIGN.md`)
-- **Objetivo:** conectar o Picorte às 5 redes via OAuth oficial (ou modo assistido enquanto alguma auditoria da T1 estiver pendente), ligar o monitor de claims com pausa automática global e vestir o painel web (PC e celular) com o nosso Design System aprovado na E3.
+### ÉPICO 6 · Publicação Autônoma nas 5 Redes + Disjuntor de Claims + Painel Final "Estúdio do Criador" ⏳ painel (6.3–6.8) é o próximo
+- **Objetivo:** conectar o Picorte às 5 redes via OAuth oficial (ou modo assistido enquanto alguma auditoria da T1 estiver pendente), ligar o monitor de claims com pausa automática global e construir o **painel web final só para desktop (Windows e Linux)**.
+  - Cada função aparece no status real decidido pelo backend (`ligado` / `parcial` / `travado`; travado nunca é falso).
+  - O visual sai da direção escolhida com o impeccable (Operate); o `DESIGN.md` atual não é restrição.
+  - Mudança aprovada em 2026-11-21: [`sprint-change-proposal-2026-11-21-painel.md`](../_bmad-output/planning-artifacts/sprint-change-proposal-2026-11-21-painel.md).
 - **De onde vem o código:**
   - Clientes OAuth de publicação e leitura de métricas: `referencias/FujiwaraChoki_supoclip/backend/src/social/` (`base.py`, `registry.py`, `youtube.py`, `tiktok.py`, `instagram.py`).
   - Agendador de horários e espaçamento (`SmartScheduler`): `referencias/fralapo_clippyme/src/clippyme/integrations/social_publisher.py` e `publishing/publish_service.py`.
-  - Tokens e referência visual: `DESIGN.md`, `design/tokens/tokens.css`, `design/brand/` e `design/mock/fila.html`.
-- **Skills de apoio:** **`impeccable`** (para construir/polir o frontend desktop e mobile seguindo `DESIGN.md` e `craft-floor.md`) e **`bmad-code-review`** (segurança OAuth e cifragem de tokens).
+  - Painel: o `dashboard.py` atual só como referência do que portar para o FastAPI (Range/206, token anti-CSRF, CSP, fila serial, `mark-posted`, `export-bundle`, `risk_seal`). O `DESIGN.md` e o `design/` antigos não são restrição.
+- **Skills de apoio:** **`impeccable`** (modo Operate: direção visual e polimento) + skills do Emil Kowalski (movimento) + Playwright (validar na tela) e **`bmad-code-review`** (segurança OAuth e cifragem de tokens).
 - **O que será feito:**
   1. **Cofre de Credenciais OAuth (`crypto_vault.py`):**
-     - Cifragem AES-GCM dos tokens OAuth e refresh tokens no PostgreSQL (nunca texto puro, nunca senha de rede — Regra #3).
+     - Cifragem AES-GCM dos tokens OAuth e refresh tokens no banco local (nunca texto puro, nunca senha de rede — Regra #3).
   2. **Publicadores Nativos das 5 Redes (`publishers/`):**
      - **YouTube Shorts** e **YouTube Longo (3–5 min):** via `youtube.py` transplantado do `supoclip`, adicionando: (a) upload da Thumbnail gerada no Épico 3 (`thumbnails.set`) para os vídeos longos, (b) vínculo automático do Short para o Vídeo Longo via metadado *Related Video*, (c) postagem automática do **1º Comentário Fixado "Isca de Debate"** (`commentThreads.insert`), e (d) controle rigoroso da cota diária de 10.000 unidades (1.600 por upload).
      - **TikTok:** via `tiktok.py` (Content Posting API).
@@ -332,14 +336,25 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
   3. **Monitor de Claims e Disjuntor Global Automático (`claim_breaker.py` — P1):**
      - Verifica periodicamente o status de direitos/restrições dos vídeos publicados nas APIs (ex.: `videos.list?part=status,contentDetails` no YouTube para detectar `rejectionReason`, `uploadStatus`, `licensedContent` / bloqueios de Content ID).
      - **Gatilho P1 imediato:** ao detectar o primeiro claim de bloqueio ou strike em qualquer corte de uma fonte, muda o status da fonte para `pausada_por_claim`, **cancela/pausa imediatamente todos os cortes agendados daquela fonte em todas as 5 redes** e dispara alerta máximo no painel e no agente.
-  4. **Painel Web "Estúdio do Criador" (Desktop + Mobile Nativo — `DESIGN.md`):**
-     - Evolui o `dashboard.py` / `design/mock/fila.html` com os tokens de `design/tokens/tokens.css` (`#FF4D1C` laranja-brasa, `#F59E0B` âmbar para "pede você", fontes `Antonio`, `Archivo` e `JetBrains Mono`).
-     - Telas enxutas para PC e para uso rápido de uma mão no celular:
-       - **Fila e Revisão Rápida:** player vertical/horizontal com o motivo da escolha (notas de chat/áudio/visão/texto, campanha ativa, Curva do Mais Repetido), **badges e filtros acessíveis (ícone + texto, WCAG AA) dos 10 arquétipos e 3 tiers (`Ouro / Forte / Experimental`)**, galeria de thumbnails (`_thumb.png`), botões de 1 toque para aprovar, trocar gancho, pausar fonte ou **"Salvar como Exemplo Ouro"** (`golden_examples.json`);
-       - **Caça Sob Demanda & Curadoria Cultural:** campo de **Busca por Pergunta Livre (*Query-Driven Clipping*)**, alternador **Modo Caça Profunda (*Deep Hunt*)** e editor simples para **`game_dossiers/`** e **piadas internas (`streamer_profiles`)**;
-       - **Fontes, Campanhas e Escudo P1:** gestão de permissões, políticas por jogo e estado do disjuntor;
-       - **Saúde das Redes e da GPU:** cotas restantes do dia, status das auditorias (T1) e fila da RTX 4060 Ti.
-- **Critério de saída do Épico 6:** publicação ponta a ponta (em modo privado/teste ou público conforme T1) funcionando com tokens cifrados, disjuntor de claim testado (simulando um claim e verificando a pausa imediata em todas as redes) e painel web aprovado no desktop e no celular.
+  4. **Painel Web Final "Estúdio do Criador" (só desktop — Windows e Linux):** histórias 6.3–6.8 do `epics.md`. Insumo: [mapa de capacidades](../_bmad-output/brainstorming/brainstorm-mapa-painel-estudio-do-criador-2026-11-21/brainstorm-intent.md).
+     - **Pré-passo (sem virar história):**
+       - `bmad-ux` (`EXPERIENCE.md`: páginas, fluxos e estados);
+       - direção visual com o impeccable (Operate): 2–3 direções com dados reais; o dono escolhe e o `DESIGN.md` novo substitui o atual.
+     - **6.3 · Base do Estúdio:** FastAPI + `GET /api/capacidades` (+ MCP `picorte_capacidades`) + taxonomia + SSE + lock entre processos + casca da SPA.
+     - **6.4 · Verdade no banco:** `source_id`, sinais medidos (`NULL` se não medido), veredito P1 persistido, reconciliação banco × disco, políticas no boot e fila única no MCP.
+     - **6.5 · Lives (página inicial):** abas Ao vivo / Em alta / Recentes, modal de corte com preview real e faixa "Na sua mesa".
+     - **6.6 · Fila e Revisão:** player + waveform, sinais medidos, P1 no cartão, 👍/👎 opcional, Exemplo Ouro e atalhos de teclado.
+     - **6.7 · Fontes, Escudo, Saúde, Benchmark e Configurações.**
+     - **6.8 · Publicação assistida e áreas travadas:** OAuth, claims automático, métricas, Bandit, dataset e Radar.
+     - **Condições dos pilares (C1–C4):**
+       - **C1:** só o cooldown manual pode ser limpo; liberar fonte exige base + evidência;
+       - **C2:** corte exportado sem link vira pendência;
+       - **C3:** 👍/👎 opcional;
+       - **C4:** Windows e Linux.
+- **Critério de saída do Épico 6:**
+  - publicação ponta a ponta (em modo privado/teste ou público conforme T1) com tokens cifrados;
+  - disjuntor de claim testado (simulando um claim e verificando a pausa imediata em todas as redes);
+  - painel aprovado pelo dono no desktop (Windows e Linux), com o teste de contrato "travado nunca é falso" passando e todas as áreas do mapa presentes, ligadas ou travadas com o que falta.
 
 ---
 
@@ -360,7 +375,7 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
   5. **Autocaptura de Dataset Rotulado e Treino Local na RTX 4060 Ti (`active_learning.py`):**
      - Sempre que um corte fecha o snapshot de 24h/7d como **campeão** (`>=2.5x` a mediana de recompensa do canal) ou **fracasso claro** (`<=0.35x` a mediana), salva automaticamente um pacote leve em `dataset_rotulado/` contendo os vetores extraídos daquele trecho (curva do chat, curva de áudio 1 Hz, vetores de visão 2 fps, features de texto, **`archetype`**, **`tier`** e rótulo real `y`), e **sugere automaticamente campeões para enriquecer o `golden_examples.json`**.
      - Inclui script `train_local_scorer.py` (XGBoost / MLP leve / LoRA em PyTorch na 4060 Ti) que treina, além do calibrador de pesos de `score_clips.py`, um **Pré-Classificador Local de Arquétipos** que atribui probabilidades por arquétipo antes do LLM.
-- **Critério de saída do Épico 7:** ciclo fechado rodando de ponta a ponta — snapshots sendo gravados no Postgres, Bandit atualizando prioridades com decaimento temporal, reciclador A/B gerando segunda versão para corte de alta retenção interna e `train_local_scorer.py` treinando sobre `dataset_rotulado/`.
+- **Critério de saída do Épico 7:** ciclo fechado rodando de ponta a ponta — snapshots sendo gravados no banco local, Bandit atualizando prioridades com decaimento temporal, reciclador A/B gerando segunda versão para corte de alta retenção interna e `train_local_scorer.py` treinando sobre `dataset_rotulado/`.
 
 ---
 
@@ -377,3 +392,4 @@ FASE C — CONSTRUÇÃO EVOLUTIVA (Liderada pelo `superpowers` — cada Épico e
 | 2026-11-19 | **Ampliação do Épico 4 (Escudo Anti-Strike, Anti-Desmonetização e Anti-Bloqueio P1 — 5 Histórias em Ondas 4A + 4B, `bmad-brainstorming` 100 ideias + `cortes-pilares`: SEGUE).** | Incorpora os 4 furos reais descobertos em produção (Copy Hygiene por rede contra bloqueio TikTok, Cadência/Cool-Down 48h anti-spam, Selo Verde também na Thumbnail e no Cold Open, e Quarentena Granular `RiskVerdict` por rede + exceção de UI in-game no `react_guard.py`), além de catálogo declarativo `assets/policies/publishers.json` e Disjuntor de Fonte `source_breaker.py`. Keepsake em `_bmad-output/brainstorming/brainstorm-epico-4-escudo-anti-strike-p1-2026-11-19/brainstorm.html`. |
 | 2026-11-20 | **Os 5 streamers do `assets/streamers/registry.json` (Alanzoka, Davy Jones, Coringa, Bistecone, BRKsEDU) são liberados por tolerância pública, sem permissão formal (decisão D1 do dono no code review do Épico 4).** | Nascem `liberada` com o novo campo `sources.permission_basis = tolerancia_publica` (permissão real passa a ser `explicita`), para o banco nunca registrar como autorizado o que é só tolerado. Rede de segurança: crédito ao canal original + aviso de remoção a pedido do streamer na descrição + disjuntor que pausa a fonte em todas as redes no 1º claim. Qualquer outro canal continua barrado antes do download; a identificação usa só a identidade do canal (nunca título ou apelido, para "Cortes do X"/"X reage" de terceiros não passarem); arquivo local exige dono declarado. Uma fonte pausada/banida nunca é promovida pelo cadastro automático. |
 | 2026-11-21 | **Épico 5 pausado; inclusão dos Épicos 3.6 (Motor Calibrado e Medido) e 3.7 (Formato que Retém) (`bmad-correct-course` + `cortes-pilares`: SEGUE).** | A auditoria do E3 achou partes "done" desligadas (corrigidas na etapa 1b); a pesquisa e a medição própria mostraram o chat ~30 s atrasado sem compensação, a falta dos arquétipos nobada e mico e a ausência de medição de acerto. Decisões do dono: treta fica em `rage_tilt` (entre streamers no 5.3); 2ª passada do Editor-Chefe só no top 15; formato na leva 2; gabarito = comentários com horário + heatmap; pesos aprendidos só com ≥ 20 VODs (3.6.6) e, depois, pelo Bandit (E7). |
+| 2026-11-21 | **Painel web final "Estúdio do Criador" antes do 3.6.2+ e do E5; a 6.3 vira as histórias 6.3–6.8 (`bmad-brainstorming` 110 ideias + `cortes-pilares`: AJUSTAR → SEGUE com C1–C4 + `bmad-correct-course`).** | O mapeamento achou o banco mentindo (notas por sinal 0.0, YPP 0, `source_id` nulo, 199 cortes órfãos) e o painel atual escrevendo em `project.json` ao abrir. Decisões do dono: só desktop (Windows e Linux), banco fica no SQLite (AD-2 revisado), fila única no MCP, página Lives (Ao vivo / Em alta / Recentes) como candidata a página inicial, `DESIGN.md` antigo não é restrição. Proposta: `_bmad-output/planning-artifacts/sprint-change-proposal-2026-11-21-painel.md`. |

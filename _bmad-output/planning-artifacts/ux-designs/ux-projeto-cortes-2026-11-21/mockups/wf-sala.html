@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wireframe — Sala do vídeo</title>
+<style>
+/* WIREFRAME DE BAIXA FIDELIDADE — só estrutura. Governado por EXPERIENCE.md: IA (Sala do vídeo = página), Component Patterns
+   (Painel de corte, ordem 1–9), State Patterns (Fonte barrada, Motor indisponível, Determinístico escolhido), Flow 2 e Flow 3.
+   Spine vence em conflito. Valores ilustrativos. */
+*{box-sizing:border-box}body{margin:0;font:14px/1.4 system-ui,sans-serif;color:#222;background:#f4f4f4}
+.app{display:grid;grid-template-columns:64px 1fr;min-height:100vh}
+.side{background:#ddd;border-right:2px solid #999}
+.status{padding:8px 16px;border-bottom:2px solid #999;background:#e6e6e6;font-size:12px}
+.wrap{padding:16px 24px;display:flex;flex-direction:column;gap:14px}
+.grid{display:grid;grid-template-columns:1fr 440px;gap:20px}
+.player{aspect-ratio:16/9;max-height:880px;background:repeating-linear-gradient(45deg,#ccc 0 10px,#d6d6d6 10px 20px);border:2px solid #888;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#555}
+.panel{border:2px solid #999;border-radius:12px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:10px}
+.sec{border:1.5px solid #bbb;border-radius:8px;padding:10px}.sec b.n{display:inline-block;width:20px}
+.ok{border-left:6px solid #777}
+.opt{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.opt span{border:1.5px solid #888;border-radius:6px;padding:4px 10px}
+.opt .a{background:#ccc;font-weight:700}.opt .dis{border-style:dashed;color:#888}
+.btn{display:block;text-align:center;border:2px solid #333;border-radius:10px;padding:12px;font-weight:800;background:#ccc}
+.prev{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:start}
+.phone{aspect-ratio:9/16;border:2px solid #666;border-radius:10px;display:grid;grid-template-rows:30% 70%;overflow:hidden}
+.phone div{display:flex;align-items:center;justify-content:center;font-size:10px;border-bottom:1px solid #999;background:#d9d9d9}
+.meta{font-size:12px;color:#555}.note{font-size:11px;background:#fffbe0;border:1px solid #c9b800;border-radius:6px;padding:6px 8px;color:#5a5000}
+.barred{border:2px dashed #666;border-radius:12px;background:#fafafa;padding:14px;display:flex;flex-direction:column;gap:8px}
+.dim{opacity:.4}
+h2,h3{margin:0}
+</style></head><body>
+<div class="app"><nav class="side"></nav><div>
+
+<div class="wrap">
+  <div class="meta">← Voltar para Lives · Sala do vídeo (página com endereço próprio)</div>
+  <div class="grid">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="player">PLAYER OFICIAL (embed YouTube / Twitch) · vídeo ou live</div>
+      <h2>GTA 6 É AGORA , O INICIO DA GAMEPLAY</h2>
+      <div class="meta">DAVY JONES · GTA 6 · 11:20:15 · há 2 dias · dados da API oficial, verificado há 14 min</div>
+      <div class="note">Live ao vivo: o mesmo layout; o painel mostra "Cortar ao vivo · 🔒 Chega na história 5.2" no lugar do botão.</div>
+    </div>
+    <aside class="panel" aria-label="Painel de corte">
+      <div class="sec ok"><b class="n">1</b><b>Portão P1</b> · respondido ao abrir<br>DAVY JONES · <b>liberado</b> (tolerância pública)</div>
+      <div class="sec"><b class="n">2</b><b>Formato</b><div class="opt"><span class="a">9:16 Short</span><span>16:9</span><span class="dis">🔒 Par Short↔Longo · 3.7.3</span></div></div>
+      <div class="sec"><b class="n">3</b><b>Enquadramento</b><div class="opt"><span class="a">Games · facecam no topo</span><span>Rosto único</span><span>Tela cheia</span></div></div>
+      <div class="sec"><b class="n">4</b><b>Motor de IA</b><div class="opt"><span class="a">Ollama · qwen3.5:9b</span><span>Claude</span><span class="dis">Gemini · sem cota desde 21/11</span><span>Dupla</span><span>Sem IA</span></div>
+        <div class="meta">Padrão = último motor que funcionou. "Sem IA" mostra aviso do que deixa de rodar.</div></div>
+      <div class="sec"><b class="n">5</b><b>Caça</b><div class="opt"><span>Rápida</span><span class="a">Profunda</span></div></div>
+      <div class="sec"><b class="n">6</b><b>Busca por pergunta</b> <span class="meta">(opcional, recolhida) ▸</span></div>
+      <div class="sec"><b class="n">7</b>☐ <b>LLM vê os frames</b> <span class="meta">— Claude Sonnet, ~US$ 0,26 por VOD (limite da assinatura)</span></div>
+      <div class="sec"><b class="n">8</b><b>Preview do enquadramento</b>
+        <div class="prev"><div class="phone"><div>facecam (recorte da imagem real)</div><div>jogo (recorte da imagem real)</div></div>
+        <div class="meta">Aplicado sobre a <b>thumb/frame real deste vídeo</b>. Nunca mock. Muda ao trocar formato/enquadramento.</div></div></div>
+      <span class="btn"><b class="n">9</b> Cortar este vídeo</span>
+      <div class="meta">Ao clicar: card na vitrine ganha "na fila"; Na sua mesa mostra "Na fila (1) · Baixando".</div>
+    </aside>
+  </div>
+
+  <h3>Estado alternativo · Fonte barrada (Flow 3)</h3>
+  <div class="grid">
+    <div class="player" style="max-height:420px">PLAYER (embed) · 🔴 POPPY PLAY TIME AO VIVO · BisteconeLive</div>
+    <aside class="barred">
+      <b>Portão P1 · Barrado</b>
+      <span>BisteconeLive não está cadastrado. Nada foi baixado.</span>
+      <span class="btn">Cadastrar fonte</span>
+      <span class="meta">Leva a Fontes com o canal preenchido. Liberar exige base da permissão + evidência (C1).</span>
+      <div class="dim"><div class="sec">2–9 desabilitados até a fonte ser liberada</div></div>
+    </aside>
+  </div>
+</div></div></div>
+</body></html>

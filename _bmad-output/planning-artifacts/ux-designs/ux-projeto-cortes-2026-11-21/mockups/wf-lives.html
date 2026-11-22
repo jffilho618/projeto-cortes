@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wireframe — Lives (home)</title>
+<style>
+/* WIREFRAME DE BAIXA FIDELIDADE — só estrutura. Sem cor, tipografia ou estilo final (isso é do DESIGN.md, etapa impeccable).
+   Governado por EXPERIENCE.md: IA (Lives, sidebar autorretrátil, estado do sistema no pé), Component Patterns (Card de vídeo, Destaque do topo,
+   Faixa "Na sua mesa", Estado do sistema no pé da sidebar), State Patterns (Ao vivo sem credencial, Em alta antes do E5), Contrato de Travas. Spine vence em conflito.
+   Números e datas abaixo são ilustrativos do wireframe. */
+*{box-sizing:border-box}body{margin:0;font:14px/1.4 system-ui,sans-serif;color:#222;background:#f4f4f4}
+.app{display:grid;grid-template-columns:64px 1fr;min-height:100vh}
+.side{background:#ddd;border-right:2px solid #999;display:flex;flex-direction:column;gap:6px;padding:10px 8px;position:relative}
+.ico{height:44px;border:1.5px solid #888;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;position:relative;background:#eee}
+.ico.on{background:#bbb;font-weight:700}.badge{position:absolute;top:-6px;right:-6px;background:#555;color:#fff;border-radius:10px;padding:0 6px;font-size:11px}
+.lock::after{content:"🔒";position:absolute;bottom:-4px;right:-4px;font-size:11px}
+.main{display:flex;flex-direction:column}
+.status{display:flex;gap:10px;align-items:center;padding:8px 16px;border-bottom:2px solid #999;background:#e6e6e6;font-size:12px}
+.pill{border:1.5px solid #888;border-radius:14px;padding:3px 10px;background:#f2f2f2}.pill.warn{border-style:dashed}
+.content{padding:16px 24px;display:flex;flex-direction:column;gap:16px}
+.mesa{display:flex;gap:10px;align-items:center;border:2px solid #999;border-radius:10px;padding:10px 14px;background:#fff}
+.chip{border:1.5px solid #666;border-radius:16px;padding:6px 12px;font-weight:600;background:#eee}
+.tabs{display:flex;gap:6px;border-bottom:2px solid #999}.tab{padding:8px 16px;border:2px solid #999;border-bottom:none;border-radius:8px 8px 0 0;background:#e8e8e8}
+.tab.act{background:#fff;font-weight:700}.tab.lk{color:#777}
+.hero{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;border:2px solid #999;border-radius:12px;background:#fff;padding:14px}
+.thumb{background:repeating-linear-gradient(45deg,#ccc 0 10px,#d6d6d6 10px 20px);border:1.5px solid #888;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#555;font-size:12px;position:relative}
+.hero .thumb{height:260px;aspect-ratio:auto}.hero{grid-template-columns:462px 1fr;align-items:center}
+.sys{margin-top:auto;border-top:2px solid #999;padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.sys .ico{height:34px;font-size:10px}.ring{width:26px;height:26px;border-radius:50%;border:4px solid #bbb;border-top-color:#333;border-right-color:#333}
+.btn{display:inline-block;border:2px solid #444;border-radius:8px;padding:8px 14px;font-weight:700;background:#ddd}
+.row{display:flex;flex-direction:column;gap:8px}.rowhead{display:flex;justify-content:space-between;align-items:center}
+.shelf{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.card{display:flex;flex-direction:column;gap:6px}.card .thumb{aspect-ratio:16/9}
+.tag{position:absolute;top:6px;left:6px;background:#555;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px}
+.dur{position:absolute;bottom:6px;right:6px;background:#333;color:#fff;font-size:10px;padding:1px 5px;border-radius:3px}
+.meta{font-size:12px;color:#555}.t{font-weight:600}
+.toggle{display:flex;gap:4px}.toggle span{border:1.5px solid #888;padding:3px 8px;border-radius:6px;font-size:12px}.toggle .a{background:#ccc;font-weight:700}
+.lockbox{border:2px dashed #888;border-radius:10px;padding:14px;background:#fafafa;color:#444}
+.note{font-size:11px;background:#fffbe0;border:1px solid #c9b800;border-radius:6px;padding:6px 8px;color:#5a5000}
+.overlay{width:340px;background:#eee;border:2px solid #555;border-radius:10px;padding:10px;box-shadow:4px 4px 0 #9996}
+.overlay div{padding:6px 8px;border-bottom:1px solid #ccc;display:flex;justify-content:space-between}
+h3{margin:0;font-size:15px}
+</style></head><body>
+<div class="app">
+  <nav class="side" aria-label="Sidebar recolhida">
+    <div class="ico on">Lives</div>
+    <div class="ico">Fila<span class="badge">1</span></div>
+    <div class="ico">Revisão<span class="badge">2</span></div>
+    <div class="ico">Public.<span class="badge">1</span></div>
+    <div class="ico">Fontes</div>
+    <div class="ico">Escudo</div>
+    <div class="ico">Saúde</div>
+    <div class="ico lock">Aprend.</div>
+    <div class="ico lock">Radar</div>
+    <div class="sys" aria-label="Estado do sistema">
+      <div class="ico" title="GPU · Renderizando 4/17"><span class="ring"></span></div>
+      <div class="ico">O ✓</div>
+      <div class="ico">G !</div>
+      <div class="ico">C ✓</div>
+      <div class="ico">● RT</div>
+    </div>
+    <div class="ico">Config.</div>
+  </nav>
+  <div class="main">
+    <div class="content">
+      <div class="mesa"><b>Na sua mesa</b>
+        <span class="chip">Revisar (2)</span><span class="chip">Links pendentes (1)</span><span class="chip">Na fila (1 · Renderizando)</span>
+        <span class="note" style="margin-left:auto">Chip zerado some. Tudo zerado → "Nada esperando você."</span></div>
+
+      <div class="tabs">
+        <div class="tab lk">🔒 Ao vivo</div><div class="tab lk">🔒 Em alta</div><div class="tab act">Recentes</div>
+        <span class="note" style="margin:0 0 6px auto">Aba aberta por padrão = 1ª ligada (backend). Hoje: Recentes.</span>
+      </div>
+
+      <div class="hero">
+        <div class="thumb">THUMB REAL (API oficial) · destaque<span class="dur">11:20:15</span></div>
+        <div class="row">
+          <span class="meta">Destaque · vídeo recente mais novo ainda não cortado</span>
+          <h3>GTA 6 É AGORA , O INICIO DA GAMEPLAY</h3>
+          <span class="meta">DAVY JONES · GTA 6 · há 2 dias</span>
+          <span class="meta">Portão P1: liberado (tolerância pública)</span>
+          <span><span class="btn">Abrir na Sala do vídeo →</span></span>
+          <span class="note">Se alguém cadastrado estiver ao vivo, o destaque vira a live. Sem live e sem vídeo: vazio desenhado.</span>
+        </div>
+      </div>
+
+      <div class="rowhead"><h3>Recentes dos streamers cadastrados</h3><div class="toggle"><span class="a">Por streamer</span><span>Tudo por data</span></div></div>
+
+      <div class="row"><div class="rowhead"><b>ALANZOKA</b><span class="meta">verificado há 14 min · ver mais →</span></div>
+        <div class="shelf">
+          <div class="card"><div class="thumb"><span class="tag">já cortado</span><span class="dur">2:05:36</span></div><span class="t">CAÇANDO TESOURO! - GRAND THEFT AUTO 6 - Parte 2</span><span class="meta">há 3 dias</span></div>
+          <div class="card"><div class="thumb"><span class="dur">1:48:02</span></div><span class="t">[título real da API]</span><span class="meta">há 1 dia</span></div>
+          <div class="card"><div class="thumb"><span class="dur">—</span></div><span class="t">[título real da API]</span><span class="meta">…</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+        </div></div>
+
+      <div class="row"><div class="rowhead"><b>DAVY JONES</b><span class="meta">verificado há 14 min · ver mais →</span></div>
+        <div class="shelf">
+          <div class="card"><div class="thumb"><span class="tag">na fila</span><span class="dur">4:10:36</span></div><span class="t">GTA 6 GAMEPLAY ATÉ EU NÃO AGUENTAR MAIS</span><span class="meta">há 4 dias</span></div>
+          <div class="card"><div class="thumb"><span class="dur">11:20:15</span></div><span class="t">GTA 6 É AGORA , O INICIO DA GAMEPLAY</span><span class="meta">há 2 dias</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+        </div></div>
+
+      <div class="row"><div class="rowhead"><b>BRKSEDU</b><span class="meta">verificado há 14 min</span></div>
+        <div class="shelf">
+          <div class="card"><div class="thumb"><span class="tag">falhou · trocar motor</span></div><span class="t">HOLLOW KNIGHT SILKSONG #12 - Completando Entregas!</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+          <div class="card"><div class="thumb"></div><span class="t">[título real da API]</span></div>
+        </div></div>
+
+      <h3>Sidebar · estado ABERTO (à esquerda, sobre o conteúdo)</h3>
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div class="overlay">
+          <div><b>Lives</b><span></span></div><div>Fila<span>1</span></div><div>Revisão<span>2</span></div><div>Publicação<span>1 link pendente</span></div>
+          <div>Fontes<span></span></div><div>Escudo<span></span></div><div>Saúde<span></span></div><div>Aprendizado<span>🔒 Travado</span></div><div>Radar<span>🔒 Travado</span></div>
+          <div style="border-top:2px solid #999;margin-top:4px"><b>Estado do sistema</b><span></span></div>
+          <div>GPU<span>Renderizando 4/17 · Davy Jones</span></div>
+          <div>Ollama<span>✓ Ligado</span></div>
+          <div>Gemini<span>! Indisponível desde 21/11</span></div>
+          <div>Claude<span>✓ Ligado</span></div>
+          <div>Tempo real<span>● conectado</span></div>
+          <div>Configurações<span>📌 fixar</span></div>
+        </div>
+        <div class="note">Abre ao passar o mouse com intenção (atraso curto) ou ao receber foco; recolhe ao sair. Passa POR CIMA do conteúdo, sem empurrar o layout. Alfinete ou tecla [ fixa aberta (lembrado no navegador). Movimento-assinatura candidato — definido na direção visual; com reduced-motion, sem animação.</div>
+      </div>
+
+      <h3>Estados das outras abas (mesmo lugar, mesmo tamanho)</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="lockbox">🔒 <b>Ao vivo · Travado (falta configurar)</b><br>Para ver quem está ao vivo, configure o app da Twitch (grátis).<br><br><span class="btn">Configurar</span><br><br><span class="meta">Sem números, sem thumbs de exemplo. Ao configurar, destrava sozinho com o marcador "Novo".</span></div>
+        <div class="lockbox">🔒 <b>Em alta · Travado</b><br>Chega na história 5.1: radar com a ordenação oficial das plataformas.<br><span class="meta">Depende de: credenciais de app (Twitch/YouTube) ← radar 5.1</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

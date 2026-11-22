@@ -3,11 +3,11 @@ name: 'Picorte — Arquitetura de Fusão e Pipeline Evolutivo'
 type: architecture-spine
 purpose: build-substrate
 altitude: initiative
-paradigm: 'Modular Monolith + Sequential GPU Pipes-and-Filters over PostgreSQL'
+paradigm: 'Modular Monolith + Sequential GPU Pipes-and-Filters over a local database (SQLite; PostgreSQL optional)'
 scope: 'Todo o sistema Picorte (SPEC-picorte: CAP-1 a CAP-18, Épicos 1 a 7)'
 status: final
 created: '2026-11-18'
-updated: '2026-11-18'
+updated: '2026-11-21'
 binds:
   - CAP-1
   - CAP-2
@@ -42,14 +42,14 @@ companions:
 
 ## Design Paradigm
 
-**Modular Monolith + Sequential GPU Pipes-and-Filters sobre PostgreSQL.**
+**Modular Monolith + Sequential GPU Pipes-and-Filters sobre banco local (SQLite; PostgreSQL opcional).**
 
-O sistema combina o chassi de processamento local de vídeo do `mehbul/chopify` (MIT) com módulos transplantados do `fralapo/clippyme` (MIT) e do `FujiwaraChoki/supoclip` (uso próprio local), orquestrados por um banco **PostgreSQL local** que detém 100% do estado de domínio (fontes, políticas de risco, campanhas pagas, vídeos, cortes, publicações, snapshots de métricas e Bandit). Todo trabalho pesado de GPU corre em estágios estritamente sequenciais (*Pipes-and-Filters* serializados por lock de VRAM), e toda regra de negócio é exposta simultaneamente para o painel web (**Estúdio do Criador**) e para os agentes (**Claude Code** e **Gemini Antigravity** via MCP/Skill).
+O sistema combina o chassi de processamento local de vídeo do `mehbul/chopify` (MIT) com módulos transplantados do `fralapo/clippyme` (MIT) e do `FujiwaraChoki/supoclip` (uso próprio local), orquestrados por um **banco local** (`picorte.db` em SQLite; PostgreSQL opcional — AD-2) que detém 100% do estado de domínio (fontes, políticas de risco, campanhas pagas, vídeos, cortes, publicações, snapshots de métricas e Bandit). Todo trabalho pesado de GPU corre em estágios estritamente sequenciais (*Pipes-and-Filters* serializados por lock de VRAM), e toda regra de negócio é exposta simultaneamente para o painel web (**Estúdio do Criador**) e para os agentes (**Claude Code** e **Gemini Antigravity** via MCP/Skill).
 
 ```mermaid
 flowchart TD
     subgraph UI_AGENTS["Camada de Controle (Paridade Total — AD-10)"]
-        WEB["Painel Web 'Estúdio do Criador' (Desktop + Celular)\nInclui Seletor de IA (Ollama / Claude / Gemini / Dupla)"]
+        WEB["Painel Web 'Estúdio do Criador' (só desktop: Windows + Linux)\nStatus por função via /api/capacidades · Seletor de IA"]
         MCP["Servidor MCP (picorte_mcp) + Skill picorte-operador\n(Claude Code & Gemini Antigravity)"]
     end
 
@@ -71,7 +71,7 @@ flowchart TD
     end
 
     subgraph DATA["Persistência Local"]
-        PG[("PostgreSQL 16\n(Estado Canônico — AD-2)")]
+        PG[("Banco local picorte.db\nSQLite · PostgreSQL opcional\n(Estado Canônico — AD-2)")]
         FS[("Storage Local de Mídia\nprojects/ · clips/ · dataset_rotulado/")]
     end
 
@@ -96,11 +96,14 @@ flowchart TD
 - **Prevents:** Reescrever do zero módulos de transcrição, legendas `.ass`, detecção de facecam, monitor de lives ou clientes OAuth que já existem testados em `referencias/`.
 - **Rule:** Todo épico deve partir dos arquivos-fonte mapeados em `_bmad-output/planning-artifacts/concorrentes.md` (`mehbul_chopify` para ingestão, áudio, visão base, legendas e render; `fralapo_clippyme` para `live_monitor.py` e clientes Twitch/Kick/YT; `FujiwaraChoki_supoclip` para `reaction_layout.py`, `social/` e `mcp/`; `claude-shorts` para `snap_boundaries.py`; `clipify` para `build_pan.py` e `audio_align.py`), adaptando-os à árvore `picorte/` e mantendo os testes existentes verdes.
 
-### AD-2 — PostgreSQL Único como Fonte da Verdade (Sem Multi-Tenant) [ADOPTED]
+### AD-2 — Banco Local Único como Fonte da Verdade (SQLite; PostgreSQL Opcional; Sem Multi-Tenant) [ADOPTED · revisado em 2026-11-21]
 
 - **Binds:** `CAP-1` a `CAP-18`
 - **Prevents:** Divergência de estado entre os arquivos `.json` do `chopify` e o estado de risco, fila, publicações e Bandit, ou introdução de complexidade inútil de SaaS (`workspace_id`).
-- **Rule:** O estado canônico de todas as entidades (`sources`, `publisher_policies`, `campaigns`, `videos`, `clips`, `publications`, `metrics_snapshots`, `claims_events`, `bandit_state`, `dataset_samples`) reside exclusivamente no PostgreSQL local (sem coluna `workspace_id`). Os arquivos `project.json`, `transcript.json`, `audio_features.npz` e `segments.json` em disco são cache de mídia subordinado ao ID do registro em `videos`/`clips`.
+- **Rule:** O estado canônico de todas as entidades (`sources`, `publisher_policies`, `campaigns`, `videos`, `clips`, `publications`, `metrics_snapshots`, `claims_events`, `bandit_state`, `dataset_samples`) reside exclusivamente no banco local `picorte.db`, sem coluna `workspace_id`:
+  - **SQLite é o padrão**, via `picorte/db/connection.py`;
+  - **PostgreSQL 16 é opcional**, ativado por `DATABASE_URL`;
+  - **decisão do dono em 2026-11-21:** o que roda é SQLite e fica assim. Os arquivos `project.json`, `transcript.json`, `audio_features.npz` e `segments.json` em disco são cache de mídia subordinado ao ID do registro em `videos`/`clips`.
 
 ### AD-3 — Execução Serializada de VRAM (8 GB / 4 GB) e Modo Madrugada [ADOPTED]
 
@@ -130,7 +133,7 @@ flowchart TD
 
 - **Binds:** `CAP-10`, `CAP-15`, `CAP-16`
 - **Prevents:** Continuar publicando cortes de uma fonte que acabou de sofrer claim de bloqueio ou strike em qualquer rede.
-- **Rule:** Ao detectar ou receber registro de um claim de bloqueio ou strike em qualquer publicação, `claim_breaker.trip(source_id, reason)` executa em uma única transação atômica no PostgreSQL a mudança de `sources.permission_status = 'pausada_por_claim'` e a suspensão (`status = 'pausada_emergencia'`) de todas as publicações pendentes daquela fonte em todas as 5 redes.
+- **Rule:** Ao detectar ou receber registro de um claim de bloqueio ou strike em qualquer publicação, `claim_breaker.trip(source_id, reason)` executa em uma única transação atômica no banco local a mudança de `sources.permission_status = 'pausada_por_claim'` e a suspensão (`status = 'pausada_emergencia'`) de todas as publicações pendentes daquela fonte em todas as 5 redes.
 
 ### AD-7 — Área Segura Unificada 9:16 e Exportação Pareada (Short Isca + Longo 3–5 min) [ADOPTED]
 
@@ -142,7 +145,7 @@ flowchart TD
 
 - **Binds:** `CAP-14`, `CAP-15`, `CAP-18`
 - **Prevents:** Ficar bloqueado esperando aprovação das auditorias das APIs (Trilha T1) ou perder o rastreamento de métricas quando o operador publica manualmente no início.
-- **Rule:** Todo corte com status `pronto_para_fila` gera um diretório de pacote pronto (`exports/<clip_id>/video.mp4`, `thumbnail.png`, `post_pack.json`) e um cartão de **Publicação Assistida** na UI com botões de 1 clique (*Copiar Título*, *Copiar Descrição + Crédito*, *Copiar 1º Comentário*, *Abrir Pasta do Vídeo*) e um campo *"Colar URL/ID publicado"* para que o coletor de métricas (`1h/24h/7d`) e o Bandit funcionem normalmente mesmo quando o upload foi feito à mão. Quando a conta OAuth da rede estiver ativa e auditada, o mesmo contrato dispara via API oficial.
+- **Rule:** Todo corte com status `pronto_para_fila` gera um diretório de pacote pronto (`exports/<clip_id>/video.mp4`, `thumbnail.png`, `post_pack.json`) e um cartão de **Publicação Assistida** na UI com botões de 1 clique (*Copiar Título*, *Copiar Descrição + Crédito*, *Copiar 1º Comentário*, *Abrir Pasta do Vídeo*) e um campo *"Colar URL/ID publicado"* para que o coletor de métricas (`1h/24h/7d`) e o Bandit funcionem normalmente mesmo quando o upload foi feito à mão. Quando a conta OAuth da rede estiver ativa e auditada, o mesmo contrato dispara via API oficial. Corte exportado sem URL/ID publicado fica como pendência visível no painel até o link ser colado (condição C2 dos pilares, 2026-11-21).
 
 ### AD-9 — Conformidade de Cache Externo (TTL 30 Dias) e Cofre OAuth [ADOPTED]
 
@@ -154,13 +157,18 @@ flowchart TD
 
 - **Binds:** `CAP-14`
 - **Prevents:** Regras de negócio duplicadas ou funcionalidades disponíveis apenas na tela web e inacessíveis pelo Claude/Gemini (ou vice-versa).
-- **Rule:** Nenhuma rota HTTP (`picorte/api/`) nem ferramenta MCP (`picorte/mcp/`) contém lógica de domínio ou SQL direto; ambas chamam exclusivamente as funções da camada `picorte/services/`.
+- **Rule:** Nenhuma rota HTTP (`picorte/api/`) nem ferramenta MCP (`picorte/mcp/`) contém lógica de domínio ou SQL direto; ambas chamam exclusivamente as funções da camada `picorte/services/`. Duas consequências (2026-11-21):
+  - o contrato de capacidades sai da mesma função para `GET /api/capacidades` e para a ferramenta MCP `picorte_capacidades`;
+  - enfileirar um vídeo pelo MCP chama a mesma função da fila do painel (**fila única**).
 
 ### AD-11 — Compatibilidade Nativa Multiplataforma: Linux Ubuntu (Notebook) + Windows 11 (PC de Mesa RTX) [ADOPTED]
 
 - **Binds:** `all`
 - **Prevents:** Código desenvolvido no notebook Ubuntu quebrar ao rodar no PC de mesa Windows 11 (por caminhos POSIX hardcoded, `/tmp`, `.venv/bin`, `fcntl` ou sintaxe de filtro `subtitles=` do `FFmpeg` com `C:\`).
 - **Rule:** Todo código deve usar `pathlib.Path`, `tempfile`, `picorte.config.get_venv_bin_dir()` (`.venv/Scripts` no Windows, `.venv/bin` no Linux), `picorte.config.resolve_cli_binary()` (resolvendo `.exe`/`.cmd` no Windows e `C:\Windows\System32\nvidia-smi.exe`), `filelock` (nunca `fcntl`/`posix`) para locks de processo/VRAM e execução do `ffmpeg` com `cwd` no diretório de trabalho ou caminhos relativos para que filtros `subtitles=_caption.ass` e `sendcmd=f=_crop.cmd` nunca sofram erro de parsing com `C:\` no Windows.
+- **Acréscimos (2026-11-21):**
+  - lock de projeto entre processos (`filelock`): o painel só marca como interrompido um job cujo lock está livre, para não pisar num job de outra sessão ou da CLI;
+  - o painel "só PC" vale para Windows **e** Linux, sem recurso exclusivo de um sistema.
 
 ### AD-12 — Presets Gráficos de Visão Computacional (`auto` / `low` / `high`) Selecionáveis na UI [ADOPTED]
 
@@ -176,8 +184,9 @@ flowchart TD
 | Concern | Convention |
 | --- | --- |
 | **Idioma (UI, logs de usuário, docs, código)** | Interface, mensagens de erro ao usuário, prompts de copywriting e documentação sempre em **português do Brasil**. Identificadores de código, tabelas e colunas SQL em `snake_case` (inglês técnico consistente com a base do `chopify`). |
-| **Datas e Fuso Horário** | Timestamps gravados no PostgreSQL sempre em `TIMESTAMPTZ` (UTC) e exibidos na UI e no MCP no fuso `America/Sao_Paulo` (Brasília). |
+| **Datas e Fuso Horário** | Timestamps gravados sempre em UTC (ISO 8601 no SQLite; `TIMESTAMPTZ` quando for PostgreSQL) e exibidos na UI e no MCP no fuso `America/Sao_Paulo` (Brasília). |
 | **Sinal só vale se medido (2026-11-21)** | Todo sinal do motor de seleção registra `ok`/`na`/`failed` em `<projeto>/engine_health.json` (`picorte/engine/health.py`) e só chega ao Editor-Chefe quando foi medido. Toda mudança no motor de seleção exige Precision@K antes e depois (`picorte/engine/benchmark.py`, Épico 3.6). |
+| **Travado nunca é falso (2026-11-21)** | O status de cada função (`ligado` / `parcial` / `travado` + `tipo_motivo` + o que falta) vem de `GET /api/capacidades`, calculado em `picorte/services/`; o front nunca decide. Regras: nenhum endpoint devolve número para função travada; sinal não medido é `NULL`, nunca `0`; abrir ou ler o painel nunca escreve estado. Um teste de contrato garante tudo isso. Origem: pilar A5 e [`sprint-change-proposal-2026-11-21-painel.md`](sprint-change-proposal-2026-11-21-painel.md). |
 | **Configuração e Segredos** | Variáveis em `.env` (lidas por `picorte/config.py`), nunca commitadas. Segredos OAuth cifrados no banco (`crypto_vault.py`). |
 
 ## Stack
@@ -185,7 +194,7 @@ flowchart TD
 | Name | Version |
 | --- | --- |
 | Python | `3.12.x` |
-| PostgreSQL | `16.x` |
+| SQLite (padrão, stdlib) · PostgreSQL (opcional) | `3.x` · `16.x` |
 | FFmpeg (com `libass` + `h264_nvenc`) | `6.1+` |
 | `faster-whisper` | `1.1.x` |
 | `opencv-python` (inclui `FaceDetectorYN` / YuNet) | `4.10.x` |
@@ -194,10 +203,18 @@ flowchart TD
 | `rembg` (com `onnxruntime-gpu`) | `2.0.x` |
 | `yt-dlp` | `2026.10+` |
 | `streamlink` | `7.0+` |
-| `fastapi` + `uvicorn` | `0.121.x` / `0.32.x` |
-| `psycopg` (v3 async/sync) | `3.2.x` |
+| `fastapi` (SSE nativo) + `uvicorn` | `0.165.x` / versão compatível |
+| `psycopg` (v3 async/sync) — só com PostgreSQL | `3.2.x` (opcional) |
 | `numpy` | `1.26.x+` |
 | `pytest` | `8.4.x` |
+| **Front do painel** (pesquisa [`technical-stack-painel-estudio-do-criador-2026-11-21`](research/technical-stack-painel-estudio-do-criador-2026-11-21/research.md)) | |
+| Node (build) | `22.x` |
+| React · Vite · Tailwind | `19.3` · `8.3` · `4.3` |
+| Base UI (via shadcn CLI v4 + eject) | `1.9` |
+| Motion · GSAP (isolado; licença grátis da Webflow) | `14` · `3.15` |
+| Video.js (`@videojs/react`) · wavesurfer.js | `10.6` · `8.1` |
+| Recharts · ECharts | `3.11` · `6.1` |
+| TanStack Query · Zustand | `5` · `5` |
 
 ## Structural Seed
 
@@ -208,8 +225,8 @@ projeto-cortes/
 ├── picorte/
 │   ├── config.py                  # Configurações, caminhos e detecção de GPU/VRAM
 │   ├── db/
-│   │   ├── schema.sql             # DDL completo do PostgreSQL (10 tabelas)
-│   │   ├── connection.py          # Pool psycopg3 e migrações
+│   │   ├── schema.sql             # DDL das tabelas canônicas (SQLite; compatível com PostgreSQL)
+│   │   ├── connection.py          # SQLite padrão; psycopg3 se DATABASE_URL for PostgreSQL; migrações
 │   │   └── repositories/          # Acesso a dados (sources, clips, publications, bandit)
 │   ├── ai/
 │   │   └── llm_router.py          # Roteador 4 modos: Ollama | Claude | Gemini | Dupla (Filtro+Acompanhamento)
@@ -255,12 +272,12 @@ projeto-cortes/
 │   │   └── train_local_scorer.py  # Treino local do classificador multimodal na RTX 4060 Ti
 │   ├── services/                  # Fachada unificada de domínio consumida pela Web e pelo MCP
 │   ├── api/                       # Rotas FastAPI + servidor do painel Estúdio do Criador
-│   ├── web/                       # Frontend 'Estúdio do Criador' (DESIGN.md, tokens.css, PC + Celular)
+│   ├── web/                       # Frontend 'Estúdio do Criador' (SPA React, só desktop; visual da direção escolhida com o impeccable)
 │   └── mcp/                       # Servidor MCP (picorte_mcp) para Claude Code e Gemini Antigravity
 └── tests/                         # Suíte pytest (unitários, integração e portões críticos P0/P1)
 ```
 
-### 2. Modelo de Dados Canônico (PostgreSQL — ERD)
+### 2. Modelo de Dados Canônico (Banco local — SQLite, compatível com PostgreSQL — ERD)
 
 ```mermaid
 erDiagram
@@ -415,5 +432,5 @@ erDiagram
 
 ## Deferred
 
-- **Aluguel de GPU externa em nuvem (RunPod / Vast.ai):** adiado até que o volume diário de vídeos ultrapasse a capacidade da RTX 4060 Ti local somada ao Modo Madrugada. Como o `vram_runner.py` consome jobs da tabela `videos` no PostgreSQL, apontar um worker remoto no futuro não exigirá mudança na arquitetura.
+- **Aluguel de GPU externa em nuvem (RunPod / Vast.ai):** adiado até que o volume diário de vídeos ultrapasse a capacidade da RTX 4060 Ti local somada ao Modo Madrugada. Como o `vram_runner.py` consome jobs da tabela `videos` do banco local, apontar um worker remoto no futuro não exigirá mudança na arquitetura.
 - **Arquitetura de pesos finos do classificador próprio (`train_local_scorer.py` — XGBoost vs MLP PyTorch):** adiado para o Épico 7, quando a pasta `dataset_rotulado/` tiver acumulado os primeiros exemplos reais dos canais.
