@@ -96,6 +96,12 @@ class StudioService:
 
         return audit_clip_risk(self.db, **kwargs)
 
+    def risk_sync_publisher_policies(self) -> None:
+        """B6: sincroniza as políticas de publisher no banco. Porta única para o MCP e o painel (AD-10)."""
+        from picorte.risk_shield.policy_gate import sync_publisher_policies
+
+        sync_publisher_policies(self.db)
+
     def risk_game_policy(self, game_slug: str) -> dict[str, Any]:
         from picorte.risk_shield.policy_gate import sync_publisher_policies
 

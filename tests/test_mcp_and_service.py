@@ -13,6 +13,17 @@ class TestMcpAndService(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
+    def test_servico_sincroniza_politicas_sem_o_mcp_importar_o_escudo(self):
+        """AD-10: o boot do MCP sincroniza as políticas (B6) pelo StudioService, nunca pelo risk_shield direto."""
+        from picorte.db.connection import Database
+        from picorte.services.studio_service import StudioService
+
+        db = Database(f"sqlite:///{self.db_path}")
+        db.init_schema()
+        self.assertEqual(db.fetch_one("SELECT COUNT(*) AS n FROM publisher_policies")["n"], 0)
+        StudioService(db).risk_sync_publisher_policies()
+        self.assertGreater(db.fetch_one("SELECT COUNT(*) AS n FROM publisher_policies")["n"], 0)
+
     def test_studio_service_and_mcp_parity(self):
         from picorte.db.connection import Database
         from picorte.mcp.server import PicorteMCPServer
