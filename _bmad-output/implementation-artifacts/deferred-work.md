@@ -108,3 +108,15 @@ Fonte: `bmad-code-review` sem spec, 3 revisores (Blind Hunter, Edge Case Hunter,
 
 - **W53 · Prompt inteiro vai como argumento de linha de comando** (`llm_router._run_provider`, `[cli, "-p", prompt_full, …]`). Neste PC não quebra (`claude.EXE` e `agy.exe` são executáveis nativos), mas se o `agy` faltar o código cai no `gemini.CMD`: testado em 2026-11-23 com um `.cmd` inofensivo — acima de 8.191 caracteres o Windows recusa ("Linha de comando muito longa"); um lote do Editor tem ~28 mil caracteres. Quebra de AD-11 latente. Conserto: mandar o prompt por stdin, depois de confirmar que `claude -p`, `agy` e `gemini` aceitam stdin.
 - **W54 · Achados do Scout sem teto de duração e com nota fixa** (`llm_scout.scout_full_vod`): um par `S0001..S0900` vira um corte de dezenas de minutos (o `max_len` não é aplicado e o `duration_bucket` só é gravado), e todo achado recebe `overall` 8,4 / `raw_score` 8,2, perdendo a ordem que a IA deu. Não verificado o quanto isso chega ao render (ver W39: muitos cortes passam de 60 s). Medir nos `segments.json` reais quantos cortes do Scout passam do `max_len` antes de consertar.
+
+## Deferred from: code review do motor — fatia (c) render e formato (2026-11-23)
+
+- **W55 · Lista da Camada 3 do Selo Verde é só em português** (`green_seal_15s.TIER_3_HARD_BLOCK_TERMS`: suicidio, se matar, nazismo, estupro, pedofilia) — "rape", "suicide", "nazi" em inglês nunca bloqueiam. Decisão de política (P1): quais termos e idiomas entram.
+- **W56 · Status `human_review` do Selo Verde passa direto no render** (só `hard_block` aborta). Conferir na fatia (d) se o veredito P1 do `projects` (`attach_risk_verdict`) segura esse status; junto com a CLI do `render_clips`, que exporta sem portão P1.
+- **W57 · Prévia do layout dinâmico** usa alturas absolutas (640/960, PiP 360 px): a 480 px História e Reação ficam iguais e o PiP cobre 75% da largura.
+- **W58 · Sem facecam, o layout inventa uma** (`reaction_layout.measure_reaction_inset` recorta 24%×28% do canto do jogo como "webcam"). Falta um layout "sem facecam" ou ao menos registro na saúde.
+- **W59 · YOLO do Sniper Crop carrega fora do `VRAMRunner`** e fica na VRAM pelo resto do processo (`lru_cache`), contra a fila serial de GPU.
+- **W60 · Fontes só do Windows** (Impact, Arial Black, Segoe UI Emoji, Arial no cartão de ponte): no Linux o libass troca a fonte e o vídeo sai diferente (AD-11). Empacotar as fontes e passar `fontsdir=`.
+- **W61 · `libx264 -preset veryfast` fixo e até 3 reencodes seguidos** (render → freeze → Cold Open), sem NVENC no PC de mesa.
+- **W62 · Enchimento do `--tighten` só em inglês** ("um/uh/you know"); faltam "tipo", "né", "hum", "ahn", "sabe".
+- **W63 · Composto quebra se um trecho não tiver áudio** (`concat_parts` usa `[i:a]` sem `anullsrc`); e o `_dynamic_games_chain` engole erro da própria gravação de saúde (`except: pass`).
