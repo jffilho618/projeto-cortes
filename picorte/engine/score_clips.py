@@ -2084,6 +2084,17 @@ def _add_composites(workdir, segments):
     return list(segments) + arcs + comps
 
 
+def _label_formats(segments):
+    """Todo corte diz o formato (code review 2026-11-23): antes só os irmãos (tiktok_60, longo_16x9) e os compostos
+    tinham `formato`, e o leitor assumia "short" — um corte de 291 s aparecia como Short."""
+    from picorte.engine.formats import SHORT_MAX_S
+    for seg in segments or []:
+        if not seg.get("formato"):
+            dur = float(seg.get("end") or 0.0) - float(seg.get("start") or 0.0)
+            seg["formato"] = "short" if dur <= SHORT_MAX_S else "vertical_longo"
+    return segments
+
+
 def _split_standalone(workdir, segments):
     """3.6.5 (AC4): corte com standalone < 5 sai dos Shorts e vai para longo_compilacao.json."""
     from picorte.engine.confidence import split_standalone
@@ -2592,7 +2603,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         _health.record(workdir, "editor", "ok",
                        f"modo {used_mode}; ordem semente {routed.get('ordem_semente')}; "
                        f"{routed.get('confianca_baixa', 0)} finalistas com confiança baixa (notas discordantes "
-                       f"entre 2 ordens){pass2_txt}")
+                       f"entre 2 ordens){pass2_txt}; {router.models_summary()}")
         if adjusted:
             by_key = {_candidate_key(item): item for item in adjusted}
             updated_cands = [
@@ -2647,6 +2658,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
     if formatos_extras and not _benchmark_blind(workdir):
         segments = _add_format_siblings(workdir, segments, discovery.get("source_duration"))
         segments = _add_composites(workdir, segments)
+    _label_formats(segments)
     _write_json(workdir / "segments.json", segments)
     _write_json(workdir / "selection.json", stats)
     _record_project_confidence(workdir)
