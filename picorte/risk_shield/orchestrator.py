@@ -34,6 +34,19 @@ def _worst_status(statuses: list[str]) -> str:
     return "hard_block" if best == "block" else best
 
 
+def motivos_da_rede(plat: str, copy_res: dict[str, Any], cad_res: dict[str, Any], ypp_res: dict[str, Any]) -> list[str]:
+    """O que é próprio desta rede (os portões gerais têm motivo próprio): cópia, cadência e originalidade do TikTok."""
+    motivos = []
+    if copy_res.get("status") == "human_review":
+        for w in copy_res.get("ad_friendly_warnings") or []:
+            motivos.append(f'cópia com termo que tira anúncio: "{w.get("term")}" (sugestão: {w.get("suggestion")})')
+    if cad_res.get("status") == "block":
+        motivos.append(str(cad_res.get("reason") or "cadência: postar agora nesta rede passa do limite"))
+    if plat == "tiktok" and ypp_res.get("tiktok_status") == "human_review":
+        motivos.append(f"originalidade TikTok {ypp_res.get('tiktok_originality_score')} abaixo do mínimo")
+    return motivos
+
+
 def _source_of_clip(db: Database, clip_id: str | None) -> str | None:
     if not clip_id:
         return None
@@ -123,6 +136,7 @@ def audit_clip_risk(
     gs_vis = audit_visual_green_seal_15s(sample_frames, fps_sampled=fps_sampled)
     gates["green_seal_15s"] = {
         "status": _worst_status([gs_audio["status"], gs_vis["status"]]),
+        "reasons": list(gs_audio.get("reasons") or []) + list(gs_vis.get("reasons") or []),
         "audio": gs_audio,
         "visual": gs_vis,
     }
@@ -198,6 +212,7 @@ def audit_clip_risk(
             plat_statuses.append("human_review")  # bloqueia postagem imediata, mas permite agendar
         per_platform[plat] = {
             "status": _worst_status(plat_statuses),
+            "reasons": motivos_da_rede(plat, copy_res, cad_res, ypp_res),
             "copy_audit": copy_res,
             "cadence": cad_res,
         }

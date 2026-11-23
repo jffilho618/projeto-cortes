@@ -111,6 +111,36 @@ def _is_tier1_profanity(word: str) -> bool:
     return False
 
 
+def _segundos(x: float) -> str:
+    return f"{x:.0f}"  # segundo inteiro desde o início do corte: o que o operador procura no player
+
+
+def _lista_segundos(secs: list[float]) -> str:
+    itens = [f"{_segundos(x)} s" for x in secs]
+    return itens[0] if len(itens) == 1 else ", ".join(itens[:-1]) + " e " + itens[-1]
+
+
+def _norm_palavra(texto: str) -> str:
+    base = unicodedata.normalize("NFKD", str(texto)).encode("ascii", "ignore").decode("ascii").lower()
+    return re.sub(r"[^a-z0-9]", "", base)
+
+
+def _segundo_do_termo(term: str, words: list[dict[str, Any]], c_start: float, c_end: float) -> float | None:
+    """Onde o termo (1 ou mais palavras) começa, em segundos desde o início do corte; None se não achar."""
+    toks = [t for t in (_norm_palavra(x) for x in term.split()) if t]
+    no_corte = [w for w in words if float(w.get("end", 0)) > c_start and float(w.get("start", 0)) < c_end]
+    norms = [_norm_palavra(w.get("word") or "") for w in no_corte]
+    for i in range(len(norms) - len(toks) + 1):
+        if toks and norms[i:i + len(toks)] == toks:
+            return max(0.0, float(no_corte[i].get("start", 0.0)) - c_start)
+    return None
+
+
+def _motivo_termo(prefixo: str, term: str, words: list[dict[str, Any]], c_start: float, c_end: float) -> str:
+    onde = _segundo_do_termo(term, words, c_start, c_end)
+    return f'{prefixo} "{term}" aos {_segundos(onde)} s do corte' if onde is not None else f'{prefixo} "{term}" no corte'
+
+
 def plan_green_seal_audio_and_captions(
     words: list[dict[str, Any]],
     *,
@@ -197,9 +227,17 @@ def plan_green_seal_audio_and_captions(
     else:
         status = "pass"
 
+    # O que achou e onde (pedido do dono, 2026-11-23): a Revisão mostra este texto em vez de "motivo não registrado".
+    reasons = [_motivo_termo("termo grave", t, words, c_start, c_end) for t in hard_block_hits]
+    reasons += [_motivo_termo("termo que pede revisão humana", t, words, c_start, min(c_end, c_start + window_s))
+                for t in tier2_hits]
+    if density_shift:
+        reasons.append(f"{first_8s_hits} palavrões nos primeiros 8 s do corte")
+
     return {
         "gate": "green_seal_15s_audio",
         "status": status,
+        "reasons": reasons,
         "censored_words": censored_words,
         "bleep_intervals": bleep_intervals,
         "cold_open_hits": cold_open_hits,
@@ -342,12 +380,20 @@ def audit_visual_green_seal_15s(
             flagged.append({"sec": round(idx / max(0.1, fps_sampled), 2), **res})
 
     if not flagged:
-        return {"gate": "green_seal_15s_visual", "status": "pass", "flagged_frames": [], "shift_start_recommended": False}
+        return {"gate": "green_seal_15s_visual", "status": "pass", "flagged_frames": [], "shift_start_recommended": False,
+                "reasons": []}
 
     early_only = all(f["sec"] <= 4.0 for f in flagged)
+    nomes = {"gore": "sangue (gore)", "nudity_exposure": "exposição de pele"}
+    reasons = []
+    for flag, nome in nomes.items():
+        secs = [float(f["sec"]) for f in flagged if flag in (f.get("flags") or [])]
+        if secs:
+            reasons.append(f"{nome} na tela aos {_lista_segundos(secs)} do corte")
     return {
         "gate": "green_seal_15s_visual",
         "status": "human_review",
+        "reasons": reasons,
         "flagged_frames": flagged,
         "shift_start_recommended": early_only,
     }

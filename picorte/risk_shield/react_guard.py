@@ -105,22 +105,37 @@ def detect_dangerous_react(
     needed_frames = max(1, math.ceil(float(min_persist_seconds) * fps - 1e-9))
     max_run = 0
     cur_run = 0
+    run_start = 0
+    max_start = 0
     matched_signals: set[str] = set()
 
-    for fr in frames:
+    for idx, fr in enumerate(frames):
         res = _score_single_frame_browser_react(fr, exclude_box=exclude_box)
         if res["score"] >= threshold:
+            if cur_run == 0:
+                run_start = idx
             cur_run += 1
-            max_run = max(max_run, cur_run)
+            if cur_run > max_run:
+                max_run, max_start = cur_run, run_start
             matched_signals.update(res["signals"])
         else:
             cur_run = 0
 
     max_persist = max_run / fps
     is_dangerous = max_run >= needed_frames
+    reasons: list[str] = []
+    if is_dangerous:  # o que achou e onde (pedido do dono, 2026-11-23)
+        ini, fim = max_start / fps, (max_start + max_run) / fps
+        num = lambda x: f"{x:.0f}" if abs(x - round(x)) < 0.05 else f"{x:.1f}"  # noqa: E731
+        texto = (f"vídeo ou navegador de terceiro na tela dos {num(ini)} s aos {num(fim)} s do corte "
+                 f"({num(max_persist)} s seguidos; sinais: {', '.join(sorted(matched_signals)) or 'nenhum'})")
+        if tx_hits:
+            texto += f"; na fala: {', '.join(tx_hits)}"
+        reasons.append(texto)
     return {
         "gate": "react_guard",
         "status": "hard_block" if is_dangerous else "pass",
+        "reasons": reasons,
         "is_dangerous_react": is_dangerous,
         "max_persist_seconds": round(max_persist, 2),
         "signals": sorted(matched_signals),

@@ -163,8 +163,9 @@ def _peso(status: Any) -> int:
 def motivos_do_veredito(veredito: dict[str, Any]) -> dict[str, Any]:
     """Por que o P1 barrou, só com o texto gravado no risk_verdict (nada inventado).
 
-    Os portões valem para todas as redes; por rede o `_compact` guarda só o status, então uma rede pior que os
-    portões tem causa própria não gravada. A lista por rede só aparece quando as redes diferem.
+    Os portões valem para todas as redes; o motivo próprio de cada rede vem de `per_platform_reasons` (vereditos
+    antigos não têm: rede pior que os portões fica "motivo não registrado"). A lista por rede só aparece quando
+    as redes diferem.
     """
     if veredito.get("overall_status") == "audit_error":
         return {"motivos": [{"portao": "Auditoria", "texto": str(veredito.get("error") or _SEM_MOTIVO[2])}],
@@ -181,11 +182,15 @@ def motivos_do_veredito(veredito: dict[str, Any]) -> dict[str, Any]:
     redes = veredito.get("per_platform") or {}
     if not redes:
         return {"motivos": gerais, "motivos_por_rede": {}}
+    gravados = veredito.get("per_platform_reasons") or {}  # vereditos antigos não têm: "motivo não registrado"
     por_rede = {}
     for rede, status in redes.items():
         peso = _peso(status)
         itens = gerais if peso else []
-        if peso > pior:
+        proprios = [{"portao": "Esta rede", "texto": str(t)} for t in (gravados.get(rede) or [])]
+        if proprios:
+            itens = itens + proprios
+        elif peso > pior:
             itens = itens + [{"portao": "Esta rede", "texto": _SEM_MOTIVO[peso]}]
         por_rede[rede] = itens
     listas = list(por_rede.values())

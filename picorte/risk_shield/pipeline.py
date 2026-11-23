@@ -112,6 +112,9 @@ def _compact(verdict: dict[str, Any]) -> dict[str, Any]:
     return {
         "overall_status": verdict["overall_status"],
         "per_platform": {k: v["status"] for k, v in (verdict.get("per_platform") or {}).items()},
+        # o motivo próprio de cada rede (cópia, cadência, originalidade); `per_platform` segue só com o status
+        "per_platform_reasons": {k: [str(r) for r in (v.get("reasons") or [])]
+                                 for k, v in (verdict.get("per_platform") or {}).items()},
         "gates": gates,
         "ypp_score": verdict.get("ypp_score"),
         "tiktok_originality_score": verdict.get("tiktok_originality_score"),
