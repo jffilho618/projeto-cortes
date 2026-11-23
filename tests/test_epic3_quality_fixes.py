@@ -66,23 +66,29 @@ def test_llm_router_allows_strong_boost_and_covers_full_timeline():
     ]
 
     seen_starts = []
+    alvo = {}
 
     def fake_runner(provider, model, system_prompt, user_prompt):
         rows = json.loads(user_prompt)
         seen_starts.extend(r["start"] for r in rows)
-        # Eleva um candidato com +3.0 (5.5 -> 8.5)
-        target_idx = len(rows) - 1
-        return json.dumps([
-            {
-                "index": target_idx,
-                "adjustment": 3.0,
-                "reason": "Corte de ouro no final do vídeo",
-                "proposed_title": "DESCOBERTA NO FINAL!",
-                "context_banner_2s": "Olha o que ele achou em casa",
-                "thumbnail_words": "COBRA EM CASA!",
-                "pinned_comment_debate": "Vocês esperavam por isso?",
-            }
-        ])
+        # Eleva um candidato do FIM do vídeo com +3.0 (5.5 -> 8.5), sempre o mesmo (pelo texto) nas 2 passadas.
+        # Code review 2026-11-23: o lote volta inteiro (os outros com ajuste 0) — lote parcial agora para (Decisão B).
+        alvo.setdefault("text", max(rows, key=lambda r: r["start"])["text"])
+        out = []
+        for r in rows:
+            if r["text"] == alvo["text"]:
+                out.append({
+                    "index": r["index"],
+                    "adjustment": 3.0,
+                    "reason": "Corte de ouro no final do vídeo",
+                    "proposed_title": "DESCOBERTA NO FINAL!",
+                    "context_banner_2s": "Olha o que ele achou em casa",
+                    "thumbnail_words": "COBRA EM CASA!",
+                    "pinned_comment_debate": "Vocês esperavam por isso?",
+                })
+            else:
+                out.append({"index": r["index"], "adjustment": 0.0, "reason": "neutro"})
+        return json.dumps(out)
 
     res = LLMRouter(provider_runner=fake_runner).rerank_candidates(cands, ai_mode="gemini")
     # Deve incluir trechos do fim do vídeo (> 2500s) mesmo com mais de 50 candidatos

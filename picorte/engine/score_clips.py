@@ -25,6 +25,7 @@ No paid APIs, no API keys. Usage:
 import re
 import math
 import json
+import functools
 import bisect
 import hashlib
 import argparse
@@ -278,8 +279,8 @@ SUPERLATIVE_WORDS = (
     "melhor", "pior", "maior", "menor", "nunca", "sempre",
     "todo mundo", "ninguém", "jamais",
 )
-NEGATION_WORDS = (
-    "not", "don't", "dont", "never", "no", "nothing", "can't",
+NEGATION_WORDS = (  # sem "no": em PT-BR é preposição ("no jogo"), não negação (code review 2026-11-23)
+    "not", "don't", "dont", "never", "nothing", "can't",
     "cant", "won't", "wont", "isn't", "isnt", "wasn't", "wasnt",
     "não", "nunca", "nada", "jamais", "nem",
 )
@@ -319,8 +320,23 @@ def calibrate_text(raw):
     return round(10.0 * clamp01(1.35 * clamp01(raw) - 0.08), 2)
 
 
+_CUE_NON_WORD_RE = re.compile(r"[^\wÀ-ÿ]+")
+
+
+def _cue_norm(text):
+    """' Não acredito! ' → ' não acredito ': minúsculas, pontuação/hífen/apóstrofo viram espaço, bordas com espaço."""
+    return " " + " ".join(_CUE_NON_WORD_RE.sub(" ", str(text or "").lower()).split()) + " "
+
+
+@functools.lru_cache(maxsize=None)
+def _cue_forms(group):
+    return tuple(form for form in (_cue_norm(cue) for cue in group) if form.strip())
+
+
 def _cue_hits(low, group):
-    return sum(1 for cue in group if cue in low)
+    """Quantas pistas do grupo aparecem como PALAVRA inteira ('vamos' não conta como 'amo', 'isso' não é 'so')."""
+    norm = _cue_norm(low)
+    return sum(1 for cue in _cue_forms(group) if cue in norm)
 
 
 def _tokens(text):
@@ -377,7 +393,7 @@ def sentence_features(sent):
     filler_count = sum(token in FILLER_TOKENS for token in tokens)
     if _has_filler_sequence(tokens):
         filler_count += 1
-    visual_deictic = any(phrase in low for phrase in VISUAL_DEICTIC_CUES)
+    visual_deictic = _cue_hits(low, VISUAL_DEICTIC_CUES) > 0
     is_anaphoric = (bool(tokens) and tokens[0] in ANAPHORIC_OPENERS) and not visual_deictic
     return {
         "start": float(sent["start"]), "end": float(sent["end"]),
@@ -387,11 +403,11 @@ def sentence_features(sent):
         "terminal": is_arc_complete(text),
         "filler_count": filler_count,
         "filler_ratio": filler_count / max(1, len(tokens)),
-        "meta_open": any(phrase in low for phrase in META_OPENERS),
-        "meta_outro": any(phrase in low for phrase in META_OUTROS),
+        "meta_open": _cue_hits(low, META_OPENERS) > 0,
+        "meta_outro": _cue_hits(low, META_OUTROS) > 0,
         "visual_deictic": visual_deictic,
         "anaphoric": is_anaphoric,
-        "earlier_ref": any(phrase in low for phrase in EARLIER_REFERENCES),
+        "earlier_ref": _cue_hits(low, EARLIER_REFERENCES) > 0,
         "question": text.strip().endswith("?") or " what if " in low,
         "number": bool(re.search(
             r"\b\d[\d,.]*\b|\b(one|two|three|ten|hundred|thousand|million|billion)\b",
@@ -1413,7 +1429,7 @@ def _candidate_key(candidate):
             candidate.get("seed_index"))
 
 
-def ollama_rerank(candidates, model, host=OLLAMA_HOST, timeout=120):
+def ollama_rerank(candidates, model, host=OLLAMA_HOST, timeout=120, errors=None):
     """Adjust the top 50 deduped candidates by -1.0..+1.0.
 
     Returns an updated list, or None when Ollama is unavailable or returns junk.
@@ -1434,6 +1450,8 @@ def ollama_rerank(candidates, model, host=OLLAMA_HOST, timeout=120):
         raw = _ollama_chat(model, host, messages, timeout)
     except Exception as exc:                                 # noqa: BLE001
         print(f"Ollama unavailable ({exc}) -> deterministic scores", flush=True)
+        if errors is not None:
+            errors.append(f"{type(exc).__name__}: {exc}")
         return None
     if not isinstance(raw, list):
         return None
@@ -1714,6 +1732,8 @@ def apply_4d_and_snap(
         # Marca o que foi MEDIDO de fato (sem isso visual_games herda a nota geral e engana o Editor-Chefe).
         if vis_entry:
             ev["vision_measured"] = True
+            ev["hud_ocr_hits"] = int(vis_entry.get("hud_ocr_hits") or 0)
+            ev["facecam_measured"] = bool(vis_entry.get("facecam_measured", True))
         if chat_seismic:
             ev["chat_measured"] = True
             # 3.6.2: tipo de reação do pico cujo lance-causa cai dentro do corte (riso, susto, pedido de corte…)
@@ -1819,13 +1839,58 @@ def _chat_log_paths(workdir, source):
     return paths
 
 
+_SMALL_FACE_RE = re.compile(r"rosto pequeno demais para medir emoção \((\d+) px < (\d+) px\)")
+
+
+def _merge_vision_reasons(reasons):
+    """Um motivo por tipo: 'rosto pequeno' vem de cada candidato com px diferente e estourava os 400 caracteres."""
+    out, small = [], []
+    for reason in reasons:
+        m = _SMALL_FACE_RE.fullmatch(reason)
+        if m:
+            small.append((int(m.group(1)), int(m.group(2))))
+        elif reason not in out:
+            out.append(reason)
+    if small:
+        out.append(f"rosto pequeno demais para medir emoção em {len(small)} candidatos "
+                   f"(até {max(px for px, _ in small)} px < {small[0][1]} px)")
+    return out
+
+
+def _downscale(frame, max_width):
+    import cv2
+    h, w = frame.shape[:2]
+    if w <= max_width:
+        return frame
+    return cv2.resize(frame, (max_width, max(2, int(round(h * max_width / w)))), interpolation=cv2.INTER_AREA)
+
+
+def _record_audio_health(workdir, source, timeline, audio_usable):
+    """Code review 2026-11-23: a linha do tempo de áudio alimenta a evidência e o filtro P1 de silêncio digital;
+    se ela não sai, isso é falha (antes sumia sem registro)."""
+    from picorte.engine import health as _health
+    if not source:
+        _health.record(workdir, "audio", "na", "transcrição sem mídia local")
+    elif timeline is None:
+        _health.record(workdir, "audio", "failed",
+                       f"não deu para medir o áudio de {Path(str(source)).name} (arquivo ausente ou ilegível)")
+    elif not audio_usable:
+        _health.record(workdir, "audio", "failed", "áudio sem sinal útil (mudo ou plano)")
+    else:
+        _health.record(workdir, "audio", "ok", f"{float(getattr(timeline, 'duration', 0) or 0):.0f} s medidos")
+
+
 def _apply_digital_silence(workdir, timeline, candidates, source, chat_seismic):
     """3.6.5: descarta candidatos mudos (> 20% de silêncio digital) e marca falha técnica; registra na saúde."""
     from picorte.engine import health as _health
     from picorte.engine.confidence import digital_silence_ranges, drop_muted_candidates, tag_technical_failures
     rms = getattr(timeline, "rms", None)
     if rms is None or len(rms) == 0:
-        _health.record(workdir, "silencio_digital", "na", "sem medição de áudio")
+        if source:  # havia mídia, mas o áudio não foi medido: o filtro P1 ficou desligado
+            _health.record(workdir, "silencio_digital", "failed",
+                           "áudio não medido: o filtro P1 de trecho mudo não rodou (ver parte 'audio')")
+        else:
+            _health.record(workdir, "silencio_digital", "na", "sem mídia local")
         return candidates
     ranges = digital_silence_ranges(rms)
     if not ranges:
@@ -2087,6 +2152,7 @@ def merge_comment_seeds(candidates, seeds, sentences):
         hint = archetype_hint_from_comment(rec["comment_hint"])
         if hint:
             rec["archetype_hint"] = hint
+            rec["archetype_hint_source"] = "comentario"  # já conta como sinal "comentario", não como "fala"
         out.append(rec)
     return out
 
@@ -2107,6 +2173,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
     usable_timeline = timeline if audio_usable else None
     source_duration = duration or float(getattr(timeline, "duration", 0) or 0)
     source = data.get("video")
+    _record_audio_health(workdir, source, timeline, audio_usable)
     visual_media = str(visual_source) if visual_source and Path(visual_source).is_file() else source
     if not visual_source and (workdir / "discovery.mp4").is_file():
         visual_media = str((workdir / "discovery.mp4").resolve())
@@ -2162,8 +2229,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 
     # Marca candidatos com dêiticos visuais ('olha isso', 'olha a mão', 'espera')
     for cand in candidates:
-        low_txt = f" {str(cand.get('text') or '').lower()} "
-        if any(cue in low_txt for cue in VISUAL_DEICTIC_CUES):
+        if _cue_hits(str(cand.get("text") or ""), VISUAL_DEICTIC_CUES):
             cand["has_visual_deictic"] = True
 
     # Descoberta Payoff-First Rewind: ancora em payoffs fortes e rebobina para o setup.
@@ -2203,7 +2269,8 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
                 "hook": make_hook(peak_text) if peak_text else f"Pico Most Replayed em {int(center)}s",
                 "text": peak_text,
                 "overall": heatmap_seed_overall(pk["value"]),
-                "raw_score": 7.6,
+                # = overall: um 7,6 fixo aqui virava "texto" na fusão 4D e desfazia a nota fraca (code review)
+                "raw_score": heatmap_seed_overall(pk["value"]),
                 "seed_kind": "heatmap_peak",
                 "track_origin": "energy_chat_heatmap",
                 "score_parts": {"heatmap_value": pk["value"]},
@@ -2247,6 +2314,8 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
         candidates = merge_comment_seeds(candidates, comment_seeds, sentences)
 
     visual_scores: dict[tuple[float, float], dict[str, float]] = {}
+    vision_errors: list[str] = []
+    vision_degraded: list[str] = []
     if visual_media and Path(visual_media).is_file() and Path(visual_media).suffix.lower() in {".mp4", ".mkv", ".mov", ".avi", ".m4v", ".webm"} and candidates:
         # Só roda análise visual de vídeo se o arquivo possuir stream de vídeo (evita audio.webm)
         if Path(visual_media).name.startswith("audio.") is False:
@@ -2259,16 +2328,23 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
                 s_t, e_t = float(cand["start"]), float(cand["end"])
                 print(f"  [vision {idx}/{total_ranked}] {s_t:.1f}s-{e_t:.1f}s", flush=True)
                 try:
-                    sampled = sample_video_frames(visual_media, s_t, e_t, fps=2.0, max_width=640)
-                    hud_frames = sampled[::2] if sampled else []
+                    # 1280 px: a 640 o rosto da facecam de um vídeo 1080p cai para ~57 px, abaixo do mínimo da
+                    # emoção (64 px); o HUD volta a 640 px para o OCR não ficar caro (code review 2026-11-23).
+                    sampled = sample_video_frames(visual_media, s_t, e_t, fps=2.0, max_width=1280)
+                    hud_frames = [_downscale(f, 640) for f in sampled[::2]] if sampled else []
                     fg = analyze_facecam_reactions(sampled or visual_media, s_t, e_t, vision_preset=vision_preset)
-                    hd = detect_hud_events(hud_frames or visual_media, s_t, e_t, vision_preset=vision_preset)
+                    hd = detect_hud_events(hud_frames or visual_media, s_t, e_t, vision_preset=vision_preset,
+                                           ocr_every_s=3.0)
                     visual_scores[(s_t, e_t)] = {
                         "visual_score": float(fg.get("score") or 0.0),
                         "hud_score": float(hd.get("score") or 0.0),
+                        "hud_ocr_hits": int(hd.get("ocr_hits") or 0),
+                        "facecam_measured": bool(fg.get("face_measured", True)),
                     }
-                except Exception:
-                    pass
+                    vision_degraded.extend(list(fg.get("degraded") or []) + list(hd.get("degraded") or []))
+                except Exception as exc:  # um candidato não derruba a descoberta, mas o motivo vai para a saúde
+                    vision_errors.append(f"{s_t:.0f}-{e_t:.0f}s {type(exc).__name__}: {exc}")
+                    print(f"  [vision {idx}/{total_ranked}] falhou: {type(exc).__name__}: {exc}", flush=True)
 
     if chat_seismic is not None or visual_scores:
         candidates = apply_4d_and_snap(
@@ -2318,12 +2394,23 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
     has_video = bool(visual_media and Path(visual_media).is_file()
                      and Path(visual_media).suffix.lower() in {".mp4", ".mkv", ".mov", ".avi", ".m4v", ".webm"}
                      and not Path(visual_media).name.startswith("audio."))
+    vision_degraded = _merge_vision_reasons(vision_degraded)
     if not has_video:
         _health.record(workdir, "vision", "na", "fonte só de áudio (sem proxy visual)")
-    elif visual_scores or sections:
-        _health.record(workdir, "vision", "ok", f"{len(visual_scores)} candidatos com MAR/HUD")
+    elif visual_scores and vision_degraded:
+        # Rodou, mas sem o detector que a arquitetura promete (ex.: facecam só por movimento): é alerta, não ok.
+        _health.record(workdir, "vision", "failed",
+                       f"{len(visual_scores)} candidatos medidos, mas degradado: {'; '.join(vision_degraded)}")
+    elif visual_scores:
+        detail = f"{len(visual_scores)} candidatos com MAR/HUD"
+        if vision_errors:
+            detail += f"; {len(vision_errors)} falharam ({vision_errors[0]})"
+        _health.record(workdir, "vision", "ok", detail)
     else:
-        _health.record(workdir, "vision", "failed", "vídeo presente, mas nenhuma análise visual concluída")
+        detail = "vídeo presente, mas nenhuma análise visual concluída"
+        if vision_errors:
+            detail += f": {vision_errors[0]}"
+        _health.record(workdir, "vision", "failed", detail)
 
     warnings = []
     if visual_ranges and source and Path(source).is_file() and not sections:
@@ -2393,6 +2480,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                 sentences = []
 
         scout_cands = []
+        scout_report: dict = {}
         if sentences:
             try:
                 if query:
@@ -2418,6 +2506,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                         filter_provider=ai_filter,
                         companion_provider=ai_companion,
                         model=llm,
+                        report=scout_report,
                     )
             except Exception as scout_exc:
                 scout_cands = []
@@ -2425,8 +2514,13 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                 _health.record(workdir, "full_vod_scout", "failed", f"{type(scout_exc).__name__}: {scout_exc}")
             else:
                 from picorte.engine import health as _health
-                _health.record(workdir, "full_vod_scout", "ok" if scout_cands else "na",
-                               f"{len(scout_cands)} achados" if scout_cands else "nenhum achado")
+                if scout_report.get("blocos_falhos"):  # bloco perdido = trecho da live não lido (antes: silêncio)
+                    _health.record(workdir, "full_vod_scout", "failed",
+                                   f"{scout_report['blocos_falhos']} de {scout_report.get('blocos')} blocos falharam "
+                                   f"({scout_report.get('motivo')}); {len(scout_cands)} achados no resto")
+                else:
+                    _health.record(workdir, "full_vod_scout", "ok" if scout_cands else "na",
+                                   f"{len(scout_cands)} achados" if scout_cands else "nenhum achado")
 
         if hunt_mode == "deep" and sentences:
             try:
@@ -2434,8 +2528,9 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                 arcs = detect_two_act_arcs(sentences)
                 if arcs:
                     _write_json(workdir / "two_act_arcs.json", arcs)
-            except Exception:
-                pass
+            except Exception as deep_exc:  # não derruba a seleção, mas vai para a saúde (antes: except/pass)
+                from picorte.engine import health as _health
+                _health.record(workdir, "modo_deep", "failed", f"arcos de 2 atos: {type(deep_exc).__name__}: {deep_exc}")
 
         multitrack_pool = build_multitrack_pool(
             deduped,
@@ -2473,10 +2568,12 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
             _health.record(workdir, "editor", "failed", f"{type(exc).__name__}: {exc}")
             raise EditorChiefUnavailable(ai_mode, f"erro inesperado: {type(exc).__name__}: {exc}") from exc
         from picorte.engine import health as _health
+        pass2 = str(routed.get("segunda_passada") or "")
+        pass2_txt = f"; 2ª passada {pass2}" if pass2 and pass2 != "ok" else ""
         _health.record(workdir, "editor", "ok",
                        f"modo {used_mode}; ordem semente {routed.get('ordem_semente')}; "
                        f"{routed.get('confianca_baixa', 0)} finalistas com confiança baixa (notas discordantes "
-                       f"entre 2 ordens)")
+                       f"entre 2 ordens){pass2_txt}")
         if adjusted:
             by_key = {_candidate_key(item): item for item in adjusted}
             updated_cands = [
@@ -2495,7 +2592,15 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
             mode = used_mode
             save_candidates(workdir, candidates, discovery, mode=mode)
     elif llm:
-        adjusted = ollama_rerank(deduped[:50], llm, host)
+        rerank_errors: list = []
+        adjusted = ollama_rerank(deduped[:50], llm, host, errors=rerank_errors)
+        from picorte.engine import health as _health
+        if adjusted is None:  # antes só um print: a seleção seguia com notas determinísticas sem registro
+            _health.record(workdir, "llm_rerank", "failed",
+                           f"Ollama ({llm}) sem resposta útil; seguiu com notas determinísticas: "
+                           f"{'; '.join(rerank_errors) or 'resposta inválida'}")
+        else:
+            _health.record(workdir, "llm_rerank", "ok", f"Ollama ({llm}) ajustou {len(adjusted)} candidatos")
         if adjusted is not None:
             by_key = {_candidate_key(item): item for item in adjusted}
             candidates = [{**item, **by_key[_candidate_key(item)]}
@@ -2529,11 +2634,13 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
     if hunt_mode == "deep" and segments:
         try:
             from picorte.engine.archetype_compiler import compile_by_archetype
-            comps = compile_by_archetype(segments)
+            comps = compile_by_archetype([s for s in segments if s.get("formato", "short") == "short"])
             if comps:
                 _write_json(workdir / "archetype_compilations.json", comps)
-        except Exception:
-            pass
+        except Exception as deep_exc:
+            from picorte.engine import health as _health
+            _health.record(workdir, "modo_deep", "failed",
+                           f"compilações por arquétipo: {type(deep_exc).__name__}: {deep_exc}")
     return segments, mode
 
 
@@ -2631,7 +2738,7 @@ def run(workdir, llm=None, host=OLLAMA_HOST, min_score=None, max_clips=None,
                                 preferred_len=preferred_len,
                                 llm=llm, host=host,
                                 ai_mode=ai_mode, ai_filter=ai_filter,
-                                ai_companion=ai_companion)
+                                ai_companion=ai_companion, max_len=max_len)
 
     if not segments:
         _no_clips_message(workdir, effective_score)

@@ -13,15 +13,23 @@ from typing import Any
 
 import numpy as np
 
-# O cache de áudio (evidence.SILENCE_DB) trava o volume em −80 dB: "colado no piso" = áudio zerado.
-DIGITAL_SILENCE_FLOOR_DB = -79.5
+from picorte.engine.evidence import SILENCE_DB as _AUDIO_FLOOR_DB
+
+# O cache de áudio (evidence.SILENCE_DB) trava o volume no piso (−80 dB): "colado no piso" = áudio zerado.
+# Importado, não copiado: se o piso do áudio mudar, o silêncio digital acompanha (code review 2026-11-23).
+DIGITAL_SILENCE_FLOOR_DB = _AUDIO_FLOOR_DB + 0.5
 DIGITAL_SILENCE_MIN_S = 2.0
 DIGITAL_SILENCE_MAX_FRACTION = 0.20
 
 TECH_FAILURE_RE = re.compile(r"\bcaiu\b|\btravou\b|\btravad[oa]\b|\blag\b|\bvoltou\b|^\s*f+\s*$", re.IGNORECASE)
 TECH_FAILURE_WINDOW_S = 30.0
 
-LEXICAL_TRACKS = ("deictic_detective_callback", "serio_polemica_silence", "coop_payoff_nontextual", "vacilo_mico")
+# Pistas que só pegam candidato pela FALA. Ficaram de fora (code review 2026-11-23):
+# - "coop_payoff_nontextual": também recebe pico de chat, mídia e comentário sem fala; o léxico co-op é conferido;
+# - "vacilo_mico": a nota também vem do comentário e do chat; conta como fala só pela `archetype_hint_source`.
+LEXICAL_TRACKS = ("deictic_detective_callback", "serio_polemica_silence")
+# Dica de arquétipo que veio de outro sinal (comentário, chat): já conta como esse sinal, não como "fala".
+HINT_SOURCES_NOT_SPEECH = ("comentario", "chat")
 GOLD_MIN_SIGNALS = 2
 STANDALONE_MIN = 5.0
 
@@ -82,7 +90,9 @@ def tag_technical_failures(candidates: list[dict[str, Any]], ranges: list[tuple[
                 if "falha_tecnica" not in tags:
                     tags.append("falha_tecnica")
                 rec["tags"] = tags
-                rec.setdefault("archetype_hint", "chat_trolagem")
+                if not rec.get("archetype_hint"):
+                    rec["archetype_hint"] = "chat_trolagem"
+                    rec["archetype_hint_source"] = "chat"
                 break
         out.append(rec)
     return out
@@ -96,14 +106,15 @@ def independent_signals(cand: dict[str, Any]) -> list[str]:
     out: list[str] = []
     if float(ev.get("laugh") or 0.0) >= LAUGH_MIN:
         out.append("riso")
-    if float(ev.get("jumpscare_db") or 0.0) > 0.0:
-        out.append("susto")
+    # O pico de som (`jumpscare_db`) não conta: é susto só às vezes — também é explosão do jogo ou grito de doação
+    # (ouvido pelo dono em 2026-11-23). O Editor-Chefe decide pela fala.
     if ev.get("chat_measured") and (float(ev.get("chat") or 0.0) >= 6.0 or ev.get("chat_reaction")):
         out.append("chat")
-    if ev.get("vision_measured") and float(ev.get("visual_games") or 0.0) >= 6.5:
+    if (ev.get("vision_measured") and ev.get("facecam_measured", True)
+            and float(ev.get("visual_games") or 0.0) >= 6.5):
         out.append("visao")
-    if ev.get("vision_measured") and float(ev.get("hud") or 0.0) >= 5.0:
-        out.append("hud")
+    if ev.get("vision_measured") and float(ev.get("hud") or 0.0) >= 5.0 and int(ev.get("hud_ocr_hits") or 0) > 0:
+        out.append("hud")  # só com texto do jogo lido pelo OCR (movimento + objetos do COCO não são HUD)
     if cand.get("comment_hint"):
         out.append("comentario")
     if cand.get("seed_kind") == "heatmap_peak" or cand.get("near_heatmap"):
@@ -119,12 +130,17 @@ def _speech_signal(cand: dict[str, Any]) -> bool:
     """Sinal de FALA medido pelo conteúdo (léxico, dêitico, dica de arquétipo), não pela pista que pegou o
     candidato: cada candidato fica numa pista só, e o achado do batedor perderia a fala de detetive."""
     from picorte.engine.multitrack import (ARCHETYPE_LEXICON_PTBR, MICO_LEXICON_PTBR, VACILO_LEXICON_PTBR,
-                                           _lexicon_hits, _phrase_hits)
+                                           _lexicon_hits, _phrase_hits, detect_collective_echo)
 
-    if cand.get("track_origin") in LEXICAL_TRACKS or cand.get("archetype_hint") or cand.get("has_visual_deictic"):
+    hint_from_speech = (cand.get("archetype_hint")
+                        and cand.get("archetype_hint_source") not in HINT_SOURCES_NOT_SPEECH)
+    if cand.get("track_origin") in LEXICAL_TRACKS or hint_from_speech or cand.get("has_visual_deictic"):
         return True
     text = str(cand.get("text") or "")
+    if not text.strip():
+        return False
     return bool(_lexicon_hits(text, ARCHETYPE_LEXICON_PTBR["detective_callback"])
+                or _lexicon_hits(text, ARCHETYPE_LEXICON_PTBR["coop_karma_payoff"]) or detect_collective_echo(text)
                 or _lexicon_hits(text, ARCHETYPE_LEXICON_PTBR["serio_polemica"])
                 or _phrase_hits(text, VACILO_LEXICON_PTBR) or _phrase_hits(text, MICO_LEXICON_PTBR))
 

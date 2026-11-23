@@ -64,6 +64,7 @@ def test_visual_games_mar_and_preset_dispatch():
         vram_mib=12288,
         landmark_runner=fake_landmarks,
         emotion_runner=fake_emotion,
+        face_locator=lambda _f: (0, 0, 64, 64),  # code review 2026-11-23: emoção só no rosto localizado
     )
     assert high_res["backend_used"] == "YuNet+MediaPipe+HSEmotion"
     assert emotion_called["count"] == 4

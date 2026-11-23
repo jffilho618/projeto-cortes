@@ -153,6 +153,26 @@ def _sample_video_frames(video_path: str | Path, start: float, end: float, fps: 
     return sample_video_frames(video_path, start, end, fps=fps)
 
 
+class UnavailableBackend:
+    """Detector que não carregou: devolve vazio como antes, mas carrega o MOTIVO (code review 2026-11-23).
+
+    Antes a fábrica devolvia `lambda _: None` e o `backend_used` continuava dizendo "MediaPipe": a facecam
+    virava só movimento do quadro inteiro (nota cravada em 3,5) e a saúde dizia ok.
+    """
+
+    def __init__(self, name: str, exc: BaseException, empty: Callable[[], Any]):
+        self.name = name
+        self.reason = f"{name} indisponível ({type(exc).__name__}: {exc})"
+        self._empty = empty
+
+    def __call__(self, *_args: Any, **_kwargs: Any) -> Any:
+        return self._empty()
+
+
+def degraded_reasons(*runners: Any) -> list[str]:
+    return [r.reason for r in runners if isinstance(r, UnavailableBackend)]
+
+
 @lru_cache(maxsize=2)
 def _default_landmark_runner_factory(preset: str) -> Callable[[np.ndarray], list[tuple[float, float]] | None]:
     """Cria detector MediaPipe quando disponível; caso contrário retorna None (fallback óptico)."""
@@ -173,26 +193,85 @@ def _default_landmark_runner_factory(preset: str) -> Callable[[np.ndarray], list
             return [(lm[i].x * w, lm[i].y * h) for i in idxs]
 
         return _run
-    except Exception:
-        return lambda _frame: None
+    except Exception as exc:
+        return UnavailableBackend("MediaPipe", exc, lambda: None)
 
 
 @lru_cache(maxsize=1)
 def _default_emotion_runner_factory() -> Callable[[np.ndarray], dict[str, float]]:
+    """HSEmotion em ONNX (CPU, `onnxruntime`): recebe o ROSTO recortado (BGR) e devolve as 8 emoções.
+
+    Modelo `enet_b0_8_best_vgaf` (AffectNet), baixado na 1ª vez para ~/.hsemotion. Escolhido no code review de
+    2026-11-23 no lugar do `hsemotion` em torch: mesmo modelo, sem disputar a GPU.
+    """
     try:
-        from hsemotion.facial_emotions import HSEmotionRecognizer  # type: ignore
+        import urllib.request  # noqa: F401 — o hsemotion_onnx chama urllib.request sem importá-lo
+        from hsemotion_onnx.facial_emotions import HSEmotionRecognizer  # type: ignore
 
         recognizer = HSEmotionRecognizer(model_name="enet_b0_8_best_vgaf")
+        classes = [str(recognizer.idx_to_class[i]).lower() for i in sorted(recognizer.idx_to_class)]
 
-        def _run(frame: np.ndarray) -> dict[str, float]:
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            label, scores = recognizer.predict_emotions(rgb, logits=False)
-            top = float(np.max(scores)) if scores is not None else 0.0
-            return {str(label).lower(): top}
+        def _run(face_bgr: np.ndarray) -> dict[str, float]:
+            rgb = cv2.cvtColor(face_bgr, cv2.COLOR_BGR2RGB)
+            _, scores = recognizer.predict_emotions(rgb, logits=False)
+            return {c: float(s) for c, s in zip(classes, scores)}
 
         return _run
-    except Exception:
-        return lambda _frame: {}
+    except Exception as exc:
+        return UnavailableBackend("HSEmotion", exc, dict)
+
+
+MIN_FACE_PX = 64           # abaixo disso (proxy de 240p: rosto de 15–48 px) a emoção não é confiável
+FACE_CROP_MARGIN = 0.20    # margem em volta da caixa do YuNet, como nos recortes de treino
+REACTION_EMOTIONS = ("surprise", "fear", "happiness", "anger")
+NOT_A_REACTION = ("neutral",)
+
+
+def locate_face_fast(frame: np.ndarray, max_width: int = 640) -> tuple[int, int, int, int] | None:
+    """YuNet num quadro reduzido (18 ms contra 51 ms a 1280 px) e a caixa de volta na escala do quadro original."""
+    from picorte.engine import reaction_layout
+
+    h, w = frame.shape[:2]
+    if w <= max_width:
+        return reaction_layout.find_reactor_face(frame)
+    scale = w / float(max_width)
+    small = cv2.resize(frame, (max_width, max(2, int(round(h / scale)))), interpolation=cv2.INTER_AREA)
+    box = reaction_layout.find_reactor_face(small)
+    if box is None:
+        return None
+    return tuple(int(round(v * scale)) for v in box)  # type: ignore[return-value]
+
+
+def _crop_face(frame: np.ndarray, box: tuple[int, int, int, int], margin: float = FACE_CROP_MARGIN) -> np.ndarray:
+    x, y, w, h = (int(v) for v in box)
+    m = int(round(margin * max(w, h)))
+    fh, fw = frame.shape[:2]
+    return frame[max(0, y - m): min(fh, y + h + m), max(0, x - m): min(fw, x + w + m)]
+
+
+EMOTION_SUSTAIN_S = 1.5   # a subida precisa durar 1,5 s seguidos para contar como reação
+
+
+def _emotion_peak(series: list[dict[str, float]], *, frame_dt: float = 0.5) -> float:
+    """Reação = quanto uma emoção de REAÇÃO sobe acima do rosto normal do trecho e se SUSTENTA por 1,5 s.
+
+    Medido na ae5f08 (2026-11-23):
+    - o rosto concentrado de quem joga sai "raiva" em 25 de 29 quadros: a mediana do trecho tira esse viés;
+    - o modelo oscila quadro a quadro: com 1 s bastando, 11 de 12 candidatos davam pico ≥ 0,5; exigindo a subida
+      sustentada (mínimo da janela de 1,5 s) só 2 se destacam (0,98 e 0,89) — as duas risadas de verdade
+      ("Temos duas partes da arma já", "que você não desce, sua cachorra"); os outros ficam ≤ 0,43;
+    - susto de rosto dura ~1 s e não passa: o susto é pego pelo áudio (`prosody_events`).
+    Só surpresa, medo, felicidade e raiva contam; neutro, tristeza, nojo e desprezo não são reação.
+    """
+    if not series:
+        return 0.0
+    mat = np.array([[float(s.get(k, 0.0)) for k in REACTION_EMOTIONS] for s in series], dtype=np.float32)
+    per_frame = np.clip(mat - np.median(mat, axis=0), 0.0, None).max(axis=1)
+    win = max(1, int(round(EMOTION_SUSTAIN_S / max(1e-3, float(frame_dt)))))
+    if per_frame.size < win:
+        return 0.0
+    sustained = np.array([per_frame[i:i + win].min() for i in range(per_frame.size - win + 1)])
+    return float(min(1.0, sustained.max()))
 
 
 def analyze_facecam_reactions(
@@ -207,8 +286,13 @@ def analyze_facecam_reactions(
     emotion_runner: Callable[[np.ndarray], dict[str, float]] | None = None,
     yaw_runner: Callable[[np.ndarray], float | None] | None = None,
     vram_runner: VRAMRunner | None = None,
+    face_locator: Callable[[np.ndarray], tuple[int, int, int, int] | None] | None = None,
 ) -> dict[str, Any]:
-    """Avalia reações na facecam respeitando o preset Low ('YuNet+MediaPipe') vs High ('+HSEmotion')."""
+    """Avalia reações na facecam respeitando o preset Low ('YuNet+MediaPipe') vs High ('+HSEmotion').
+
+    No High, o rosto da facecam é localizado (YuNet, `reaction_layout.find_reactor_face`) e a emoção é medida no
+    ROSTO RECORTADO; o movimento da facecam passa a ser o da região do rosto (W44, code review 2026-11-23).
+    """
     resolved = resolve_vision_preset(vision_preset, vram_mib=vram_mib, gpu_name=gpu_name)
     preset = resolved["preset"]
     backend_used = resolved["models"]["facecam"]
@@ -228,6 +312,9 @@ def analyze_facecam_reactions(
             "gaze_to_camera_sec": 0.0,
             "face_disappeared_event": False,
             "inspection_pause_score": 0.0,
+            "face_measured": False,
+            "emotion_measured": False,
+            "degraded": [],
             "score": 0.0,
         }
 
@@ -235,13 +322,25 @@ def analyze_facecam_reactions(
     lm_fn = landmark_runner or _default_landmark_runner_factory(preset)
     use_emotion = preset == "high"
     emo_fn = (emotion_runner or _default_emotion_runner_factory()) if use_emotion else None
+    if face_locator is None and use_emotion:
+        face_locator = locate_face_fast
+    boxes = [face_locator(f) for f in frames] if face_locator is not None else [None] * len(frames)
+    usable = [b for b in boxes if b is not None and min(int(b[2]), int(b[3])) >= MIN_FACE_PX]
+    small = [min(int(b[2]), int(b[3])) for b in boxes if b is not None and b not in usable]
+    face_region = usable[0] if usable else None  # a facecam fica parada: a 1ª caixa boa marca a região
+    degraded = degraded_reasons(lm_fn, emo_fn)
+    if emo_fn is not None and not usable and small and not isinstance(emo_fn, UnavailableBackend):
+        degraded.append(f"rosto pequeno demais para medir emoção ({max(small)} px < {MIN_FACE_PX} px)")
+    if degraded:
+        backend_used = f"{backend_used} — degradado: {'; '.join(degraded)}"
 
     def _run_stage() -> dict[str, Any]:
         mar_values: list[float] = []
         motion_values: list[float] = []
         border_motion_values: list[float] = []
         center_motion_values: list[float] = []
-        emotion_values: list[float] = []
+        emotion_series: list[dict[str, float]] = []
+        face_motion_values: list[float] = []
         face_presence: list[bool] = []
         frontal_streak = 0
         max_frontal_streak = 0
@@ -249,11 +348,15 @@ def analyze_facecam_reactions(
         dur_s = max(0.5, float(end) - float(start))
         dt = dur_s / max(1, len(frames))
 
-        for frame in frames:
+        for frame, box in zip(frames, boxes):
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame
             if prev_gray is not None and prev_gray.shape == gray.shape:
                 diff = cv2.absdiff(gray, prev_gray)
                 motion_values.append(float(np.mean(diff)) / 32.0)
+                if face_region is not None:  # movimento da CABEÇA, não do jogo (W44)
+                    face_diff = _crop_face(diff, face_region, margin=0.5)
+                    if face_diff.size:
+                        face_motion_values.append(float(np.mean(face_diff)) / 32.0)
                 h, w = diff.shape[:2]
                 cy1, cy2 = int(h * 0.25), int(h * 0.75)
                 cx1, cx2 = int(w * 0.25), int(w * 0.75)
@@ -280,20 +383,20 @@ def analyze_facecam_reactions(
                 else:
                     frontal_streak = 0
 
-            if emo_fn is not None:
-                emo = emo_fn(frame) or {}
-                excitement = max(
-                    float(emo.get("surprise", 0.0)),
-                    float(emo.get("happiness", 0.0)),
-                    float(emo.get("fear", 0.0)),
-                    float(emo.get("anger", 0.0)),
-                    max((float(v) for v in emo.values()), default=0.0) * 0.7,
-                )
-                emotion_values.append(excitement)
+            if emo_fn is not None and box is not None and min(int(box[2]), int(box[3])) >= MIN_FACE_PX:
+                crop = _crop_face(frame, box)
+                if crop.size:
+                    emo = emo_fn(crop) or {}
+                    if emo:
+                        emotion_series.append({str(k).lower(): float(v) for k, v in emo.items()})
 
         mar_peak = max(mar_values, default=0.0)
-        motion_peak = min(1.0, max(motion_values, default=0.0))
-        emotion_peak = min(1.0, max(emotion_values, default=0.0))
+        # Com a facecam localizada, o "movimento" da facecam é o da região do rosto; sem ela, o do quadro (legado).
+        motion_peak = min(1.0, max(face_motion_values if face_region is not None else motion_values, default=0.0))
+        emotion_measured = bool(emotion_series)
+        emotion_peak = _emotion_peak(emotion_series, frame_dt=dt)
+        mar_measured = bool(mar_values) and not isinstance(lm_fn, UnavailableBackend)
+        face_measured = mar_measured or emotion_measured or not isinstance(lm_fn, UnavailableBackend)
 
         # Gaze-to-camera (olhar sustentado direto na lente)
         gaze_to_camera_sec = round(max_frontal_streak * dt, 2)
@@ -323,10 +426,13 @@ def analyze_facecam_reactions(
 
         mar_component = min(1.0, mar_peak / 0.65)
         base_score = 0.55 * mar_component + 0.35 * motion_peak
-        if use_emotion:
+        if use_emotion and emotion_measured and not mar_measured:
+            # Boca não medida (sem MediaPipe): não entra como zero — a emoção leva o peso dela (sinal só vale se medido)
+            blended = max(base_score, 0.65 * emotion_peak + 0.35 * motion_peak)
+        elif use_emotion:
             blended = max(base_score, 0.40 * mar_component + 0.25 * motion_peak + 0.35 * emotion_peak)
-            if emotion_peak >= 0.4:
-                blended = min(1.0, base_score + 0.12 * emotion_peak)
+            if emotion_peak >= 0.4:  # reforço, nunca rebaixa: emoção mais forte não pode dar nota menor
+                blended = max(blended, min(1.0, base_score + 0.12 * emotion_peak))
         else:
             blended = base_score
 
@@ -339,6 +445,9 @@ def analyze_facecam_reactions(
             "gaze_to_camera_sec": gaze_to_camera_sec,
             "face_disappeared_event": face_disappeared,
             "inspection_pause_score": inspection_pause_score,
+            "face_measured": face_measured,
+            "emotion_measured": emotion_measured,
+            "degraded": degraded,
             "score": round(min(10.0, max(0.0, blended * 10.0)), 2),
         }
 

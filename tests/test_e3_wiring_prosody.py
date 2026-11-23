@@ -46,7 +46,8 @@ def test_prosody_evidence_marks_laugh_scare_and_bonus():
     assert laugh["evidence"]["laugh"] >= 0.35
     assert scare["evidence"]["jumpscare_db"] >= 18.0
     assert flat["evidence"]["laugh"] < 0.35 and flat["evidence"]["jumpscare_db"] == 0.0
-    assert laugh["overall"] > 7.0 and scare["overall"] > 7.0 and flat["overall"] == 7.0
+    # decisão do dono (code review 2026-11-23): o pico de som continua medido, mas sem bônus automático
+    assert laugh["overall"] > 7.0 and scare["overall"] == 7.0 and flat["overall"] == 7.0
     assert laugh["score_parts"]["prosody_bonus"] > 0
 
 
@@ -96,7 +97,8 @@ def test_editor_chief_receives_only_measured_nonverbal_signals():
     cands = [
         {"start": 1.0, "end": 9.0, "overall": 8.0, "text": "kkkk caiu",
          "evidence": {"laugh": 0.62, "jumpscare_db": 0.0, "speech_rate": "fast_panic", "chat": 7.5,
-                      "chat_measured": True, "visual_games": 8.1, "hud": 3.0, "vision_measured": True}},
+                      "chat_measured": True, "visual_games": 8.1, "hud": 3.0, "vision_measured": True,
+                      "hud_ocr_hits": 1}},  # code review 2026-11-23 (8a): HUD só chega com texto lido pelo OCR
         {"start": 20.0, "end": 29.0, "overall": 7.0, "text": "sem medição",
          "evidence": {"visual_games": 7.0, "hud": 0.0, "chat": 0.0}},
     ]

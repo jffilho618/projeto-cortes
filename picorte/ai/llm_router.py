@@ -70,7 +70,9 @@ COMPANION_SYSTEM_PROMPT = (
     '"reason": str}. '
     "REGRAS: NUNCA meça qualidade só por volume/grito — callbacks culturais silenciosos (como testar detalhes de trailer), "
     "desabafos sérios, hot takes e deadpan valem +2.5 a +3.0 e tier 'ouro'. "
-    "Penalize (-2.0 a -2.5) leitura de subs, patrocínios, intros genéricas e telas de configuração."
+    "Penalize (-2.0 a -2.5) leitura de subs, patrocínios, intros genéricas e telas de configuração. "
+    "SINAIS: `sinais.pico_sonoro_db` é um salto de volume medido depois de silêncio — pode ser susto, explosão do "
+    "jogo ou o streamer gritando (inclusive para agradecer doação); confira pela fala antes de chamar de susto."
 )
 
 
@@ -143,15 +145,25 @@ def attach_neighbor_context(
         post = sorted(post, key=lambda x: float(x.get("start") or 0.0))[:MAX_EDGE_SENTENCES]
         rec["pre_sentences"] = [_edge_sentence(x) for x in pre]
         rec["post_sentences"] = [_edge_sentence(x) for x in post]
-        rec["pre_context"] = " ".join(
-            f"[-{i}] {str(x.get('text') or '').strip()}" for i, x in reversed(list(enumerate(pre, 1))))[:320]
-        rec["post_context"] = " ".join(
-            f"[+{i}] {str(x.get('text') or '').strip()}" for i, x in enumerate(post, 1))[:280]
+        rec["pre_context"], rec["post_context"] = _context_strings(rec["pre_sentences"], rec["post_sentences"])
         out.append(rec)
     return out
 
 
+PRE_CONTEXT_CHARS = 320
+POST_CONTEXT_CHARS = 280
+
+
+def _context_strings(pre: list[dict[str, Any]], post: list[dict[str, Any]]) -> tuple[str, str]:
+    """`pre`/`post` da frase mais próxima para a mais distante. O corte de tamanho tira as frases DISTANTES:
+    antes o texto ia "[-4] … [-1]" e o corte no fim jogava fora justamente a [-1], colada no começo do corte."""
+    pre_txt = " ".join(f"[-{i}] {str(x.get('text') or '').strip()}" for i, x in reversed(list(enumerate(pre, 1))))
+    post_txt = " ".join(f"[+{i}] {str(x.get('text') or '').strip()}" for i, x in enumerate(post, 1))
+    return pre_txt[-PRE_CONTEXT_CHARS:], post_txt[:POST_CONTEXT_CHARS]
+
+
 MAX_EDGE_SENTENCES = 4
+STALE_PASS_KEYS = ("ordem_ajustes", "confianca_baixa", "last_pass_adjustment")
 
 
 def _edge_sentence(item: dict[str, Any]) -> dict[str, Any]:
@@ -260,6 +272,12 @@ OLLAMA_NUM_CTX = 16384
 BENCHMARK_SEED = 3612
 # A resposta vem em streaming: o prazo por leitura só pega servidor mudo; o teto total segura um laço.
 # Um lote de 28 candidatos gera ~7 mil tokens (~5 min no qwen3.5:9b dividido CPU/GPU numa placa de 8 GB).
+# D1 do code review (2026-11-23, decisão do dono): sem o CLI de assinatura o Editor-Chefe PARA (Decisão B) em vez
+# de cair sozinho na API paga (Anthropic/Gemini) — regra 6 do CLAUDE.md: custo pago precisa de estimativa e teto
+# antes. Referência medida no review: um lote (~7,7 mil tokens de entrada + ~7 mil de saída) custa ~US$ 0,17 no
+# claude-opus-5-5 e ~US$ 0,085 no claude-sonnet-5-5, fora o pensamento (cobrado como saída).
+PAID_API_OFF = ("CLI {cli} indisponível. A API paga não é usada automaticamente (regra 6 do CLAUDE.md: custo "
+                "precisa de estimativa e teto antes). Instale/entre no CLI ou escolha outro Motor de IA.")
 OLLAMA_SILENCE_TIMEOUT_S = 180
 OLLAMA_TOTAL_TIMEOUT_S = 900
 OLLAMA_THINKING_FAMILIES = ("qwen3", "deepseek-r1")
@@ -279,8 +297,8 @@ def _measured_signals(ev: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     if ev.get("laugh") is not None and float(ev["laugh"]) >= 0.2:
         out["riso"] = round(float(ev["laugh"]), 2)
-    if float(ev.get("jumpscare_db") or 0.0) > 0.0:
-        out["susto_db"] = round(float(ev["jumpscare_db"]), 1)
+    if float(ev.get("jumpscare_db") or 0.0) > 0.0:  # pico de som: susto, explosão ou grito — o Editor confere
+        out["pico_sonoro_db"] = round(float(ev["jumpscare_db"]), 1)
     if ev.get("speech_rate"):
         out["fala"] = str(ev["speech_rate"])
     if ev.get("chat_measured"):
@@ -291,8 +309,10 @@ def _measured_signals(ev: dict[str, Any]) -> dict[str, Any]:
             if ev["chat_reaction"] == "pedido_corte":
                 out["pedido_corte"] = True
     if ev.get("vision_measured"):
-        out["facecam"] = round(float(ev.get("visual_games") or 0.0), 1)
-        out["hud"] = round(float(ev.get("hud") or 0.0), 1)
+        if ev.get("facecam_measured", True):  # sem detector de rosto a "facecam" é só movimento do quadro
+            out["facecam"] = round(float(ev.get("visual_games") or 0.0), 1)
+        if int(ev.get("hud_ocr_hits") or 0) > 0:  # HUD só com texto do jogo lido (code review 2026-11-23)
+            out["hud"] = round(float(ev.get("hud") or 0.0), 1)
     return out
 
 
@@ -396,28 +416,7 @@ class LLMRouter:
                     check=True,
                 )
                 return res.stdout
-            api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-            if api_key:
-                body = json.dumps({
-                    "model": model or "claude-opus-5-5",
-                    "max_tokens": 2048,
-                    "system": system_prompt,
-                    "messages": [{"role": "user", "content": user_prompt}],
-                }).encode("utf-8")
-                req = urllib.request.Request(
-                    "https://api.anthropic.com/v1/messages",
-                    data=body,
-                    headers={
-                        "x-api-key": api_key,
-                        "anthropic-version": "2023-06-01",
-                        "Content-Type": "application/json",
-                    },
-                    method="POST",
-                )
-                with urllib.request.urlopen(req, timeout=120) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                return "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
-            raise RuntimeError("Claude CLI ('claude') e ANTHROPIC_API_KEY indisponíveis.")
+            raise RuntimeError(PAID_API_OFF.format(cli="'claude'"))
 
         if provider == "gemini":
             cli = resolve_cli_binary("agy") or resolve_cli_binary("gemini")
@@ -438,22 +437,7 @@ class LLMRouter:
                     check=True,
                 )
                 return res.stdout
-            api_key = os.environ.get("GOOGLE_API_KEY", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()
-            if api_key:
-                chosen_model = model or "gemini-2.5-flash"
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{chosen_model}:generateContent?key={api_key}"
-                body = json.dumps({
-                    "contents": [{"parts": [{"text": prompt_full}]}],
-                }).encode("utf-8")
-                req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
-                with urllib.request.urlopen(req, timeout=120) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                cands = data.get("candidates") or []
-                if cands:
-                    parts = (cands[0].get("content") or {}).get("parts") or []
-                    return "".join(p.get("text", "") for p in parts)
-                return ""
-            raise RuntimeError("Gemini/Antigravity CLI ('agy'/'gemini') e GOOGLE_API_KEY indisponíveis.")
+            raise RuntimeError(PAID_API_OFF.format(cli="'agy'/'gemini'"))
 
         raise ValueError(f"Provedor de IA desconhecido: {provider}")
 
@@ -531,14 +515,26 @@ class LLMRouter:
             n_after = _int_0_to(entry.get("extend_sentences_after"), MAX_EDGE_SENTENCES)
             pre_s = rec.get("pre_sentences") or []
             post_s = rec.get("post_sentences") or []
-            if n_before and pre_s:
-                cur_start = min(cur_start, float(pre_s[min(n_before, len(pre_s)) - 1]["start"]))
+            k_pre = min(n_before, len(pre_s)) if (n_before and pre_s) else 0
+            k_post = min(n_after, len(post_s)) if (n_after and post_s) else 0
+            if k_pre:
+                cur_start = min(cur_start, float(pre_s[k_pre - 1]["start"]))
                 changed_edges = True
-            if n_after and post_s:
-                cur_end = max(cur_end, float(post_s[min(n_after, len(post_s)) - 1]["end"]))
+            if k_post:
+                cur_end = max(cur_end, float(post_s[k_post - 1]["end"]))
                 if source_duration and source_duration > 0:
                     cur_end = min(float(source_duration), cur_end)
                 changed_edges = True
+            if k_pre or k_post:
+                # o texto e o contexto acompanham a borda nova (antes ficavam velhos para a 2ª passada,
+                # o hook_quote e o standalone — code review 2026-11-23)
+                parts = [str(x.get("text") or "").strip() for x in reversed(pre_s[:k_pre])]
+                parts.append(str(rec.get("text") or "").strip())
+                parts += [str(x.get("text") or "").strip() for x in post_s[:k_post]]
+                rec["text"] = " ".join(p for p in parts if p)
+                rec["pre_sentences"], rec["post_sentences"] = pre_s[k_pre:], post_s[k_post:]
+                rec["pre_context"], rec["post_context"] = _context_strings(rec["pre_sentences"],
+                                                                           rec["post_sentences"])
             # Reserva: provedor que ainda responda em segundos (formato anterior à 3.6.4)
             exp_start = None if n_before else entry.get("expand_start_sec")
             exp_end = None if n_after else entry.get("expand_end_sec")
@@ -580,6 +576,10 @@ class LLMRouter:
         if not candidates or ai_mode == "heuristic":
             return {"candidates": [dict(c) for c in candidates], "llm_mode_used": "heuristic"}
 
+        # Marcas da 2ª passada de uma rodada anterior (vêm no candidates.json regravado) faziam a nova 2ª passada
+        # pular esses finalistas e grudavam `confianca_baixa` velho (code review 2026-11-23). O `llm_adjustment`
+        # fica: é ele que permite descontar o ajuste anterior da nota.
+        candidates = [{k: v for k, v in c.items() if k not in STALE_PASS_KEYS} for c in candidates]
         enriched_all = attach_neighbor_context(candidates, sentences) if sentences else [dict(c) for c in candidates]
         source_duration = (source_meta or {}).get("duration")
 
@@ -642,7 +642,7 @@ class LLMRouter:
                 "text": str(item.get("text", ""))[:360],
             }
             if item.get("pre_context"):
-                row["pre_context"] = str(item["pre_context"])[:200]
+                row["pre_context"] = str(item["pre_context"])[-200:]  # mantém a [-1], a mais próxima
             if item.get("post_context"):
                 row["post_context"] = str(item["post_context"])[:180]
             if item.get("track_origin"):
@@ -669,7 +669,7 @@ class LLMRouter:
             *,
             include_triage: bool = False,
             include_context: bool = True,
-        ) -> list[str]:
+        ) -> list[tuple[str, list[int]]]:
             preamble = _context_preamble() if include_context else ""
             prefix = "Triagem do Filtro Inicial:\n" if include_triage else ""
             marker = "CANDIDATOS JSON:\n" if preamble else ""
@@ -690,7 +690,9 @@ class LLMRouter:
                 cur_len += row_len
             if cur_batch:
                 batches.append(cur_batch)
-            return [header_str + json.dumps(batch, ensure_ascii=False) for batch in batches]
+            # cada lote leva os índices que PRECISAM voltar avaliados (lote parcial = falha, Decisão B)
+            return [(header_str + json.dumps(batch, ensure_ascii=False), [int(r["index"]) for r in batch])
+                    for batch in batches]
 
         def _call_batched(
             provider_name: str,
@@ -706,7 +708,7 @@ class LLMRouter:
                 items, system_prompt, include_triage=include_triage, include_context=include_context
             )
             total_batches = len(payloads)
-            for b_idx, payload in enumerate(payloads, 1):
+            for b_idx, (payload, expected) in enumerate(payloads, 1):
                 last_problem = "resposta sem JSON válido"
                 for attempt in range(1, EDITOR_ATTEMPTS_PER_BATCH + 1):
                     print(f"  [editor {provider_name} lote {b_idx}/{total_batches}] avaliando candidatos"
@@ -718,6 +720,13 @@ class LLMRouter:
                         continue
                     parsed = _extract_json_array(raw)
                     if parsed:
+                        got = {e.get("index") for e in parsed if isinstance(e, dict)
+                               and isinstance(e.get("index"), int) and not isinstance(e.get("index"), bool)}
+                        covered = got & set(expected)
+                        if len(covered) < len(expected):  # code review 2026-11-23: antes passava em silêncio
+                            last_problem = (f"lote parcial: {len(covered)} de {len(expected)} candidatos "
+                                            "avaliados")
+                            continue
                         all_entries.extend(parsed)
                         break
                     last_problem = "resposta sem JSON válido"
@@ -727,23 +736,25 @@ class LLMRouter:
                         f"{last_problem}"[:400])
             return all_entries
 
-        def _second_pass(items: list[dict[str, Any]], provider_name: str, model_name: str | None) -> int:
+        def _second_pass(items: list[dict[str, Any]], provider_name: str, model_name: str | None
+                         ) -> tuple[int, str]:
             """3.6.4 (AC4): reavalia os ~15 finalistas em OUTRA ordem; média das 2 notas.
 
             Diferença > ORDER_DISAGREEMENT_MAX marca `confianca_baixa` e impede `ouro`. Falha da 2ª passada
-            não derruba a seleção: fica a 1ª passada. Devolve quantos finalistas ficaram com confiança baixa.
+            não derruba a seleção (fica a 1ª passada), mas o motivo volta para a saúde (code review 2026-11-23).
+            Devolve (quantos finalistas ficaram com confiança baixa, estado da passada).
             """
             order = sorted(range(len(items)),
                            key=lambda i: (-float(items[i].get("overall", 0.0)), float(items[i].get("start", 0.0))))
             order = [i for i in order[:SECOND_PASS_TOP] if items[i].get("last_pass_adjustment") is not None]
             if len(order) < 2:
-                return 0
+                return 0, "pulada: menos de 2 finalistas"
             random.Random(int(order_seed) + 1).shuffle(order)
             try:
                 entries = _call_batched(provider_name, model_name, COMPANION_SYSTEM_PROMPT,
                                         [items[i] for i in order], include_triage=False, include_context=True)
-            except EditorChiefUnavailable:
-                return 0
+            except EditorChiefUnavailable as exc:
+                return 0, f"falhou: {exc.reason}"[:300]
             low = 0
             for entry in entries:
                 if not isinstance(entry, dict):
@@ -768,27 +779,33 @@ class LLMRouter:
                     low += 1
                     if rec.get("tier") == "ouro":
                         rec["tier"] = "forte"
-            return low
+            return low, "ok"
+
+        def _model_for(provider_name: str) -> str | None:
+            # `model` é o modelo do Ollama (--llm); nunca vai como --model para Claude/Gemini (code review)
+            return model if provider_name == "ollama" else None
 
         if ai_mode in VALID_PROVIDERS:
-            parsed = _call_batched(ai_mode, model, COMPANION_SYSTEM_PROMPT, ranked, include_triage=False, include_context=True)
+            parsed = _call_batched(ai_mode, _model_for(ai_mode), COMPANION_SYSTEM_PROMPT, ranked,
+                                   include_triage=False, include_context=True)
             if not parsed:
                 raise EditorChiefUnavailable(ai_mode, "nenhuma avaliação válida")
             updated = self._apply_entries(ranked, parsed, mode_label=ai_mode, source_duration=source_duration)
-            low_conf = _second_pass(updated, ai_mode, model)
+            low_conf, pass2 = _second_pass(updated, ai_mode, _model_for(ai_mode))
             if max_per_archetype is not None and any(c.get("archetype") for c in updated):
                 updated = mmr_diversify(updated, max_per_archetype=max_per_archetype, keep_overflow=keep_overflow)
             else:
                 updated.sort(key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0))))
             return {"candidates": updated, "llm_mode_used": ai_mode, "ordem_semente": order_seed,
-                    "confianca_baixa": low_conf}
+                    "confianca_baixa": low_conf, "segunda_passada": pass2}
 
         # Modo Dupla: Stage 1 (filter_provider) -> Stage 2 (companion_provider)
         if filter_provider not in VALID_PROVIDERS or companion_provider not in VALID_PROVIDERS:
             raise ValueError("filter_provider e companion_provider devem ser ollama, claude ou gemini.")
 
         mode_label = f"dupla:{filter_provider}->{companion_provider}"
-        parsed_filter = _call_batched(filter_provider, None, FILTER_SYSTEM_PROMPT, ranked, include_triage=False, include_context=False)
+        parsed_filter = _call_batched(filter_provider, _model_for(filter_provider), FILTER_SYSTEM_PROMPT, ranked,
+                                      include_triage=False, include_context=False)
         if not parsed_filter:
             raise EditorChiefUnavailable(filter_provider, "filtro inicial sem avaliação válida")
         after_filter = self._apply_entries(ranked, parsed_filter, mode_label=filter_provider, accumulate=False, source_duration=source_duration)
@@ -802,7 +819,7 @@ class LLMRouter:
 
         parsed_companion = _call_batched(
             companion_provider,
-            model,
+            _model_for(companion_provider),
             COMPANION_SYSTEM_PROMPT,
             top_filtered,
             include_triage=True,
@@ -813,10 +830,10 @@ class LLMRouter:
         final_list = self._apply_entries(
             top_filtered, parsed_companion, mode_label=mode_label, accumulate=True, source_duration=source_duration
         )
-        low_conf = _second_pass(final_list, companion_provider, model)
+        low_conf, pass2 = _second_pass(final_list, companion_provider, _model_for(companion_provider))
 
         if max_per_archetype is not None and any(c.get("archetype") for c in final_list):
-            final_list = mmr_diversify(final_list, max_per_archetype=max_per_archetype)
+            final_list = mmr_diversify(final_list, max_per_archetype=max_per_archetype, keep_overflow=keep_overflow)
         final_list.sort(key=lambda c: (-float(c.get("overall", 0.0)), float(c.get("start", 0.0))))
         return {"candidates": final_list, "llm_mode_used": mode_label, "ordem_semente": order_seed,
-                "confianca_baixa": low_conf}
+                "confianca_baixa": low_conf, "segunda_passada": pass2}

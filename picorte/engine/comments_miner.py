@@ -1,6 +1,7 @@
 """Mineração Opcional de Comentários com Timestamp do YouTube (Épico 3.5 — Story 3.5.4).
 
-Respeita o portão P1: NUNCA minera vídeos de fontes 'desconhecida' ou 'lista_negra'.
+Respeita o portão P1: só minera fonte com status PERMITIDO pelo `policy_gate` (lista de permitidos, não de
+bloqueados — status novo, vazio ou com erro de digitação fica de fora).
 """
 from __future__ import annotations
 
@@ -10,8 +11,11 @@ import subprocess
 import sys
 from typing import Any, Callable
 from picorte.config import ytdlp_base_cmd
+from picorte.risk_shield.policy_gate import ALLOWED_PERMISSION_STATUSES, BLOCKED_PERMISSION_STATUSES  # noqa: F401
 
-BLOCKED_PERMISSION_STATUSES = {"desconhecida", "lista_negra", "pausada_por_claim", "expirada"}
+
+def _p1_allows(status: str) -> bool:
+    return status in ALLOWED_PERMISSION_STATUSES
 TIMESTAMP_RE = re.compile(r"\b(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\b")
 
 
@@ -92,7 +96,7 @@ def mine_youtube_comments(
 ) -> list[dict[str, Any]]:
     """Minera comentários com timestamp de um VOD autorizado no YouTube via yt-dlp."""
     status = str(permission_status or "desconhecida").strip().lower()
-    if status in BLOCKED_PERMISSION_STATUSES:
+    if not _p1_allows(status):
         raise PermissionError(
             f"Portão P1: mineração de comentários bloqueada para fonte com status '{status}'."
         )
@@ -161,15 +165,16 @@ def save_comment_seeds(
 
     report = on_status or (lambda status, detail="": None)
     out = Path(workdir) / "comment_seeds.json"
+    # P1 antes do cache: fonte pausada ou bloqueada depois da 1ª coleta não reaproveita os comentários.
+    if not _p1_allows(str(permission_status or "").strip().lower()):
+        report("na", f"bloqueado pelo P1 (status {permission_status!r})")
+        return None
     if out.is_file():
         report("ok", "comentários em cache")
         return out
     host = (urlparse(str(url)).netloc or "").lower()
     if not any(h in host for h in _YOUTUBE_HOSTS):
         report("na", "fonte não é YouTube")
-        return None
-    if str(permission_status or "").strip().lower() in BLOCKED_PERMISSION_STATUSES:
-        report("na", f"bloqueado pelo P1 (status {permission_status})")
         return None
 
     def _run_with_timeout(cmd, **kwargs):

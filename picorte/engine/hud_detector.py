@@ -10,13 +10,19 @@ import cv2
 import numpy as np
 
 from picorte.config import resolve_vision_preset
-from picorte.engine.visual_games import sample_video_frames
+from picorte.engine.visual_games import UnavailableBackend, degraded_reasons, sample_video_frames
 from picorte.engine.vram_runner import VRAMRunner
 
 HUD_KEYWORDS_RE = re.compile(
-    r"\b(?:KILL|DOUBLE KILL|TRIPLE KILL|ACE|CLUTCH|VICTORY|WIN|WINNER|ELIMINATED|WASTED|HEADSHOT|KNOCKED|BOOYAH)\b",
+    r"\b(?:KILL|DOUBLE KILL|TRIPLE KILL|ACE|CLUTCH|VICTORY|WIN|WINNER|ELIMINATED|WASTED|HEADSHOT|KNOCKED|BOOYAH"
+    # PT-BR (canais brasileiros; code review 2026-11-23)
+    r"|ELIMINOU|ELIMINAD[OA]S?|VIT[ÓO]RIA|VENCEDOR(?:ES)?|ABATES?|ABATID[OA]|DERRUBAD[OA]|DERRUBOU"
+    r"|NOCAUTEAD[OA]|MORT[OA]|MISS[ÃA]O (?:CUMPRIDA|FALHOU|FRACASSADA))\b",
     re.IGNORECASE,
 )
+# Sem texto do jogo lido pelo OCR, movimento no topo + objetos do YOLO (treinado no COCO: carro, cavalo, bola)
+# não dizem que houve um lance: ficam como bônus pequeno e nunca viram o sinal "hud" (code review 2026-11-23).
+NON_OCR_HUD_CAP = 2.0
 
 # Classes genéricas de COCO que representam pessoas/mobília de webcam, nunca banners de HUD.
 IGNORED_YOLO_LABELS = {
@@ -64,14 +70,14 @@ def _default_ocr_runner_factory() -> Callable[[np.ndarray, int], list[str]]:
         ocr = RapidOCR()
 
         def _run(frame: np.ndarray, _idx: int) -> list[str]:
-            result, _ = ocr(frame)
+            result, _ = ocr(frame, use_cls=False)  # texto de HUD não vem girado; sem o classificador, −25% de tempo
             if not result:
                 return []
             return [str(item[1]) for item in result if len(item) > 1]
 
         return _run
-    except Exception:
-        return lambda _frame, _idx: []
+    except Exception as exc:
+        return UnavailableBackend("RapidOCR", exc, list)
 
 
 @lru_cache(maxsize=1)
@@ -100,8 +106,8 @@ def _default_yolo_runner_factory() -> Callable[[np.ndarray], list[dict[str, Any]
             return out
 
         return _run
-    except Exception:
-        return lambda _frame: []
+    except Exception as exc:
+        return UnavailableBackend("YOLO11n", exc, list)
 
 
 def detect_hud_events(
@@ -116,6 +122,8 @@ def detect_hud_events(
     yolo_runner: Callable[[np.ndarray], list[dict[str, Any]]] | None = None,
     vram_runner: VRAMRunner | None = None,
     exclude_box: tuple[int, int, int, int] | None = None,
+    ocr_every_s: float = 0.0,
+    ocr_min_change: float = 4.0,
 ) -> dict[str, Any]:
     """Detecta eventos de HUD/Killfeed usando RapidOCR+OpticalFlow (low) ou YOLO11n+RapidOCR (high)."""
     resolved = resolve_vision_preset(vision_preset, vram_mib=vram_mib, gpu_name=gpu_name)
@@ -128,18 +136,24 @@ def detect_hud_events(
         frames = list(frames_or_video or [])
 
     if not frames:
-        return {"preset": preset, "backend_used": backend_used, "events": [], "score": 0.0}
+        return {"preset": preset, "backend_used": backend_used, "events": [], "ocr_hits": 0, "degraded": [],
+                "score": 0.0}
 
     runner = vram_runner or VRAMRunner()
     ocr_fn = ocr_runner or _default_ocr_runner_factory()
     use_yolo = preset == "high"
     yolo_fn = (yolo_runner or _default_yolo_runner_factory()) if use_yolo else None
+    degraded = degraded_reasons(ocr_fn, yolo_fn)
+    if degraded:
+        backend_used = f"{backend_used} — degradado: {'; '.join(degraded)}"
 
     def _run_stage() -> dict[str, Any]:
         events: list[dict[str, Any]] = []
         yolo_hits = 0
         flow_spikes = 0
         prev_gray: np.ndarray | None = None
+        last_ocr_ts: float | None = None
+        last_ocr_gray: np.ndarray | None = None
         dur = max(1.0, float(end) - float(start))
         dt = dur / max(1, len(frames))
 
@@ -155,7 +169,19 @@ def detect_hud_events(
                     flow_spikes += 1
             prev_gray = gray
 
-            texts = ocr_fn(top_roi, idx) or []
+            # OCR custa ~0,8 s/quadro (medido na ae5f08: ~8 textos fixos de sobreposição no topo). Com
+            # `ocr_every_s`, lê no máximo a cada N s e só se o topo mudou: o killfeed fica vários segundos na tela.
+            run_ocr = True
+            if ocr_every_s > 0:
+                if last_ocr_ts is not None and ts - last_ocr_ts < float(ocr_every_s) - 1e-6:
+                    run_ocr = False
+                elif (last_ocr_gray is not None and last_ocr_gray.shape == gray.shape
+                      and float(np.mean(cv2.absdiff(gray, last_ocr_gray))) < float(ocr_min_change)):
+                    run_ocr = False
+            texts = []
+            if run_ocr:
+                texts = ocr_fn(top_roi, idx) or []
+                last_ocr_ts, last_ocr_gray = ts, gray
             for txt in texts:
                 m = HUD_KEYWORDS_RE.search(txt)
                 if m:
@@ -175,11 +201,14 @@ def detect_hud_events(
                         events.append({"t": ts, "keyword": str(det.get("label", "HUD")).upper(), "conf": float(det["conf"])})
 
         ocr_hits = sum(1 for ev in events if "text" in ev)
-        raw = min(10.0, ocr_hits * 3.8 + min(2.4, flow_spikes * 0.8) + (min(3.5, yolo_hits * 0.7) if use_yolo else 0.0))
+        non_ocr = min(2.4, flow_spikes * 0.8) + (min(3.5, yolo_hits * 0.7) if use_yolo else 0.0)
+        raw = min(10.0, ocr_hits * 3.8 + min(NON_OCR_HUD_CAP, non_ocr))
         return {
             "preset": preset,
             "backend_used": backend_used,
             "events": events,
+            "ocr_hits": ocr_hits,
+            "degraded": degraded,
             "score": round(raw, 2),
         }
 

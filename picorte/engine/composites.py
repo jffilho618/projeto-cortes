@@ -20,11 +20,11 @@ CARD_S = 1.5
 _PIECE_DROP = ("trechos", "rank", "cold_open", "transformacoes", "layout_timeline", "bridge_text")
 
 
-SHORT_MAX_S = 60.0
+from picorte.engine.formats import SHORT_MAX_S  # noqa: E402 — limite único de Short (era 60 aqui e 59 lá)
 
 
 def _is_short(seg: dict[str, Any]) -> bool:
-    """Short de verdade: formato short e ≤ 60 s (corte longo estoura os 240 s da compilação)."""
+    """Short de verdade: formato short e ≤ SHORT_MAX_S (corte longo estoura os 240 s da compilação)."""
     dur = float(seg.get("end") or 0.0) - float(seg.get("start") or 0.0)
     return seg.get("formato", "short") == "short" and 0 < dur <= SHORT_MAX_S
 
