@@ -277,7 +277,7 @@ def _projeto_select(tmp_path: Path, monkeypatch, standalone: dict[int, float]):
 def test_select_manda_corte_sem_contexto_para_longo_e_preserva_tags(tmp_path: Path, monkeypatch):
     _projeto_select(tmp_path, monkeypatch, standalone={0: 3.0})
     segments, _ = sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude")
-    shorts = [s for s in segments if not s.get("formato")]  # a versão TikTok irmã (3.7.3) é do mesmo momento
+    shorts = [s for s in segments if s.get("formato") in ("short", "vertical_longo")]  # a versão TikTok irmã (3.7.3) é do mesmo momento
     assert [round(s["start"]) for s in shorts] == [60]
     assert "falha_tecnica" in shorts[0].get("tags", [])
     longos = json.loads((tmp_path / "longo_compilacao.json").read_text(encoding="utf-8"))

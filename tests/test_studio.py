@@ -174,7 +174,7 @@ class TestProjectOptions:
         import projects
         options = projects.validate_options({})
         assert options["min_len"] == 15
-        assert options["max_len"] == 300
+        assert options["max_len"] == 58  # code review 2026-11-23: padrão de Short (era 300)
         assert options["max_clips"] is None
         assert options["min_score"] == 8.0
         assert options["preferred_len"] is None
@@ -333,7 +333,8 @@ def test_project_detail_section_projects_are_never_playable(tmp_path):
 def test_settings_accept_null_cap_and_preferred_length():
     import projects
     options = projects.validate_options({
-        "max_clips": None, "min_score": 8.0, "preferred_len": "90s"})
+        "max_clips": None, "min_score": 8.0, "preferred_len": "90s",
+        "max_len": 300})  # o padrão agora é 58 s; aqui o teste é a leitura de "90s"
     assert options["max_clips"] is None
     assert options["preferred_len"] == 90
 

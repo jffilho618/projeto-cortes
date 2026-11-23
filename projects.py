@@ -20,7 +20,7 @@ from captions import update_transcript
 DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "loudnorm": False, "whisper_model": "auto", "device": "auto",
                    "vision_preset": "auto",
-                   "min_len": 15, "max_len": 300, "max_clips": None,
+                   "min_len": 15, "max_len": 58, "max_clips": None,  # 58 s: Short (code review 2026-11-23; era 300)
                    "min_score": 8.0, "preferred_len": None,
                    "llm": None, "ai_mode": "heuristic",
                    "ai_filter": "ollama", "ai_companion": "claude",
