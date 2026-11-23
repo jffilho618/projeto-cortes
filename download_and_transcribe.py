@@ -428,6 +428,18 @@ def write_media_transcript(video, workdir, duration, source=None,
     return out
 
 
+def _p1_gate_url(url):
+    """Portão P1 antes de baixar pela linha de comando (code review 2026-11-23): o `projects` já passava pelo
+    `gate_project_source`, mas este script baixava qualquer URL. Arquivo local não é baixado: fica de fora."""
+    if urlparse(str(url)).scheme not in {"http", "https"}:
+        return
+    import ingest
+    from picorte.db.connection import get_default_db
+    from picorte.risk_shield import source_resolver
+    meta = ingest.probe_source(url)
+    source_resolver.gate_project_source(get_default_db(), source_input=url, meta=meta)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("url")
@@ -441,6 +453,7 @@ def main():
     workdir = Path(args.workdir)
     workdir.mkdir(parents=True, exist_ok=True)
 
+    _p1_gate_url(args.url)
     video = resolve_source(args.url, workdir)
     print("Downloaded:", video, flush=True)
     transcribe(video, workdir, args.model, args.device, args.compute_type)
