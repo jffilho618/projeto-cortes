@@ -25,3 +25,23 @@ def test_download_pela_linha_de_comando_passa_pelo_portao_p1(monkeypatch, tmp_pa
                                       "--workdir", str(tmp_path)])
     with pytest.raises(PolicyViolationError):
         dt.main()
+
+
+# ------------------------------------------------------------------ W55 (decisão a): Camada 3 sem colisão com jogo
+
+def _plano(texto, t0=2.0):
+    from picorte.risk_shield.green_seal_15s import plan_green_seal_audio_and_captions
+
+    words = [{"word": w, "start": t0 + i * 0.4, "end": t0 + i * 0.4 + 0.3} for i, w in enumerate(texto.split())]
+    return plan_green_seal_audio_and_captions(words, clip_start=0.0, clip_end=60.0)
+
+
+@pytest.mark.parametrize("texto", ["that was rape", "a pedophile", "pedophilia", "child porn", "estupro"])
+def test_termos_graves_sem_colisao_com_jogo_bloqueiam(texto):
+    assert _plano(texto)["status"] == "hard_block"
+
+
+@pytest.mark.parametrize("texto", ["jogando Suicide Squad hoje", "matei o nazi", "o nazismo do jogo",
+                                   "ele vai se matar", "kill myself"])
+def test_nome_de_jogo_e_termo_sensivel_vao_para_revisao_humana_nao_abortam(texto):
+    assert _plano(texto)["status"] == "human_review"
