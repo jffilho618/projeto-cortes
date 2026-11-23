@@ -10,7 +10,8 @@ import { Carregando, ErroCarregar, Vazio } from "../../ui/Estados";
 import { Icone } from "../../ui/Icone";
 import { Ficha, type AcoesCorte } from "./Ficha";
 import { Minimapa, OndaTrecho } from "./Graficos";
-import { agrupar, aplicarBordas, filtrar, FILTROS_VAZIOS, fmt, proximo, type Agrupamento, type Filtros } from "./regras";
+import { sincronizar } from "./sincronia";
+import { agrupar, aplicarBordas, filtrar, FILTROS_VAZIOS, fmt, janelaDoCorte, proximo, rotuloFormato, type Agrupamento, type Filtros } from "./regras";
 
 const VELOCIDADES = [1, 1.5, 2];
 const DESFAZER_MS = 8000;
@@ -57,20 +58,30 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
   const visiveis = useMemo(() => filtrar(cortes, filtros), [cortes, filtros]);
   const ordem = visiveis.map((c) => c.seg);
   const atual: Corte | undefined = visiveis.find((c) => c.seg === seg) ?? visiveis[0];
-  const inicio = bordas?.start ?? atual?.start ?? 0;
-  const fim = bordas?.end ?? atual?.end ?? 0;
+  const janela = atual ? janelaDoCorte(atual) : null; // composto: o 1º trecho, não a live inteira
+  const composto = Boolean(atual && atual.trechos.length > 1);
+  const inicio = bordas?.start ?? janela?.start ?? 0;
+  const fim = bordas?.end ?? janela?.end ?? 0;
   const projeto = rev.data?.projeto;
 
   const mapa = useEnergia(projeto?.energia ? pid : null, null, null, 640);
-  const onda = useEnergia(projeto?.energia && atual ? pid : null, atual ? atual.start - 12 : null, atual ? atual.end + 12 : null);
-  const pico = useEnergia(projeto?.energia && atual ? pid : null, atual ? atual.start - 90 : null, atual ? atual.end + 60 : null, 150);
+  const onda = useEnergia(projeto?.energia && janela ? pid : null, janela ? janela.start - 12 : null, janela ? janela.end + 12 : null);
+  const pico = useEnergia(projeto?.energia && janela ? pid : null, janela ? janela.start - 90 : null, janela ? janela.end + 60 : null, 150);
 
   useEffect(() => setBordas(null), [atual?.seg]);
   useEffect(() => { if (video.current) video.current.playbackRate = velocidade; }, [velocidade, atual?.seg]);
 
+  // live longa: a fonte é só áudio; a imagem vem do proxy discovery (240p, sem som) e o som da fonte, sincronizados
+  const comProxy = Boolean(projeto?.fonte_so_audio && projeto?.imagem_proxy);
+  const trecho = atual ? `#t=${(janela ?? atual).start.toFixed(1)},${(janela ?? atual).end.toFixed(1)}` : "";
   const fonte = atual ? (atual.render.clip ?? atual.render.preview
-    ?? (projeto?.video_local ? `/media/${pid}/source#t=${atual.start.toFixed(1)},${atual.end.toFixed(1)}` : null)) : null;
-  const tocandoFonte = Boolean(fonte?.includes("/source#"));
+    ?? (projeto?.video_local ? `/media/${pid}/${comProxy ? "imagem" : "source"}${trecho}` : null)) : null;
+  const tocandoFonte = Boolean(fonte?.includes("/source#") || fonte?.includes("/imagem#"));
+  const som = useRef<HTMLAudioElement>(null);
+  useEffect(() => {
+    if (!comProxy || !tocandoFonte || !video.current || !som.current) return;
+    return sincronizar(video.current, som.current);
+  }, [comProxy, tocandoFonte, fonte]);
 
   const recarregar = () => {
     void cliente.invalidateQueries({ queryKey: ["revisao", pid] });
@@ -171,8 +182,22 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
               projeto?.prova ? "conjunto de prova" : "produção"].filter(Boolean).join(" · ")}
           </span>
           {projeto && projeto.resumo_saude.length > 0 && <p className="resumo">Saúde: {projeto.resumo_saude.join(" · ")}</p>}
+          {projeto && projeto.pedem_voce > 0 && (
+            <button type="button" className="link-fraco" onClick={() => setFiltros({ ...FILTROS_VAZIOS, p1: "precisa_de_voce" })}>
+              {projeto.pedem_voce === 1 ? "1 corte precisa de você" : `${projeto.pedem_voce} cortes precisam de você`} (Selo Verde: revisão humana antes de postar)
+            </button>
+          )}
         </div>
-        <span className="mini-espaco"><Icone nome="cad" pequeno />Confiança do projeto · {confianca.motivo || "travado"}</span>
+        {confianca.status === "travado" ? (
+          <span className="mini-espaco"><Icone nome="cad" pequeno />Confiança do projeto · {confianca.motivo || "travado"}</span>
+        ) : projeto?.confianca ? (
+          <span className="mini-espaco" title={[`sinais ok: ${projeto.confianca.sinais_ok.join(", ") || "nenhum"}`,
+            `falharam: ${projeto.confianca.sinais_falhos.join(", ") || "nenhum"}`,
+            `ausentes: ${projeto.confianca.sinais_ausentes.join(", ") || "nenhum"}`].join("\n")}>
+            Confiança do projeto · {projeto.confianca.nota.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
+            {projeto.confianca.sinais_falhos.length > 0 && ` · falharam: ${projeto.confianca.sinais_falhos.join(", ")}`}
+          </span>
+        ) : <span className="mini-espaco">Confiança do projeto · não registrada neste projeto</span>}
       </header>
 
       <section className="vod" aria-label="Minimapa do VOD">
@@ -189,9 +214,9 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
           <section className="lista-rev" aria-label="Cortes">
             <div className="agrupa"><span className="fraco">Agrupar</span>
               <div className="abas" role="group" aria-label="Agrupar">
-                {(["nenhum", "arquetipo", "jogo"] as const).map((m) => (
+                {(["nenhum", "arquetipo", "jogo", "momento"] as const).map((m) => (
                   <button key={m} type="button" className="aba" aria-selected={modo === m} onClick={() => setModo(m)}>
-                    {m === "nenhum" ? "Nenhum" : m === "arquetipo" ? "Arquétipo" : "Jogo"}
+                    {m === "nenhum" ? "Nenhum" : m === "arquetipo" ? "Arquétipo" : m === "jogo" ? "Jogo" : "Momento"}
                   </button>
                 ))}
               </div>
@@ -209,6 +234,7 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
               </select>
               <select aria-label="P1" value={filtros.p1} onChange={(e) => setFiltros({ ...filtros, p1: e.target.value as Filtros["p1"] })}>
                 <option value="">P1</option><option value="com_veredito">Com veredito</option><option value="sem_veredito">Sem veredito</option>
+                <option value="precisa_de_voce">Precisa de você</option>
               </select>
               <select aria-label="Rótulo" value={filtros.rotulo} onChange={(e) => setFiltros({ ...filtros, rotulo: e.target.value as Filtros["rotulo"] })}>
                 <option value="">Rótulo</option><option value="bom">Bom</option><option value="ruim">Ruim</option><option value="sem">Sem rótulo</option>
@@ -227,7 +253,8 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
                       <div className="lin">
                         {c.tier && <span className={`tier ${c.tier === "experimental" ? "exp" : c.tier}`}>{tax.data?.tiers?.find((t) => t.id === c.tier)?.rotulo ?? c.tier}</span>}
                         {c.arquetipo && <span>{rotuloArq(c.arquetipo)}</span>}
-                        <span className="num">{(c.end - c.start).toFixed(0)} s</span>
+                        {rotuloFormato(c.formato) && <span className="formato">{rotuloFormato(c.formato)}</span>}
+                        <span className="num">{c.duracao.toFixed(0)} s</span>
                         {c.render.clip && <span>renderizado</span>}
                         {c.decisao.descartado && <span>descartado</span>}
                         {c.decisao.rotulo === 1 && <span className="est ok"><Icone nome="ok" pequeno />bom</span>}
@@ -245,8 +272,11 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
             <section className="palco-rev" aria-label="Player">
               <div className={`tela-corte${tocandoFonte ? " larga" : ""}`}>
                 {fonte ? (
-                  <video ref={video} key={fonte} src={fonte} controls preload="metadata"
-                    onEnded={() => { if (avancar) setSeg(proximo(ordem, atual.seg, 1)); }} />
+                  <>
+                    <video ref={video} key={fonte} src={fonte} controls preload="metadata"
+                      onEnded={() => { if (avancar) setSeg(proximo(ordem, atual.seg, 1)); }} />
+                    {comProxy && tocandoFonte && <audio ref={som} key={`som-${fonte}`} src={`/media/${pid}/source`} preload="metadata" />}
+                  </>
                 ) : (
                   <div className="espaco">
                     <p className="tt">Sem vídeo para tocar</p>
@@ -256,8 +286,10 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
                   </div>
                 )}
               </div>
-              <p className="dica">{atual.render.clip ? "Render final" : atual.render.preview ? "Prévia 480p" : tocandoFonte ? "Vídeo-fonte no trecho do corte" : ""}</p>
-              {onda.data ? (
+              <p className="dica">{atual.render.clip ? "Render final" : atual.render.preview ? "Prévia 480p" : tocandoFonte ? (comProxy ? "Imagem do proxy 240p com o som da live (a fonte é só áudio)" : "Vídeo-fonte no trecho do corte") : ""}</p>
+              {composto ? (
+                <p className="dica">Composto de {atual.trechos.length} trechos ({atual.duracao.toFixed(0)} s no total): as bordas são de cada trecho e não se editam aqui; a onda e o pico mostram o 1º.</p>
+              ) : onda.data ? (
                 <OndaTrecho energia={onda.data} inicio={inicio} fim={fim}
                   aoMudar={(lado, t) => setBordas(aplicarBordas({ start: inicio, end: fim }, { [lado]: t }, projeto?.duracao_s ?? Number.MAX_SAFE_INTEGER))} />
               ) : <p className="dica">{onda.isError ? "Forma de onda indisponível." : projeto?.energia ? "Carregando a onda…" : "Forma de onda indisponível."}</p>}

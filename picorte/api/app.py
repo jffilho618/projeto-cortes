@@ -1,7 +1,9 @@
 """Fábrica do app FastAPI do Estúdio do Criador (história 6.3)."""
 from __future__ import annotations
 
+import asyncio
 import secrets
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -18,8 +20,21 @@ PAGINA_SEM_BUILD = """<!doctype html><html lang="pt-BR"><meta charset="utf-8">
 A API já responde em <code>/api/capacidades</code>.</p></body></html>"""
 
 
+def filtro_de_reset(plataforma: str = sys.platform):
+    """Tratador de exceção do laço que engole só o WinError 10054 do Proactor (navegador cancelando pedaços de
+    mídia ao pular no vídeo: ruído sem efeito no terminal do estudio.py); qualquer outra coisa segue o padrão."""
+    def tratar(laco, contexto):
+        exc = contexto.get("exception")
+        origem = f"{contexto.get('message') or ''} {contexto.get('handle') or ''}"
+        if plataforma == "win32" and isinstance(exc, ConnectionResetError) and "_call_connection_lost" in origem:
+            return
+        laco.default_exception_handler(contexto)
+    return tratar
+
+
 @asynccontextmanager
 async def _ciclo_de_vida(app: FastAPI):
+    asyncio.get_running_loop().set_exception_handler(filtro_de_reset())
     yield
     app.state.fila.fechar()  # termina o job filho ao desligar o Estúdio
 

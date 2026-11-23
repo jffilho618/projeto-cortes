@@ -39,6 +39,16 @@ def video_fonte(pid: str, request: Request):
     return FileResponse(fonte)
 
 
+@rotas.get("/media/{pid}/imagem")
+def imagem_da_fonte(pid: str, request: Request):
+    """Proxy discovery.* (só imagem) para a Revisão tocar junto com a fonte que é só áudio."""
+    from picorte.services.revisao import imagem_proxy
+    alvo = imagem_proxy(projects.project_path(request.app.state.raiz, pid).resolve())
+    if alvo is None:
+        raise FileNotFoundError("sem proxy de imagem neste projeto")
+    return FileResponse(alvo)
+
+
 @rotas.get("/media/{pid}/{pasta}/{arquivo}")
 def midia(pid: str, pasta: str, arquivo: str, request: Request):
     path = projects.project_path(request.app.state.raiz, pid).resolve()

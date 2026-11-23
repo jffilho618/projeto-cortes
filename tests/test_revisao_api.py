@@ -76,3 +76,27 @@ def test_capacidades_da_6_6(tmp_path):
     for i in ["REV-8", "REV-9", "FIL-3", "FIL-5", "FIL-6"]:
         assert caps[i]["status"] == "ligado" and caps[i]["ligou_em"] == "2026-11-22", i
     assert caps["FIL-7"]["status"] == "parcial"
+
+
+def test_fonte_so_de_audio_ganha_imagem_do_proxy(tmp_path, monkeypatch):
+    """Live longa: a fonte é audio.webm (tela preta); o discovery.mp4 (240p, sem som) dá a imagem."""
+    c, pasta = _cliente(tmp_path, monkeypatch)
+    (pasta / "audio.webm").write_bytes(b"som")
+    (pasta / "transcript.json").write_text(json.dumps({"video": str(pasta / "audio.webm"), "words": []}), encoding="utf-8")
+    proj = c.get("/api/projetos/aaaaaaaaaaaa/revisao").json()["projeto"]
+    assert proj["fonte_so_audio"] is True and proj["imagem_proxy"] is False
+    assert c.get("/media/aaaaaaaaaaaa/imagem").status_code == 404
+    (pasta / "discovery.mp4").write_bytes(b"imagem")
+    proj = c.get("/api/projetos/aaaaaaaaaaaa/revisao").json()["projeto"]
+    assert proj["imagem_proxy"] is True
+    r = c.get("/media/aaaaaaaaaaaa/imagem")
+    assert r.status_code == 200 and r.content == b"imagem"
+
+
+def test_fonte_com_video_nao_usa_proxy(tmp_path, monkeypatch):
+    c, pasta = _cliente(tmp_path, monkeypatch)
+    (pasta / "fonte.mp4").write_bytes(b"video")
+    (pasta / "discovery.mp4").write_bytes(b"imagem")
+    (pasta / "transcript.json").write_text(json.dumps({"video": str(pasta / "fonte.mp4"), "words": []}), encoding="utf-8")
+    proj = c.get("/api/projetos/aaaaaaaaaaaa/revisao").json()["projeto"]
+    assert proj["fonte_so_audio"] is False and proj["imagem_proxy"] is False

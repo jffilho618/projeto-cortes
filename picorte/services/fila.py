@@ -72,7 +72,8 @@ class FilaEstudio:
             if self.ocupado(pid):
                 raise ProjetoOcupado("Este projeto já está na fila ou rodando.")
             estado = projects.read_project(path)
-            estado.update(status="queued", stage=acao, error=None)
+            # acao_pedida: o Retomar repete a mesma ação (all = renderizar sozinho), mesmo depois de uma falha
+            estado.update(status="queued", stage=acao, error=None, acao_pedida=acao)
             projects.save_project(path, estado)
             self.barramento.publicar("job", {"projeto": pid, "fase": "na_fila", "acao": acao})
             self._futuros[pid] = self._pool.submit(self._rodar, path, acao, preview, pick)

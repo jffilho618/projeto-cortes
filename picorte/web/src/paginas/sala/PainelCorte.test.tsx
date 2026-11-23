@@ -72,9 +72,58 @@ describe("PainelCorte", () => {
     expect((lote?.init?.headers as Record<string, string>)["X-Picorte-Token"]).toBe("tok");
     expect(JSON.parse(String(lote?.init?.body))).toEqual({
       sources: ["https://www.youtube.com/watch?v=q4ekFpRjgKQ"],
-      options: { aspect: "9:16", layout: "games", ai_mode: "ollama", hunt_mode: "deep", keyframes: false },
+      options: { aspect: "9:16", layout: "games", ai_mode: "ollama", hunt_mode: "deep", keyframes: false, min_len: 15, max_len: 58 },
       acao: "prepare",
     });
+  });
+
+  it("com a 3.7 ligada: efeitos explicados e versões TikTok e Longo num interruptor real", async () => {
+    const chamadas: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      chamadas.push({ url, init });
+      if (url === "/api/config") return new Response(JSON.stringify({ token: "tok" }));
+      return new Response(JSON.stringify({ projetos: [{ id: "p1" }] }), { status: 201 });
+    }));
+    const ligadas = lista([
+      cap({ id: "SIS-6", dados: { modelos: ["qwen3.5:9b"] } }),
+      cap({ id: "REV-10", motivo: "entram sozinhos no render; o Cold Open só sai quando há clímax medido no corte (W33)" }),
+      cap({ id: "REV-11", motivo: "automático no layout Facecam + jogo, quando o motor acha a facecam" }),
+      cap({ id: "REV-12", titulo: "Versões TikTok e Longo do mesmo momento" }),
+    ]);
+    renderizar(<PainelCorte sala={sala()} caps={ligadas} taxonomia={TAX} />);
+    expect(screen.getByText(/Cold Open e Seamless Loop: entram sozinhos no render/)).toBeInTheDocument();
+    expect(screen.getByText(/Layout dinâmico: automático no layout Facecam \+ jogo/)).toBeInTheDocument();
+    const versoes = screen.getByRole("switch", { name: "Versões TikTok e Longo" });
+    expect(versoes).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(versoes);
+    fireEvent.click(screen.getByRole("button", { name: "Cortar este vídeo" }));
+    await screen.findByText(/Na fila/);
+    const corpo = JSON.parse(String(chamadas.find((c) => c.url === "/api/lote")?.init?.body));
+    expect(corpo.options.formatos_extras).toBe(false);
+  });
+
+  it("duração mínima e máxima à vista, com o padrão do motor, e validadas antes de enviar", async () => {
+    const chamadas: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      chamadas.push({ url, init });
+      if (url === "/api/config") return new Response(JSON.stringify({ token: "tok", defaults: { min_len: 15, max_len: 58 } }));
+      return new Response(JSON.stringify({ projetos: [{ id: "p1" }] }), { status: 201 });
+    }));
+    renderizar(<PainelCorte sala={sala()} caps={CAPS} taxonomia={TAX} />);
+    const minimo = await screen.findByLabelText("Duração mínima (s)");
+    const maximo = screen.getByLabelText("Duração máxima (s)");
+    await waitFor(() => expect(maximo).toHaveValue(58));
+    expect(minimo).toHaveValue(15);
+    fireEvent.change(minimo, { target: { value: "60" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cortar este vídeo" }));
+    expect(await screen.findByText("A duração mínima precisa ser menor que a máxima.")).toBeInTheDocument();
+    expect(chamadas.some((c) => c.url === "/api/lote")).toBe(false);
+    fireEvent.change(minimo, { target: { value: "20" } });
+    fireEvent.change(maximo, { target: { value: "45" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cortar este vídeo" }));
+    await screen.findByText(/Na fila/);
+    const corpo = JSON.parse(String(chamadas.find((c) => c.url === "/api/lote")?.init?.body));
+    expect([corpo.options.min_len, corpo.options.max_len]).toEqual([20, 45]);
   });
 
   it("16:9 tira o layout de facecam e cai em tela única", async () => {

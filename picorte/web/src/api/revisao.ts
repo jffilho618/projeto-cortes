@@ -15,7 +15,11 @@ export interface LinhaFila {
   criado_em: number | null;
   fonte_url: string | null;
   falha: { motivo: string; acao: "trocar_motor" | "cadastrar_fonte" | "retomar" } | null;
+  alertas: { parte: string; detalhe: string }[]; // editor e batedor que falharam sem derrubar o job
+  acao: "prepare" | "render" | "all"; // a ação pedida ao enfileirar: Retomar repete a mesma
 }
+
+export interface MotivoP1 { portao: string; texto: string }
 
 export interface Sinal {
   chave: "chat" | "audio" | "visual" | "texto";
@@ -26,6 +30,11 @@ export interface Sinal {
 }
 
 export interface Corte {
+  standalone: number | null; // 3.6.5: o corte se entende sozinho (0–10)
+  formato: string | null; // short, vertical_longo, tiktok_60, longo_16x9, compilacao, arco_2_atos
+  moment_id: string | null; // Short, TikTok e Longo do mesmo momento compartilham
+  duracao: number; // segundos; composto = soma dos trechos (não end - start)
+  trechos: { start: number; end: number }[]; // composto: cada pedaço na live
   n: number;
   seg: string;
   start: number;
@@ -38,7 +47,11 @@ export interface Corte {
   comentario: string;
   motivo: string;
   sinais: Sinal[];
-  p1: { sem_veredito: boolean; geral: string | null; por_rede: Record<string, string> };
+  p1: {
+    sem_veredito: boolean; geral: string | null; por_rede: Record<string, string>;
+    motivos: MotivoP1[]; // por que o P1 barrou, com o texto gravado no risk_verdict (vale para todas as redes)
+    motivos_por_rede: Record<string, MotivoP1[]>; // só quando as redes diferem
+  };
   render: { clip: string | null; preview: string | null };
   decisao: { rotulo: -1 | 1 | null; motivo: string; descartado: boolean; exemplo_ouro: boolean };
 }
@@ -56,6 +69,10 @@ export interface CabecalhoRevisao {
   video_local: boolean;
   energia: boolean;
   resumo_saude: string[];
+  pedem_voce: number; // cortes com veredito human_review (Selo Verde pediu olho humano)
+  fonte_so_audio: boolean; // a fonte é audio.* (live longa): tocar só ela deixa a tela preta
+  imagem_proxy: boolean; // existe discovery.* para dar a imagem
+  confianca: { nota: number; sinais_ok: string[]; sinais_falhos: string[]; sinais_ausentes: string[] } | null; // SAU-2
 }
 
 export interface Revisao {

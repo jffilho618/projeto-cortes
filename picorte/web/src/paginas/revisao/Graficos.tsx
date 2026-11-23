@@ -1,6 +1,6 @@
 import { useRef, type PointerEvent } from "react";
 import type { Corte, Energia } from "../../api/revisao";
-import { fmt } from "./regras";
+import { blocosNoMapa, fmt } from "./regras";
 
 function caminho(valores: number[], w: number, h: number, pad = 1.5) {
   const n = valores.length;
@@ -22,16 +22,13 @@ export function Minimapa({ energia, cortes, atual, aoEscolher }: {
       <svg className="minimapa" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="group"
         aria-label={`Minimapa do VOD inteiro com a posição dos ${cortes.length} cortes`}>
         <path d={area} className="pico-area" /><path d={linha} className="pico-linha" />
-        {cortes.map((c) => {
-          const x = (c.start / dur) * w;
-          return (
-            <rect key={c.seg} x={x} y={0} width={Math.max(2.5, ((c.end - c.start) / dur) * w)} height={h}
-              className={`mm-corte${c.tier === "ouro" ? " ouro" : ""}${c.seg === atual ? " atual" : ""}`}
-              onClick={() => aoEscolher(c.seg)}>
-              <title>Nº {String(c.n).padStart(2, "0")} · {fmt(c.start)}</title>
-            </rect>
-          );
-        })}
+        {cortes.flatMap((c) => blocosNoMapa(c).map((b, i) => (  // composto: um bloco por trecho, não a live inteira
+          <rect key={`${c.seg}-${i}`} x={(b.start / dur) * w} y={0} width={Math.max(2.5, ((b.end - b.start) / dur) * w)} height={h}
+            className={`mm-corte${c.tier === "ouro" ? " ouro" : ""}${c.seg === atual ? " atual" : ""}`}
+            onClick={() => aoEscolher(c.seg)}>
+            <title>Nº {String(c.n).padStart(2, "0")} · {fmt(b.start)}{c.trechos.length > 1 ? ` · trecho ${i + 1} de ${c.trechos.length}` : ""}</title>
+          </rect>
+        )))}
       </svg>
       <div className="pico-eixo num"><span>0:00</span><span>{fmt(dur / 2)}</span><span>{fmt(dur)}</span></div>
     </>

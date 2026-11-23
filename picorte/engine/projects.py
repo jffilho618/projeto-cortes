@@ -20,7 +20,7 @@ from captions import update_transcript
 DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "loudnorm": False, "whisper_model": "auto", "device": "auto",
                    "vision_preset": "auto",
-                   "min_len": 15, "max_len": 300, "max_clips": None,
+                   "min_len": 15, "max_len": 58, "max_clips": None,  # 58 s: Short (code review 2026-11-23; era 300)
                    "min_score": 8.0, "preferred_len": None,
                    "llm": None, "ai_mode": "heuristic",
                    "ai_filter": "ollama", "ai_companion": "claude",
@@ -300,6 +300,8 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
 
     try:
         if action in {"all", "prepare"}:
+            from picorte.engine import health as _health
+            _health.marcar_execucao(path, action)  # W32: o painel mostra só a saúde desta execução
             stage("source")
             source_input = state["source"]
             local = Path(source_input).expanduser()
@@ -550,6 +552,7 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                 segments = pair_short_and_long_clips(link_format_family(segments))
             except Exception:
                 pass
+            todos_segmentos = segments  # W36: a família do pHash vale para o VOD inteiro, não só o pick
             segments = score_clips.pick_segments(segments, pick)
             out = path / ("previews" if preview else "clips")
             out.mkdir(exist_ok=True)
@@ -745,7 +748,8 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                             render_clips.write_meta(enriched_seg, Path(output),
                                                     source_meta=state.get("source_meta") or {})
                         from picorte.db.connection import get_default_db
-                        from picorte.risk_shield.pipeline import attach_risk_verdict, clean_music_in_render
+                        from picorte.risk_shield.pipeline import (attach_risk_verdict, clean_music_in_render,
+                                                                  family_clip_ids)
                         music_result = clean_music_in_render(output, cache_dir=path / "stems_cache")
                         attach_risk_verdict(
                             get_default_db(),
@@ -758,6 +762,7 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                             game_slug=str((state.get("source_meta") or {}).get("detected_game") or ""),
                             music_result=music_result,
                             clip_id=f"studio-{state['id']}:{segment['id']}",
+                            family_clip_ids=family_clip_ids(state['id'], segment, todos_segmentos),
                         )
                 except (Exception, SystemExit) as exc:
                     if not render_from_sections:

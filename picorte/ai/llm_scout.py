@@ -10,7 +10,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from picorte.ai.llm_router import LLMRouter, VALID_PROVIDERS, _extract_json_array
+from picorte.ai.llm_router import MAX_CLI_PROMPT_CHARS, LLMRouter, VALID_PROVIDERS, _extract_json_array
 from picorte.engine.multitrack import CANONICAL_ARCHETYPES
 
 LONG_VOD_MAPREDUCE_SECONDS = 5400.0  # 90 min
@@ -236,21 +236,25 @@ def scout_full_vod(
         if not map_events:
             return []
         print(f"  [scout global] consolidando {len(map_events)} eventos em até {max_findings} destaques...", flush=True)
-        user_prompt = (
-            f"{header}\n\nMAPA DE EVENTOS DA LIVE INTEIRA (escolha até {max_findings} melhores):\n"
-            + "\n".join(map_events)
-        ).strip()
+        # W53 na prática (live de 4h49, 2026-11-23): 181 eventos num prompt só passavam de ~32 mil caracteres e o
+        # Windows recusava a linha de comando (WinError 206). Consolida em partes que cabem no teto do Editor.
+        intro = f"{header}\n\nMAPA DE EVENTOS DA LIVE INTEIRA (escolha até {max_findings} melhores):\n"
+        budget = max(4000, MAX_CLI_PROMPT_CHARS - len(SCOUT_SYSTEM_PROMPT) - len(intro))
+        user_prompts = [(intro + chunk).strip() for chunk in _line_chunks("\n".join(map_events), budget)]
     else:
         print(f"  [scout global] lendo VOD completo ({len(sentences)} sentenças) via {provider}...", flush=True)
-        user_prompt = (
+        user_prompts = [(
             f"{header}\n\nTRANSCRIÇÃO COMPLETA NUMERADA (escolha até {max_findings} melhores):\n"
             f"{numbered}"
-        ).strip()
+        ).strip()]
 
-    raw = router.provider_runner(provider, _model_for(provider, model), SCOUT_SYSTEM_PROMPT, user_prompt)
-    parsed = _extract_json_array(raw)
-    if parsed is None:
-        raise ScoutUnavailable("resposta sem JSON válido")
+    parsed: list[dict[str, Any]] = []
+    for user_prompt in user_prompts:
+        raw = router.provider_runner(provider, _model_for(provider, model), SCOUT_SYSTEM_PROMPT, user_prompt)
+        part = _extract_json_array(raw)
+        if part is None:
+            raise ScoutUnavailable("resposta sem JSON válido")
+        parsed.extend(part)
     if not parsed:
         return []
 

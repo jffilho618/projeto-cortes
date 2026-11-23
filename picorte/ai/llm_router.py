@@ -239,6 +239,27 @@ def mmr_diversify(
     return selected
 
 
+_AGY_MODEL_RE = re.compile(r'selected model override to backend: label="([^"]+)"')
+
+
+def _claude_models(stdout: str) -> set[str]:
+    """`claude -p --output-format json` traz `modelUsage` com o nome de cada modelo usado."""
+    try:
+        data = json.loads(stdout or "")
+    except ValueError:
+        return set()
+    usage = data.get("modelUsage") if isinstance(data, dict) else None
+    return {str(k) for k in usage} if isinstance(usage, dict) else set()
+
+
+def _agy_models(log_path: str) -> set[str]:
+    try:
+        text = Path(log_path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return set()
+    return set(_AGY_MODEL_RE.findall(text))
+
+
 def _extract_json_array(raw_text: str) -> list[dict[str, Any]] | None:
     text = (raw_text or "").strip()
     if not text:
@@ -354,6 +375,8 @@ class LLMRouter:
         self.deterministic = bool(deterministic)
         self.provider_runner = provider_runner or self._run_provider
         self.vram_runner = vram_runner or VRAMRunner()
+        # Qual modelo respondeu, por provedor (code review 2026-11-23: antes a saúde só dizia "modo gemini")
+        self.models_seen: dict[str, set[str]] = {}
 
     def _run_provider(self, provider: str, model: str | None, system_prompt: str, user_prompt: str) -> str:
         if provider == "ollama":
@@ -415,6 +438,7 @@ class LLMRouter:
                     timeout=180,
                     check=True,
                 )
+                self._note_models("claude", _claude_models(res.stdout))
                 return res.stdout
             raise RuntimeError(PAID_API_OFF.format(cli="'claude'"))
 
@@ -422,24 +446,45 @@ class LLMRouter:
             cli = resolve_cli_binary("agy") or resolve_cli_binary("gemini")
             if cli:
                 cmd = [cli, "-p", prompt_full, "--output-format", "json"]
-                if os.path.basename(cli).lower().startswith("agy"):
+                is_agy = os.path.basename(cli).lower().startswith("agy")
+                log_path = None
+                if is_agy:
                     cmd.append("--disable-slash-commands")
+                    # a resposta JSON do agy não traz o modelo; o registro dele traz (medido em 2026-11-23)
+                    fd, log_path = tempfile.mkstemp(prefix="picorte-agy-", suffix=".log")
+                    os.close(fd)
+                    cmd.extend(["--log-file", log_path])
                 if model:
                     cmd.extend(["--model", model])
-                res = subprocess.run(
-                    cmd,
-                    cwd=tempfile.gettempdir(),
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                    timeout=180,
-                    check=True,
-                )
+                try:
+                    res = subprocess.run(
+                        cmd,
+                        cwd=tempfile.gettempdir(),
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                        timeout=180,
+                        check=True,
+                    )
+                finally:
+                    if log_path:
+                        self._note_models("gemini", _agy_models(log_path))
+                        Path(log_path).unlink(missing_ok=True)
                 return res.stdout
             raise RuntimeError(PAID_API_OFF.format(cli="'agy'/'gemini'"))
 
         raise ValueError(f"Provedor de IA desconhecido: {provider}")
+
+    def _note_models(self, provider: str, models: set[str]) -> None:
+        if models:
+            self.models_seen.setdefault(provider, set()).update(models)
+
+    def models_summary(self) -> str:
+        """Texto para a saúde: quais modelos responderam, ou que o CLI não informou."""
+        if not self.models_seen:
+            return "modelo não informado pelo CLI"
+        return "; ".join(f"{p}: {', '.join(sorted(m))}" for p, m in sorted(self.models_seen.items()))
 
     def _apply_entries(
         self,

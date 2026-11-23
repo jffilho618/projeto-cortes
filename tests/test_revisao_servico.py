@@ -95,9 +95,12 @@ def test_sinal_que_falhou_aparece_como_falhou(tmp_path):
 def test_p1_por_rede_e_sem_veredito(tmp_path):
     pasta, estado = _projeto(tmp_path)
     cortes = {c["seg"]: c for c in montar_revisao(pasta, estado, {})["cortes"]}
-    assert cortes["002"]["p1"] == {"sem_veredito": False, "geral": "human_review",
-                                   "por_rede": {"youtube_shorts": "pass", "tiktok": "human_review"}}
-    assert cortes["001"]["p1"] == {"sem_veredito": True, "geral": None, "por_rede": {}}
+    assert cortes["002"]["p1"] == {
+        "sem_veredito": False, "geral": "human_review", "por_rede": {"youtube_shorts": "pass", "tiktok": "human_review"},
+        "motivos": [], "motivos_por_rede": {"youtube_shorts": [], "tiktok": [
+            {"portao": "Esta rede", "texto": "revisão humana pedida pelo P1 (motivo não registrado)"}]}}
+    assert cortes["001"]["p1"] == {"sem_veredito": True, "geral": None, "por_rede": {}, "motivos": [],
+                                   "motivos_por_rede": {}}
 
 
 def test_renders_casam_pelo_prefixo_e_decisoes_entram(tmp_path):

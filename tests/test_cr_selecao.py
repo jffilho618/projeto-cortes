@@ -343,14 +343,14 @@ def test_select_gera_versao_tiktok_e_respeita_formatos_extras(tmp_path: Path, mo
     assert health.load(tmp_path)["formatos_extras"]["status"] == "ok"
     assert health.load(tmp_path)["seamless_loop"]["status"] in ("ok", "na")
     segs, _ = sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude", formatos_extras=False)
-    assert not any(s.get("formato") for s in segs)
+    assert not any(s.get("formato") not in ("short", "vertical_longo") for s in segs)  # só o corte principal
 
 
 def test_select_em_modo_cego_nao_gera_formatos_extras(tmp_path: Path, monkeypatch):
     _projeto_select(tmp_path, monkeypatch, cegos=True)
     assert sc._benchmark_blind(tmp_path)
     segs, _ = sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude")
-    assert not any(s.get("formato") for s in segs)
+    assert not any(s.get("formato") not in ("short", "vertical_longo") for s in segs)  # só o corte principal
 
 
 def test_select_registra_falha_da_segunda_passada_na_saude(tmp_path: Path, monkeypatch):
@@ -449,3 +449,106 @@ def test_discover_leva_acertos_de_ocr_do_hud_ate_a_evidencia(tmp_path: Path, mon
     cands = json.loads((tmp_path / "candidates.json").read_text(encoding="utf-8"))["candidates"]
     medidos = [c for c in cands if (c.get("evidence") or {}).get("vision_measured")]
     assert medidos and all(c["evidence"]["hud_ocr_hits"] == 2 for c in medidos)
+
+
+# ------------------------------------------------------------------ W53 na prática: consolidação do Scout cabe no limite
+
+def test_consolidacao_do_scout_cabe_na_linha_de_comando_do_windows():
+    """Live real de 4h49 (2026-11-23): 181 eventos num prompt só → WinError 206 (linha de comando > ~32 mil)."""
+    from picorte.ai.llm_router import MAX_CLI_PROMPT_CHARS
+    from picorte.ai.llm_scout import LONG_VOD_MAPREDUCE_SECONDS, scout_full_vod
+
+    longo = [{"start": i * 20.0, "end": i * 20.0 + 18.0, "text": f"frase {i} do streamer"}
+             for i in range(int(LONG_VOD_MAPREDUCE_SECONDS * 3 / 20))]
+    tamanhos, consolidacoes = [], []
+
+    def provedor(provider, model, system_prompt, user_prompt):
+        tamanhos.append(len(system_prompt) + len(user_prompt))
+        if "BLOCO DA TRANSCRIÇÃO" in user_prompt:
+            sids = [ln.split("]")[0].lstrip("[") for ln in user_prompt.splitlines() if ln.startswith("[S")]
+            return json.dumps([{"start_sid": s, "end_sid": s, "summary": "lance comprido " * 12} for s in sids[:6]])
+        consolidacoes.append(user_prompt)
+        sid = next(ln.split("..")[0].lstrip("[") for ln in user_prompt.splitlines() if ln.startswith("[S"))
+        return json.dumps([{"start_sid": sid, "end_sid": sid, "archetype": "rage_tilt", "why": "x"}])
+
+    out = scout_full_vod(longo, router=LLMRouter(provider_runner=provedor), ai_mode="gemini", max_workers=1,
+                         max_findings=20)
+    assert max(tamanhos) <= MAX_CLI_PROMPT_CHARS + 2000
+    assert len(consolidacoes) >= 2 and out
+
+
+# ------------------------------------------------------------------ qual modelo respondeu (fim do achismo)
+
+def test_modelo_do_claude_sai_da_resposta_json(monkeypatch):
+    import picorte.ai.llm_router as lr
+
+    saida = json.dumps({"result": "[]", "modelUsage": {"claude-opus-5-5": {}, "claude-haiku-5-5": {}}})
+    monkeypatch.setattr(lr, "resolve_cli_binary", lambda n: "claude.exe" if n == "claude" else None)
+    monkeypatch.setattr(lr.subprocess, "run", lambda cmd, **k: subprocess.CompletedProcess(cmd, 0, saida, ""))
+    r = LLMRouter()
+    r._run_provider("claude", None, "s", "u")
+    assert r.models_seen["claude"] == {"claude-opus-5-5", "claude-haiku-5-5"}
+
+
+def test_modelo_do_agy_sai_do_registro_dele(monkeypatch):
+    """Medido em 2026-11-23: a resposta JSON do agy não traz o modelo; o registro (--log-file) traz."""
+    import picorte.ai.llm_router as lr
+
+    def fake_run(cmd, **k):
+        log = cmd[cmd.index("--log-file") + 1]
+        Path(log).write_text('I1123 model_config_manager.go:375] Propagating selected model override to backend: '
+                             'label="Gemini 4 Neon (High)"\n', encoding="utf-8")
+        return subprocess.CompletedProcess(cmd, 0, json.dumps({"status": "SUCCESS", "response": "[]"}), "")
+
+    monkeypatch.setattr(lr, "resolve_cli_binary", lambda n: "C:/x/agy.exe" if n == "agy" else None)
+    monkeypatch.setattr(lr.subprocess, "run", fake_run)
+    r = LLMRouter()
+    r._run_provider("gemini", None, "s", "u")
+    assert r.models_seen["gemini"] == {"Gemini 4 Neon (High)"}
+
+
+def test_saude_do_editor_diz_qual_modelo_respondeu(tmp_path: Path, monkeypatch):
+    from picorte.ai import llm_router as lr_mod
+
+    _projeto_select(tmp_path, monkeypatch)
+    original = lr_mod.LLMRouter._run_provider
+
+    def com_modelo(self, provider, model, system_prompt, user_prompt):
+        self.models_seen.setdefault(provider, set()).add("modelo-x")
+        return original(self, provider, model, system_prompt, user_prompt)
+
+    monkeypatch.setattr(lr_mod.LLMRouter, "_run_provider", com_modelo)
+    sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude")
+    assert "modelo-x" in health.load(tmp_path)["editor"]["detail"]
+
+
+def test_saude_diz_quando_o_cli_nao_informa_o_modelo(tmp_path: Path, monkeypatch):
+    _projeto_select(tmp_path, monkeypatch)  # o provedor falso não registra modelo
+    sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude")
+    assert "modelo não informado pelo CLI" in health.load(tmp_path)["editor"]["detail"]
+
+
+# ------------------------------------------------------------------ duração padrão e formato em todo corte (aprovado)
+
+def test_duracao_maxima_padrao_e_de_short():
+    """Live real do Paulinho: com o padrão de 300 s saíram 'Shorts' de 1 a 5 min."""
+    import projects
+
+    assert projects.DEFAULT_OPTIONS["max_len"] == 58
+    assert projects.validate_options({})["max_len"] == 58
+
+
+def test_todo_corte_principal_diz_o_formato():
+    from picorte.engine.formats import SHORT_MAX_S
+
+    segs = [{"start": 0.0, "end": 42.0}, {"start": 100.0, "end": 100.0 + SHORT_MAX_S + 1},
+            {"start": 300.0, "end": 360.0, "formato": "tiktok_60"}]
+    sc._label_formats(segs)
+    assert [s["formato"] for s in segs] == ["short", "vertical_longo", "tiktok_60"]
+
+
+def test_select_grava_o_formato_no_segments_json(tmp_path: Path, monkeypatch):
+    _projeto_select(tmp_path, monkeypatch)
+    segs, _ = sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude")
+    gravados = json.loads((tmp_path / "segments.json").read_text(encoding="utf-8"))
+    assert gravados and all(s.get("formato") for s in gravados)

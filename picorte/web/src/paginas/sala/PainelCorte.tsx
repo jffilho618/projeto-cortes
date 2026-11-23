@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { capacidadePorId, rotuloDoStatus } from "../../api/capacidades";
 import { enviar } from "../../api/cliente";
+import { useConfig } from "../../api/gestao";
 import { CHAVE_MESA, type ItemTaxonomia, type Sala, type Taxonomia } from "../../api/lives";
 import { CHAVE_PROJETOS } from "../../api/projetos";
 import type { Capacidade, ListaCapacidades } from "../../api/tipos";
@@ -58,13 +59,23 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
   const [caca, setCaca] = useState<"fast" | "deep">("fast");
   const [frames, setFrames] = useState(false);
   const [sozinho, setSozinho] = useState(true);
+  const [versoes, setVersoes] = useState(true); // 3.7.3: versões TikTok e Longo do mesmo momento (formatos_extras)
+  // Duração do corte (padrão aprovado pelo dono: 15–58 s); começa no padrão do motor que o /api/config devolve
+  const padrao = useConfig().data?.defaults as { min_len?: number; max_len?: number } | undefined;
+  const [minimo, setMinimo] = useState<string | null>(null);
+  const [maximo, setMaximo] = useState<string | null>(null);
+  const minAtual = minimo ?? String(padrao?.min_len ?? 15);
+  const maxAtual = maximo ?? String(padrao?.max_len ?? 58);
+  const [aviso, setAviso] = useState("");
   const motorAtual = motor ?? motorPadrao(modos, caps);
   const layoutAtual = aspecto !== "9:16" && LAYOUT_9_16.has(layout) ? "single" : layout;
 
   const cortar = useMutation({
     mutationFn: () => enviar<{ projetos: { id: string }[] }>("/api/lote", {
       sources: [sala?.video.url],
-      options: { aspect: aspecto, layout: layoutAtual, ai_mode: motorAtual, hunt_mode: caca, keyframes: frames },
+      options: { aspect: aspecto, layout: layoutAtual, ai_mode: motorAtual, hunt_mode: caca, keyframes: frames,
+        min_len: Number(minAtual), max_len: Number(maxAtual),
+        ...(capacidadePorId(caps, "REV-12").status !== "travado" ? { formatos_extras: versoes } : {}) },
       acao: sozinho ? "all" : "prepare",
     }),
     onSuccess: () => {
@@ -100,7 +111,7 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
             {(taxonomia?.aspectos ?? []).map((a) => (
               <button key={a.id} type="button" className="op" aria-pressed={aspecto === a.id} onClick={() => setAspecto(a.id)}>{a.rotulo}</button>
             ))}
-            <OpcaoTravada c={capacidadePorId(caps, "REV-12")} rotulo="Par Short + Longo" />
+            {capacidadePorId(caps, "REV-12").status === "travado" && <OpcaoTravada c={capacidadePorId(caps, "REV-12")} rotulo="Par Short + Longo" />}
           </div>
         </div>
 
@@ -113,8 +124,11 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
                   title={precisa ? "Precisa do formato 9:16." : undefined} onClick={() => setLayout(l.id)}>{l.rotulo}</button>
               );
             })}
-            <OpcaoTravada c={capacidadePorId(caps, "REV-11")} rotulo="Layout dinâmico" />
+            {capacidadePorId(caps, "REV-11").status === "travado" && <OpcaoTravada c={capacidadePorId(caps, "REV-11")} rotulo="Layout dinâmico" />}
           </div>
+          {capacidadePorId(caps, "REV-11").status !== "travado" && (
+            <span className="dica">Layout dinâmico: {capacidadePorId(caps, "REV-11").motivo}.</span>
+          )}
         </div>
 
         <div className="passo"><span className="rotulo">Motor de IA</span>
@@ -142,6 +156,18 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
           )}
         </div>
 
+        <div className="passo"><span className="rotulo">Duração de cada corte</span>
+          <div className="opcoes">
+            <label className="campo-form"><span>Duração mínima (s)</span>
+              <input className="campo-txt w-[110px]" type="number" min={5} step={1} value={minAtual} onChange={(e) => setMinimo(e.target.value)} />
+            </label>
+            <label className="campo-form"><span>Duração máxima (s)</span>
+              <input className="campo-txt w-[110px]" type="number" min={6} step={1} value={maxAtual} onChange={(e) => setMaximo(e.target.value)} />
+            </label>
+          </div>
+          <span className="dica">O corte é Short até 59 s; acima disso vira vertical longo, que não entra como Short.</span>
+        </div>
+
         <div className="passo"><span className="rotulo">Caça</span>
           <div className="opcoes">
             <button type="button" className="op" aria-pressed={caca === "fast"} onClick={() => setCaca("fast")}>Rápida</button>
@@ -150,12 +176,18 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
         </div>
 
         <div className="passo"><span className="rotulo">Efeitos de retenção</span>
-          <div className="mini-espaco"><Icone nome="cad" pequeno />
-            {(() => {
-              const c = capacidadePorId(caps, "REV-10");
-              return `Cold Open e Seamless Loop: ${rotuloDoStatus(c).toLowerCase()}${c.origem.historia ? `, chegam na história ${c.origem.historia}` : ""}.`;
-            })()}
-          </div>
+          {(() => {
+            const c = capacidadePorId(caps, "REV-10");
+            return c.status === "travado" ? (
+              <div className="mini-espaco"><Icone nome="cad" pequeno />
+                {`Cold Open e Seamless Loop: ${rotuloDoStatus(c).toLowerCase()}${c.origem.historia ? `, chegam na história ${c.origem.historia}` : ""}.`}
+              </div>
+            ) : <span className="dica">Cold Open e Seamless Loop: {c.motivo}.</span>;
+          })()}
+          {capacidadePorId(caps, "REV-12").status !== "travado" && (
+            <Interruptor ligado={versoes} onTrocar={setVersoes} rotulo="Versões TikTok e Longo"
+              dica="Cada Short ganha a versão TikTok de 60–75 s e, se ouro ou forte, a proposta de Longo 16:9." />
+          )}
         </div>
 
         <div className="passo"><span className="rotulo">Preview do enquadramento</span>
@@ -196,7 +228,13 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
       ) : (
         <>
           <button type="button" className="pilula cortar" disabled={!sala || !liberado || cortar.isPending}
-            onClick={() => cortar.mutate()}>{cortar.isPending ? "Enviando…" : "Cortar este vídeo"}</button>
+            onClick={() => {
+              const [a, b] = [Number(minAtual), Number(maxAtual)];
+              if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || a >= b) return setAviso("A duração mínima precisa ser menor que a máxima.");
+              setAviso("");
+              cortar.mutate();
+            }}>{cortar.isPending ? "Enviando…" : "Cortar este vídeo"}</button>
+          {aviso && <p className="resultado" role="alert">{aviso}</p>}
           {cortar.isError && <p className="resultado" role="alert">{cortar.error.message}</p>}
         </>
       )}

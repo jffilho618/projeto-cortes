@@ -277,7 +277,7 @@ def _projeto_select(tmp_path: Path, monkeypatch, standalone: dict[int, float]):
 def test_select_manda_corte_sem_contexto_para_longo_e_preserva_tags(tmp_path: Path, monkeypatch):
     _projeto_select(tmp_path, monkeypatch, standalone={0: 3.0})
     segments, _ = sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude")
-    shorts = [s for s in segments if not s.get("formato")]  # a versão TikTok irmã (3.7.3) é do mesmo momento
+    shorts = [s for s in segments if s.get("formato") in ("short", "vertical_longo")]  # a versão TikTok irmã (3.7.3) é do mesmo momento
     assert [round(s["start"]) for s in shorts] == [60]
     assert "falha_tecnica" in shorts[0].get("tags", [])
     longos = json.loads((tmp_path / "longo_compilacao.json").read_text(encoding="utf-8"))
@@ -639,3 +639,24 @@ def test_editor_recebe_pico_sonoro_com_instrucao_de_conferir_pela_fala():
     sinais = _measured_signals({"jumpscare_db": 27.4})
     assert sinais == {"pico_sonoro_db": 27.4}
     assert "pico_sonoro_db" in COMPANION_SYSTEM_PROMPT and "doação" in COMPANION_SYSTEM_PROMPT
+
+
+# ------------------------------------------------------------------ W46: semente que entra tarde tem áudio medido
+
+def test_semente_de_comentario_ganha_energia_do_audio_medida(tmp_path: Path):
+    """Live real do Paulinho (2026-11-23): o corte ouro veio de comentário e a Revisão dizia 'áudio não medido'."""
+    wav = tmp_path / "audio.wav"
+    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-f", "lavfi", "-i",
+                    "aevalsrc='0.3*sin(2*PI*220*t)*(0.55+0.45*sin(2*PI*0.4*t))':s=16000:d=60", str(wav)],
+                   check=True)  # volume variando: áudio plano (seno puro) não é "sinal útil" para o motor
+    (tmp_path / "transcript.json").write_text(json.dumps({
+        "video": str(wav), "duration": 60.0, "language": "pt", "words": _fala(20.0)}), encoding="utf-8")
+    (tmp_path / "comment_seeds.json").write_text(json.dumps([
+        {"start": 40.0, "end": 55.0, "text": "45:00 kkkk", "overall": 7.0, "seed_kind": "comment_timestamp",
+         "track_origin": "coop_payoff_nontextual", "evidence": {}, "score_parts": {"comment_likes": 1}}]),
+        encoding="utf-8")
+    sc.discover(tmp_path, min_len=8, max_len=30)
+    cands = json.loads((tmp_path / "candidates.json").read_text(encoding="utf-8"))["candidates"]
+    (seed,) = [c for c in cands if c.get("seed_kind") == "comment_timestamp"]
+    assert seed["evidence"].get("audio") is not None
+    assert seed["overall"] == 7.0  # a medida entra; a nota da semente não é recalibrada

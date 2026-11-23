@@ -1865,6 +1865,23 @@ def _downscale(frame, max_width):
     return cv2.resize(frame, (max_width, max(2, int(round(h * max_width / w)))), interpolation=cv2.INTER_AREA)
 
 
+def _measure_late_audio(candidates, timeline):
+    """W46 (live real do Paulinho, 2026-11-23): sementes que entram depois da evidência de áudio (comentário,
+    heatmap, pico de chat, payoff rewind) ficavam sem `evidence.audio` — a Revisão dizia "áudio não medido" no
+    corte ouro. Grava só a MEDIDA; a nota da semente (definida de propósito) não é recalibrada."""
+    if timeline is None:
+        return candidates
+    out = []
+    for cand in candidates:
+        ev = cand.get("evidence") or {}
+        if ev.get("audio") is None:
+            audio = evidence.audio_evidence(timeline, cand["start"], cand["end"])
+            if audio is not None:
+                cand = {**cand, "evidence": {**ev, "audio": round(float(audio["score"]), 3)}}
+        out.append(cand)
+    return out
+
+
 def _record_audio_health(workdir, source, timeline, audio_usable):
     """Code review 2026-11-23: a linha do tempo de áudio alimenta a evidência e o filtro P1 de silêncio digital;
     se ela não sai, isso é falha (antes sumia sem registro)."""
@@ -2065,6 +2082,17 @@ def _add_composites(workdir, segments):
                    f"{len(arcs)} arco(s) de 2 atos, {len(comps)} compilação(ões)" if (arcs or comps)
                    else "sem arco com desfecho num corte selecionado nem 4+ cortes do mesmo arquétipo")
     return list(segments) + arcs + comps
+
+
+def _label_formats(segments):
+    """Todo corte diz o formato (code review 2026-11-23): antes só os irmãos (tiktok_60, longo_16x9) e os compostos
+    tinham `formato`, e o leitor assumia "short" — um corte de 291 s aparecia como Short."""
+    from picorte.engine.formats import SHORT_MAX_S
+    for seg in segments or []:
+        if not seg.get("formato"):
+            dur = float(seg.get("end") or 0.0) - float(seg.get("start") or 0.0)
+            seg["formato"] = "short" if dur <= SHORT_MAX_S else "vertical_longo"
+    return segments
 
 
 def _split_standalone(workdir, segments):
@@ -2312,6 +2340,8 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
         except (OSError, ValueError):
             comment_seeds = []
         candidates = merge_comment_seeds(candidates, comment_seeds, sentences)
+
+    candidates = _measure_late_audio(candidates, usable_timeline)
 
     visual_scores: dict[tuple[float, float], dict[str, float]] = {}
     vision_errors: list[str] = []
@@ -2573,7 +2603,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
         _health.record(workdir, "editor", "ok",
                        f"modo {used_mode}; ordem semente {routed.get('ordem_semente')}; "
                        f"{routed.get('confianca_baixa', 0)} finalistas com confiança baixa (notas discordantes "
-                       f"entre 2 ordens){pass2_txt}")
+                       f"entre 2 ordens){pass2_txt}; {router.models_summary()}")
         if adjusted:
             by_key = {_candidate_key(item): item for item in adjusted}
             updated_cands = [
@@ -2628,6 +2658,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
     if formatos_extras and not _benchmark_blind(workdir):
         segments = _add_format_siblings(workdir, segments, discovery.get("source_duration"))
         segments = _add_composites(workdir, segments)
+    _label_formats(segments)
     _write_json(workdir / "segments.json", segments)
     _write_json(workdir / "selection.json", stats)
     _record_project_confidence(workdir)

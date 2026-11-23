@@ -5,7 +5,7 @@ from fastapi import APIRouter, Body, Request
 from fastapi.responses import JSONResponse
 
 import projects
-from picorte.services.revisao import linha_da_fila, montar_revisao
+from picorte.services.revisao import alertas_da_saude, linha_da_fila, montar_revisao
 
 rotas = APIRouter()
 
@@ -23,7 +23,8 @@ def _corpo(corpo) -> dict:
 
 @rotas.get("/api/fila")
 def fila(request: Request):
-    linhas = [linha_da_fila(p) for p in request.app.state.fila.listar()]
+    raiz = request.app.state.raiz
+    linhas = [linha_da_fila(p, alertas_da_saude(raiz / str(p.get("id")))) for p in request.app.state.fila.listar()]
     return {"producao": [l for l in linhas if not l["prova"]], "prova": [l for l in linhas if l["prova"]]}
 
 

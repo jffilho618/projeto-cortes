@@ -278,6 +278,7 @@
   .tier::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--forte); }
   .tier.ouro::before { background: var(--ouro); box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2); } .tier.ouro { color: var(--tinta); }
   .tier.exp::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--exp); }
+  .formato { height: 18px; padding: 0 6px; border-radius: 5px; background: var(--capsula); color: var(--capsula-tinta); font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; }
   .palco-rev { display: flex; flex-direction: column; gap: 12px; align-items: center; min-width: 0; }
   .tela-corte { height: min(64vh, 720px); aspect-ratio: 9 / 16; border-radius: 16px; overflow: hidden; background: #000; position: relative; box-shadow: 0 0 0 .5px var(--fio); }
   .tela-corte.larga { aspect-ratio: 16 / 9; height: auto; width: 100%; }
@@ -307,6 +308,10 @@
   .pilula[aria-pressed="true"] { box-shadow: inset 0 0 0 1.5px var(--acao); background: var(--selecao); }
   .pilula:not(.sec) kbd { background: rgba(0, 0, 0, .22); color: #fff; }
   .motivos { display: flex; gap: 6px; flex-wrap: wrap; }
+  .motivos-p1 { list-style: none; padding: 10px 12px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.4; color: var(--tinta-2); border-radius: var(--raio-ctrl); background: var(--poco); box-shadow: inset 0 0 0 .5px var(--fio); }
+  .motivos-p1 b { color: var(--tinta); font-weight: 600; }
+  .motivos-p1 .por-rede { display: grid; grid-template-columns: 130px 1fr; gap: 10px; }
+  .motivos-p1 .por-rede ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 
   /* ---------- Gestão: Fontes, Escudo, Saúde, Configurações ---------- */
   .folha { background: var(--folha); border-radius: var(--raio); box-shadow: 0 0 0 .5px var(--fio), 0 1px 2px rgba(0, 0, 0, .06); }

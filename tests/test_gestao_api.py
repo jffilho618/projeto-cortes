@@ -66,7 +66,7 @@ def test_escudo_cooldown_e_claim(tmp_path, monkeypatch):
 
 def test_saude_motor_e_benchmark(tmp_path, monkeypatch):
     c, _, _ = _cliente(tmp_path, monkeypatch)
-    assert c.get("/api/saude/motor").json() == {"partes": [], "projetos": []}
+    assert c.get("/api/saude/motor").json() == {"partes": [], "rotulos": {}, "projetos": []}
     assert c.get("/api/saude/benchmark").json() == {"versoes": [], "gabaritos": 0, "meta": 20}
 
 
