@@ -89,7 +89,9 @@ def _shift(w, clip_start, keeps):
         return None
     # words that straddle a cut keep their kept portion; pad tiny words
     e = t if t and t > s else s + 0.12
-    return {"word": w["word"], "start": round(s, 3), "end": round(e, 3)}
+    # mantém as marcas da legenda (code review 2026-11-23: com --tighten a palavra escondida voltava e a ênfase sumia)
+    flags = {k: w[k] for k in ("hidden", "emphasis") if k in w}
+    return {**flags, "word": w["word"], "start": round(s, 3), "end": round(e, 3)}
 
 
 def apply_cuts(source, keeps, clip_start, out_path, crf=18, source_offset=0.0):

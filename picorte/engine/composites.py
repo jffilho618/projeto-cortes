@@ -17,7 +17,9 @@ ARC_MAX_TOTAL_S = 180.0
 ARC_MAX_PER_VOD = 2
 MIN_PIECES = {"arco_2_atos": 2, "compilacao": 4}
 CARD_S = 1.5
-_PIECE_DROP = ("trechos", "rank", "cold_open", "transformacoes", "layout_timeline", "bridge_text")
+# code review 2026-11-23: o trecho não herda freeze, banner, título, thumbnail nem vínculo com o Longo do composto
+_PIECE_DROP = ("trechos", "rank", "cold_open", "transformacoes", "layout_timeline", "bridge_text", "freeze",
+               "context_banner_2s", "proposed_title", "thumbnail_1280x720", "parent_long_clip_id")
 
 
 from picorte.engine.formats import SHORT_MAX_S  # noqa: E402 — limite único de Short (era 60 aqui e 59 lá)
@@ -170,11 +172,16 @@ def render_composite(comp: dict[str, Any], *, out_dir: Any, render_fn: Callable[
     blocked = 0
     for i, t in enumerate(comp.get("trechos") or []):
         sub = {**base, "start": t["start"], "end": t["end"], "duration": round(t["end"] - t["start"], 2),
-               "id": f"{cid}-p{i}", "hook": f"parte-{i}", "cold_open": {"enabled": False, "motivo": "trecho"}}
+               "id": f"{cid}-p{i}", "hook": f"parte-{i}", "cold_open": {"enabled": False, "motivo": "trecho"},
+               "sem_banner": True}  # sem selo "PARTE 0" na tela
         try:
             pieces.append(Path(render_fn(sub, *render_args, out_dir=out_dir, **(render_kwargs or {}))))
         except PolicyViolationError:
             blocked += 1
+        except BaseException:
+            for p in pieces:
+                _cleanup(p)
+            raise
     need = MIN_PIECES.get(str(comp.get("formato")), 2)
     if len(pieces) < need:
         for p in pieces:
@@ -183,16 +190,18 @@ def render_composite(comp: dict[str, Any], *, out_dir: Any, render_fn: Callable[
                 "motivo": f"só {len(pieces)} trechos aprovados pelo P1 (mínimo {need})"}
     parts: list[Path] = list(pieces)
     bridge = None
-    if comp.get("formato") == "arco_2_atos" and comp.get("bridge_text") and len(pieces) >= 2:
-        bridge = out_dir / f"{cid}-ponte.mp4"
-        card(comp["bridge_text"], bridge, size=size or _probe_size(pieces[0]))
-        parts = [pieces[0], bridge, *pieces[1:]]
     final = out_dir / f"{_slug(cid)}-{_slug(comp.get('hook'))}.mp4"
-    concat(parts, final)
-    for p in pieces:
-        _cleanup(p)
-    if bridge is not None:
-        bridge.unlink(missing_ok=True)
+    try:  # falha no cartão ou na emenda não deixa trechos soltos no disco
+        if comp.get("formato") == "arco_2_atos" and comp.get("bridge_text") and len(pieces) >= 2:
+            bridge = out_dir / f"{_slug(cid)}-ponte.mp4"
+            card(comp["bridge_text"], bridge, size=size or _probe_size(pieces[0]))
+            parts = [pieces[0], bridge, *pieces[1:]]
+        concat(parts, final)
+    finally:
+        for p in pieces:
+            _cleanup(p)
+        if bridge is not None:
+            bridge.unlink(missing_ok=True)
     comp.setdefault("transformacoes", []).append(
         {"nome": str(comp.get("formato")), "trechos": len(pieces), "barrados": blocked})
     if meta_fn is not None:

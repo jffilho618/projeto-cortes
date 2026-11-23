@@ -955,13 +955,24 @@ GREEN_SEAL_MUTE_GAIN = 0.016  # -36 dB
 GREEN_SEAL_FADE_S = 0.015
 
 
-def _apply_green_seal(seg, cap_words, start, dur):
-    """Selo Verde 15s no render: censura legenda, registra bleeps (sempre recalculados) e barra a Camada 3."""
+def _green_seal_keys(*word_lists):
+    return {(round(float(w["start"]), 3), round(float(w["end"]), 3))
+            for lst in word_lists for w in (lst or []) if w.get("censored_green_seal")}
+
+
+def _apply_green_seal(seg, cap_words, start, dur, full_words=None):
+    """Selo Verde 15s no render: censura legenda, registra bleeps (sempre recalculados) e barra a Camada 3.
+
+    Code review 2026-11-23 (P1): o plano roda sobre TODAS as palavras (`full_words`) — o filtro de idioma da
+    legenda tirava o inglês do plano, mas não do áudio ("what the fuck" saía sem bleep). A censura volta para a
+    legenda pelo horário de cada palavra, inclusive a do teaser do Cold Open (antes descartada).
+    """
     from picorte.risk_shield.green_seal_15s import plan_green_seal_audio_and_captions
     from picorte.risk_shield.policy_gate import PolicyViolationError
 
     gs_plan = plan_green_seal_audio_and_captions(
-        cap_words, clip_start=start, clip_end=start + dur, cold_open_plan=seg.get("cold_open"))
+        full_words if full_words is not None else cap_words, clip_start=start, clip_end=start + dur,
+        cold_open_plan=seg.get("cold_open"))
     seg["_green_seal_bleeps"] = list(gs_plan["bleep_intervals"])
     seg["_cold_open_bleeps"] = list(gs_plan.get("cold_open_bleeps") or [])  # 3.7.1: Selo Verde no teaser
     seg["_green_seal_status"] = gs_plan["status"]
@@ -972,7 +983,10 @@ def _apply_green_seal(seg, cap_words, start, dur):
             code="green_seal_hard_block",
             details={"hits": gs_plan["hard_block_hits"]},
         )
-    return gs_plan["censored_words"]
+    keys = _green_seal_keys(gs_plan["censored_words"], gs_plan.get("cold_open_censored_words"))
+    return [{**w, "word": "***", "censored_green_seal": True}
+            if (round(float(w["start"]), 3), round(float(w["end"]), 3)) in keys else w
+            for w in cap_words]
 
 
 def _dynamic_games_chain(seg, render_src, local_start, dur, W, H, tw, th, face_box, vision_preset, workdir):
@@ -1033,6 +1047,71 @@ def _apply_freeze(seg, out, size, preview=False, tightened=False):
         return False
     from picorte.engine.edit_effects import apply_freeze
     return apply_freeze(seg, out, size=size)
+
+
+RENDER_TRANSFORMS = ("faixa_contexto", "layout_dinamico", "cold_open", "freeze_seta")
+
+
+def _reset_render_transforms(seg):
+    """O render reacrescenta estas transformações: tirar as da rodada anterior (prévia → final, ou re-render)
+    evita duplicar e inflar o score YPP. Lista nova: o main() copia o segmento raso e a lista era compartilhada."""
+    seg["transformacoes"] = [t for t in (seg.get("transformacoes") or [])
+                             if not (isinstance(t, dict) and t.get("nome") in RENDER_TRANSFORMS)]
+
+
+def _record_effects_health(workdir, seg):
+    """Freeze e Cold Open: renderizado → ok; falha do ffmpeg → failed; desligado com motivo → na.
+    Code review 2026-11-23: antes a falha só ficava no `motivo` do plano, invisível no painel de saúde."""
+    if not workdir:
+        return
+    from picorte.engine import health as _health
+    for part in ("freeze", "cold_open"):
+        plan = seg.get(part)
+        if not isinstance(plan, dict):
+            continue
+        motivo = str(plan.get("motivo") or "")
+        if plan.get("rendered"):
+            _health.record(workdir, part, "ok", f"corte {seg.get('id', '?')}")
+        elif plan.get("enabled") or "falha" in motivo:
+            _health.record(workdir, part, "failed", f"corte {seg.get('id', '?')}: {motivo or 'não renderizado'}")
+        elif motivo:
+            _health.record(workdir, part, "na", f"corte {seg.get('id', '?')}: {motivo}")
+
+
+def _srt_timeline(seg, words, start):
+    """Tempos do .srt no vídeo FINAL: o freeze insere d s no instante t e o Cold Open cola o teaser no 0:00
+    (menos o cross-fade). Antes o .srt saía com os tempos de antes dos dois (até ~2 s atrasado)."""
+    from picorte.engine.retention_engine import COLD_OPEN_XFADE_S
+    fz, co = seg.get("freeze") or {}, seg.get("cold_open") or {}
+    freeze_on = bool(fz.get("enabled") and fz.get("rendered"))
+    shift_all = 0.0
+    if co.get("enabled") and co.get("rendered"):
+        shift_all = max(0.0, float(co["teaser_end"]) - float(co["teaser_start"]) - COLD_OPEN_XFADE_S)
+    t_abs = float(start) + float(fz.get("t") or 0.0)
+    d = float(fz.get("d") or 0.0) if freeze_on else 0.0
+    if not shift_all and not d:
+        return words, 0.0
+    out = []
+    for w in words:
+        extra = shift_all + (d if freeze_on and float(w["start"]) >= t_abs else 0.0)
+        out.append({**w, "start": float(w["start"]) + extra, "end": float(w["end"]) + extra})
+    return out, shift_all + d
+
+
+def _teaser_before_freeze(seg, start):
+    """Cold Open e freeze miram o mesmo clímax: o teaser centrado nele virava meio quadro congelado com a seta.
+    Code review 2026-11-23: se o freeze cai dentro do teaser, o teaser termina NO clímax (mostra a preparação e
+    corta no ponto alto). Roda antes do Selo Verde, que calcula os bleeps do teaser pela janela nova."""
+    co, fz = seg.get("cold_open"), seg.get("freeze")
+    if not (isinstance(co, dict) and co.get("enabled") and isinstance(fz, dict) and fz.get("enabled")):
+        return
+    t_abs = float(start) + float(fz.get("t") or 0.0)
+    ts, te = float(co["teaser_start"]), float(co["teaser_end"])
+    if ts < t_abs < te:
+        span = te - ts
+        co["teaser_end"] = round(t_abs, 3)
+        co["teaser_start"] = round(max(float(start), t_abs - span), 3)
+        co["ajuste"] = "teaser termina no clímax (o freeze cai dentro dele)"
 
 
 def _apply_cold_open(seg, out, start, preview=False, tightened=False):
@@ -1117,6 +1196,7 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
     cw, ch, x0, y0 = crop_for(W, H, tw, th)
 
     cap_words = words
+    full_words = words  # Selo Verde e cortes do --tighten usam a fala inteira; o filtro de idioma é só da legenda
     if dominant_language is None and workdir:
         t_json = Path(workdir) / "transcript.json"
         if t_json.is_file():
@@ -1128,10 +1208,11 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         cap_words = filter_streamer_language_words(cap_words, dominant_language=dominant_language)
     render_src = source
     if do_tighten:
-        keeps = tighten.plan_cuts(cap_words, start, end)
+        keeps = tighten.plan_cuts(full_words, start, end)  # fala em inglês não é "silêncio" a cortar
         render_src = out_dir / "_tight_source.mp4"
         tighten.apply_cuts(source, keeps, start, render_src,
                            source_offset=offset)
+        full_words, _ = tighten.remap_words(full_words, start, keeps)
         cap_words, dur = tighten.remap_words(cap_words, start, keeps)
         print(f"  tightened: {len(keeps)} keep-ranges, "
               f"{(end - start) - dur:.1f}s removed", flush=True)
@@ -1140,7 +1221,7 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
     games_layout = layout == "games"
     games_facecam_h = ((round(th / 3.0)) // 2) * 2 if games_layout else None
     banner_text = seg.get("context_banner_2s")
-    if games_layout and not banner_text:
+    if games_layout and not banner_text and not seg.get("sem_banner"):
         banner_text = seg.get("proposed_title") or (
             str(seg["hook"]).replace("-", " ").strip() if seg.get("hook") else None
         )
@@ -1160,7 +1241,9 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
         badge_seam_top = max(0, int(games_facecam_h) - badge_h // 2)
 
     # Selo Verde 15s (P1): '***' na legenda + bleeps; Camada 3 aborta o render (nunca falha em silêncio).
-    cap_words = _apply_green_seal(seg, cap_words, start, dur)
+    _reset_render_transforms(seg)
+    _teaser_before_freeze(seg, start)
+    cap_words = _apply_green_seal(seg, cap_words, start, dur, full_words=full_words)
 
     build_ass(cap_words, start, start + dur, out_dir / "_caption.ass",
               tw, th, font_size, margin_v, style, brand, caption,
@@ -1292,7 +1375,9 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
     _record_banner(seg, banner_text)
     _apply_freeze(seg, out, (tw, th), preview=preview, tightened=do_tighten)  # 3.7.5: antes do Cold Open
     _apply_cold_open(seg, out, start, preview=preview, tightened=do_tighten)
-    write_srt(cap_words, start, start + dur, out.with_suffix(".srt"),
+    _record_effects_health(workdir, seg)
+    srt_words, srt_extra = _srt_timeline(seg, cap_words, start)
+    write_srt(srt_words, start, start + dur + srt_extra, out.with_suffix(".srt"),
               group_size=resolved["words_per_cue"])
 
     for tmpf in (out_dir / "_caption.ass", out_dir / "_crop.cmd", out_dir / "_title_badge.png"):
@@ -1322,6 +1407,25 @@ def render(seg, words, source, W, H, workdir, aspect, out_dir=None, style=DEFAUL
     print(f"SAVED {out}  ({aspect} {tw}x{th}, {mode})  "
           f"+ poster {poster.name} + {meta_path.name}", flush=True)
     return out
+
+
+def _render_batch(segments, render_one):
+    """Renderiza o lote; um corte barrado pelo P1 (ou com dado inválido) não derruba os outros.
+    Code review 2026-11-23: antes só CalledProcessError era tratado e um bloqueio do Selo Verde parava tudo."""
+    from picorte.risk_shield.policy_gate import PolicyViolationError
+    saved, failed, blocked = [], 0, []
+    for i, seg in enumerate(segments, 1):
+        cid = f"{i:03}"
+        print(f"--- Clip {i}/{len(segments)}: "
+              f"{(seg.get('hook') or '')[:60]!r} (overall {seg.get('overall')}) ---", flush=True)
+        try:
+            saved.append(str(render_one({**seg, "id": cid})))
+        except PolicyViolationError as e:
+            blocked.append(f"corte {cid}: {e}")
+        except (subprocess.CalledProcessError, ValueError) as e:
+            print(f"ERROR rendering clip {i}: {e}", flush=True)
+            failed += 1
+    return saved, failed, blocked
 
 
 def main():
@@ -1371,21 +1475,18 @@ def main():
           f"(style={args.style}, tighten={args.tighten}) -> {out_dir}", flush=True)
 
     saved = []
-    failed = 0
-    for i, seg in enumerate(segments, 1):
-        print(f"--- Clip {i}/{len(segments)}: "
-              f"{seg.get('hook', '')[:60]!r} (overall {seg.get('overall')}) ---",
-              flush=True)
-        try:
-            saved.append(str(render({**seg, "id": f"{i:03}"}, words, source, W, H, workdir, args.aspect,
-                                    out_dir=out_dir, style=args.style,
-                                    do_tighten=args.tighten, loudnorm=args.loudnorm,
-                                    preview=args.preview, brand=brand,
-                                    layout=args.layout, centers=args.centers,
-                                    caption=caption)))
-        except subprocess.CalledProcessError as e:
-            print(f"ERROR rendering clip {i}: {e}", flush=True)
-            failed += 1
+    def _one(seg):
+        return render(seg, words, source, W, H, workdir, args.aspect,
+                      out_dir=out_dir, style=args.style,
+                      do_tighten=args.tighten, loudnorm=args.loudnorm,
+                      preview=args.preview, brand=brand,
+                      layout=args.layout, centers=args.centers,
+                      caption=caption)
+
+    done, failed, blocked = _render_batch(segments, _one)
+    saved.extend(done)
+    for line in blocked:
+        print(f"BLOQUEADO (P1): {line}", flush=True)
 
     print("RENDERED", len(saved), "clips:", flush=True)
     for s in saved:
