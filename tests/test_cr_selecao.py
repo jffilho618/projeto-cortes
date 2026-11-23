@@ -449,3 +449,29 @@ def test_discover_leva_acertos_de_ocr_do_hud_ate_a_evidencia(tmp_path: Path, mon
     cands = json.loads((tmp_path / "candidates.json").read_text(encoding="utf-8"))["candidates"]
     medidos = [c for c in cands if (c.get("evidence") or {}).get("vision_measured")]
     assert medidos and all(c["evidence"]["hud_ocr_hits"] == 2 for c in medidos)
+
+
+# ------------------------------------------------------------------ W53 na prática: consolidação do Scout cabe no limite
+
+def test_consolidacao_do_scout_cabe_na_linha_de_comando_do_windows():
+    """Live real de 4h49 (2026-11-23): 181 eventos num prompt só → WinError 206 (linha de comando > ~32 mil)."""
+    from picorte.ai.llm_router import MAX_CLI_PROMPT_CHARS
+    from picorte.ai.llm_scout import LONG_VOD_MAPREDUCE_SECONDS, scout_full_vod
+
+    longo = [{"start": i * 20.0, "end": i * 20.0 + 18.0, "text": f"frase {i} do streamer"}
+             for i in range(int(LONG_VOD_MAPREDUCE_SECONDS * 3 / 20))]
+    tamanhos, consolidacoes = [], []
+
+    def provedor(provider, model, system_prompt, user_prompt):
+        tamanhos.append(len(system_prompt) + len(user_prompt))
+        if "BLOCO DA TRANSCRIÇÃO" in user_prompt:
+            sids = [ln.split("]")[0].lstrip("[") for ln in user_prompt.splitlines() if ln.startswith("[S")]
+            return json.dumps([{"start_sid": s, "end_sid": s, "summary": "lance comprido " * 12} for s in sids[:6]])
+        consolidacoes.append(user_prompt)
+        sid = next(ln.split("..")[0].lstrip("[") for ln in user_prompt.splitlines() if ln.startswith("[S"))
+        return json.dumps([{"start_sid": sid, "end_sid": sid, "archetype": "rage_tilt", "why": "x"}])
+
+    out = scout_full_vod(longo, router=LLMRouter(provider_runner=provedor), ai_mode="gemini", max_workers=1,
+                         max_findings=20)
+    assert max(tamanhos) <= MAX_CLI_PROMPT_CHARS + 2000
+    assert len(consolidacoes) >= 2 and out

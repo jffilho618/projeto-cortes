@@ -1865,6 +1865,23 @@ def _downscale(frame, max_width):
     return cv2.resize(frame, (max_width, max(2, int(round(h * max_width / w)))), interpolation=cv2.INTER_AREA)
 
 
+def _measure_late_audio(candidates, timeline):
+    """W46 (live real do Paulinho, 2026-11-23): sementes que entram depois da evidência de áudio (comentário,
+    heatmap, pico de chat, payoff rewind) ficavam sem `evidence.audio` — a Revisão dizia "áudio não medido" no
+    corte ouro. Grava só a MEDIDA; a nota da semente (definida de propósito) não é recalibrada."""
+    if timeline is None:
+        return candidates
+    out = []
+    for cand in candidates:
+        ev = cand.get("evidence") or {}
+        if ev.get("audio") is None:
+            audio = evidence.audio_evidence(timeline, cand["start"], cand["end"])
+            if audio is not None:
+                cand = {**cand, "evidence": {**ev, "audio": round(float(audio["score"]), 3)}}
+        out.append(cand)
+    return out
+
+
 def _record_audio_health(workdir, source, timeline, audio_usable):
     """Code review 2026-11-23: a linha do tempo de áudio alimenta a evidência e o filtro P1 de silêncio digital;
     se ela não sai, isso é falha (antes sumia sem registro)."""
@@ -2312,6 +2329,8 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
         except (OSError, ValueError):
             comment_seeds = []
         candidates = merge_comment_seeds(candidates, comment_seeds, sentences)
+
+    candidates = _measure_late_audio(candidates, usable_timeline)
 
     visual_scores: dict[tuple[float, float], dict[str, float]] = {}
     vision_errors: list[str] = []
