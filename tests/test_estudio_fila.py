@@ -106,3 +106,24 @@ def test_acao_e_selecao_invalidas(tmp_path):
     with pytest.raises(ValueError):
         fila.enfileirar(PID, "render", pick="1;rm")
     fila.fechar()
+
+
+def test_acao_pedida_fica_no_projeto_e_sobrevive_a_falha(tmp_path):
+    """Live do Paulinho (2026-11-23): criado com "all", o Editor parou no limite do Claude; ao trocar o motor, o
+    painel reenfileirava "prepare" e nada era renderizado. A ação pedida precisa ficar salva no projeto."""
+    from picorte.services.revisao import linha_da_fila
+
+    path = _projeto(tmp_path)
+    fila = FilaEstudio(tmp_path, executar=lambda *a: (_ for _ in ()).throw(RuntimeError("[Editor-Chefe] limite do Claude")))
+    fila.enfileirar(PID, "all")
+    fila._futuros[PID].result(timeout=5)
+    estado = projects.read_project(path)
+    assert estado["status"] == "failed" and estado["acao_pedida"] == "all"
+    assert linha_da_fila(estado)["acao"] == "all"
+    fila.fechar()
+
+
+def test_projeto_antigo_sem_acao_pedida_retoma_com_prepare(tmp_path):
+    from picorte.services.revisao import linha_da_fila
+
+    assert linha_da_fila({"id": "x", "status": "failed"})["acao"] == "prepare"

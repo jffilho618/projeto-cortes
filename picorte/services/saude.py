@@ -37,6 +37,18 @@ _ORDEM = {parte: i for i, parte in enumerate(ROTULOS_PARTE)}
 _SINAIS_DEGRADACAO = ("degradado", "mediapipe", "rosto pequeno")
 
 
+def confianca_do_projeto(saude: dict[str, Any]) -> dict[str, Any] | None:
+    """SAU-2 (3.6.5): nota e sinais do `confianca_projeto` da saúde; ausente ou ilegível vira None (A5)."""
+    parte = saude.get("confianca_projeto") if isinstance(saude, dict) else None
+    try:
+        dados = json.loads(str((parte or {}).get("detail") or ""))
+    except ValueError:
+        return None
+    if not isinstance(dados, dict) or not isinstance(dados.get("nota"), (int, float)):
+        return None
+    return {"nota": dados["nota"], **{k: list(dados.get(k) or []) for k in ("sinais_ok", "sinais_falhos", "sinais_ausentes")}}
+
+
 def rotulo_parte(parte: str) -> str:
     return ROTULOS_PARTE.get(parte, parte.replace("_", " "))
 
@@ -85,7 +97,7 @@ def matriz_motor(raiz: Path, projetos: list[dict[str, Any]]) -> dict[str, Any]:
         partes.update(celulas)
         anteriores = len(todas) - len(atuais)
         linhas.append({"id": p.get("id"), "titulo": _titulo(p), "resumo": _resumo(celulas, anteriores),
-                       "celulas": celulas, "anteriores": anteriores})
+                       "celulas": celulas, "anteriores": anteriores, "confianca": confianca_do_projeto(atuais)})
     ordem = sorted(partes, key=lambda p: (_ORDEM.get(p, 999), p))
     return {"partes": ordem, "rotulos": {p: rotulo_parte(p) for p in ordem}, "projetos": linhas}
 

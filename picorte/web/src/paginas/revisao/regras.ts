@@ -25,10 +25,23 @@ export function filtrar(cortes: Corte[], f: Filtros): Corte[] {
   });
 }
 
-export type Agrupamento = "nenhum" | "arquetipo" | "jogo";
+export type Agrupamento = "nenhum" | "arquetipo" | "jogo" | "momento";
 
 export function agrupar(cortes: Corte[], modo: Agrupamento, rotuloArquetipo: (id: string) => string, jogo?: string | null) {
   if (modo === "nenhum") return [{ titulo: null as string | null, cortes }];
+  if (modo === "momento") {  // Short, TikTok e Longo do mesmo momento juntos; sem moment_id, cada um no seu
+    const porMomento = new Map<string, Corte[]>();
+    for (const c of cortes) {
+      const chave = c.moment_id ?? `corte:${c.seg}`;
+      porMomento.set(chave, [...(porMomento.get(chave) ?? []), c]);
+    }
+    const listas = [...porMomento.values()];
+    const avulsos = listas.filter((l) => l.length === 1).flat();
+    return [
+      ...listas.filter((l) => l.length > 1).map((l) => ({ titulo: `${l[0].titulo} · ${l.length} formatos` as string | null, cortes: l })),
+      ...(avulsos.length ? [{ titulo: "Um formato só" as string | null, cortes: avulsos }] : []),
+    ];
+  }
   const grupos = new Map<string, Corte[]>();
   for (const c of cortes) {
     const chave = modo === "jogo" ? jogo || "Jogo não detectado" : c.arquetipo ? rotuloArquetipo(c.arquetipo) : "Sem arquétipo";
@@ -69,4 +82,24 @@ export function textoP1(status: string | null): { texto: string; tom: "ok" | "ba
   if (status === "hard_block" || status === "audit_error") return { texto: "barrado", tom: "bar" };
   if (!status) return { texto: "sem veredito · re-auditar", tom: "av" };
   return { texto: "precisa de você", tom: "av" };
+}
+
+const FORMATOS: Record<string, string> = {
+  short: "Short", vertical_longo: "Vertical longo (não é Short)", tiktok_60: "TikTok", longo_16x9: "Longo 16:9",
+  compilacao: "Compilação", arco_2_atos: "Arco de 2 atos",
+};
+
+/** Rótulo do formato do corte; null quando o projeto é de antes do campo (nada inventado). */
+export function rotuloFormato(formato: string | null): string | null {
+  return formato ? FORMATOS[formato] ?? formato : null;
+}
+
+/** Janela do corte na live: num composto (compilação, arco), o 1º trecho; senão, início e fim. */
+export function janelaDoCorte(c: Corte): { start: number; end: number } {
+  return c.trechos.length ? c.trechos[0] : { start: c.start, end: c.end };
+}
+
+/** O que o minimapa desenha: cada trecho do composto, ou o corte inteiro. */
+export function blocosNoMapa(c: Corte): { start: number; end: number }[] {
+  return c.trechos.length ? c.trechos : [{ start: c.start, end: c.end }];
 }

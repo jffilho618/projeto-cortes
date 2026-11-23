@@ -22,7 +22,7 @@ function TrocarMotor({ linha, aoFeito }: { linha: LinhaFila; aoFeito: () => void
   const trocar = useMutation({
     mutationFn: async () => {
       await enviar(`/api/projetos/${linha.id}/settings`, { ai_mode: motor });
-      await enviar(`/api/projetos/${linha.id}/run`, { action: "prepare" });
+      await enviar(`/api/projetos/${linha.id}/run`, { action: linha.acao }); // a mesma ação pedida (all = renderizar sozinho)
     },
     onSuccess: aoFeito,
     onError: (e) => setErro(e instanceof Error ? e.message : String(e)),
@@ -50,7 +50,7 @@ function Linha({ linha }: { linha: LinhaFila }) {
     void cliente.invalidateQueries({ queryKey: CHAVE_PROJETOS });
     void cliente.invalidateQueries({ queryKey: CHAVE_MESA });
   };
-  const retomar = useMutation({ mutationFn: () => enviar(`/api/projetos/${linha.id}/run`, { action: "prepare" }), onSuccess: atualizar });
+  const retomar = useMutation({ mutationFn: () => enviar(`/api/projetos/${linha.id}/run`, { action: linha.acao }), onSuccess: atualizar });
   const revisavel = linha.status === "review" || linha.status === "complete";
   const pct = linha.progresso ? Math.round((linha.progresso.feito / linha.progresso.total) * 100) : null;
   return (

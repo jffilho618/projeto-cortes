@@ -17,7 +17,7 @@ def test_endpoint_devolve_o_contrato(tmp_path):
     r = _cliente(tmp_path, cache_falso()).get("/api/capacidades")
     assert r.status_code == 200
     dados = r.json()
-    assert len(dados["capacidades"]) == 82
+    assert len(dados["capacidades"]) == 83
     assert dados["capacidades"][0]["id"] == "SIS-1"
 
 

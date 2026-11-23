@@ -18,7 +18,8 @@ export interface Escudo { cooldowns: Record<string, { ate: string; motivo: strin
 export interface CelulaSaude { status: string; detalhe: string; em: string | null; conhecida: string | null }
 export interface MatrizSaude {
   partes: string[]; rotulos: Record<string, string>;
-  projetos: { id: string; titulo: string; resumo: string; anteriores: number; celulas: Record<string, CelulaSaude> }[];
+  projetos: { id: string; titulo: string; resumo: string; anteriores: number; celulas: Record<string, CelulaSaude>;
+    confianca?: { nota: number; sinais_falhos: string[] } | null }[];
 }
 export interface Benchmark {
   versoes: { label: string; data: string; n: number; amostra_pequena: boolean; arquivo: string;

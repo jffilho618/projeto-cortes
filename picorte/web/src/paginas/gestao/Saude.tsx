@@ -35,7 +35,7 @@ function Motor() {
               {q.data.projetos.map((p) => (
                 <tr key={p.id}>
                   <th scope="row" className="titulo-linha"><Link to={`/revisao?projeto=${p.id}`} title={p.titulo}>{p.titulo}</Link></th>
-                  <td className="meta">{p.resumo}</td>
+                  <td className="meta">{p.resumo}{p.confianca ? ` · confiança ${p.confianca.nota.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}` : ""}</td>
                   {q.data.partes.map((parte) => {
                     const c = p.celulas[parte];
                     if (!c) return <td key={parte} className="meta">—</td>;

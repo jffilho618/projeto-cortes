@@ -5,7 +5,7 @@ import type { Corte, MotivoP1 } from "../../api/revisao";
 import type { ListaCapacidades } from "../../api/tipos";
 import { Icone } from "../../ui/Icone";
 import { PicoOrigem } from "./Graficos";
-import { textoP1 } from "./regras";
+import { janelaDoCorte, textoP1 } from "./regras";
 import type { Energia } from "../../api/revisao";
 
 export const MOTIVOS_RUIM = ["título ruim", "borda errada", "momento fraco", "já publicado"] as const;
@@ -68,7 +68,8 @@ export function Ficha({ corte: c, taxonomia, caps, pico, picoErro, acoes, mensag
       {c.motivo && <div className="campo-ro"><span>Por que o motor escolheu</span><p>{c.motivo}</p></div>}
 
       <div className="grupo"><h3>Pico de origem</h3>
-        {pico ? <PicoOrigem energia={pico} corte={c} /> : <p className="dica">{picoErro ?? "Carregando a energia do áudio…"}</p>}
+        {pico ? <PicoOrigem energia={pico} corte={{ ...c, ...janelaDoCorte(c) }} /> : <p className="dica">{picoErro ?? "Carregando a energia do áudio…"}</p>}
+        {c.trechos.length > 1 && <p className="dica">Composto de {c.trechos.length} trechos: a curva mostra o 1º.</p>}
         <p className="dica mt-1.5">Camada medida: energia do áudio. Chat, comentários e heatmap ainda não entram na curva.</p>
       </div>
 
@@ -110,7 +111,12 @@ export function Ficha({ corte: c, taxonomia, caps, pico, picoErro, acoes, mensag
         <MotivosP1 c={c} />
       </div>
 
-      <div className="mini-espaco"><Icone nome="cad" pequeno />Entende sozinho? · {standalone.motivo || "travado"}</div>
+      {standalone.status === "travado" ? (
+        <div className="mini-espaco"><Icone nome="cad" pequeno />Entende sozinho? · {standalone.motivo || "travado"}</div>
+      ) : (
+        <div className="mini-espaco">Entende sozinho? · {c.standalone === null ? "não medido neste corte"
+          : `${c.standalone.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} de 10`}</div>
+      )}
 
       <div className="acoes-rev">
         <button type="button" className="pilula sec" aria-pressed={c.decisao.rotulo === 1}

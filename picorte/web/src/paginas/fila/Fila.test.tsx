@@ -1,12 +1,12 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LinhaFila } from "../../api/revisao";
-import { renderizar } from "../../testes/fabrica";
+import { cap, renderizar } from "../../testes/fabrica";
 import { Fila } from "./Fila";
 
 const linha = (extra: Partial<LinhaFila>): LinhaFila => ({
   id: "p1", titulo: "EMBOSCADOS!", streamer: "ALANZOKA", jogo: "gta6", status: "review", estagio: "Pronto para revisar",
-  progresso: null, motor: "ollama", prova: false, criado_em: null, fonte_url: null, falha: null, alertas: [], ...extra,
+  progresso: null, motor: "ollama", prova: false, criado_em: null, fonte_url: null, falha: null, alertas: [], acao: "prepare", ...extra,
 });
 
 function backend(producao: LinhaFila[], prova: LinhaFila[] = []) {
@@ -46,5 +46,30 @@ describe("Fila", () => {
     expect(await screen.findByText("Nada na fila. Corte um vídeo pela vitrine.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: /Conjunto de prova/ }));
     expect(await screen.findByText("VOD do benchmark")).toBeInTheDocument();
+  });
+
+  it("Retomar e Trocar motor repetem a ação pedida (renderizar sozinho não se perde)", async () => {
+    const posts: { url: string; corpo: unknown }[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        posts.push({ url, corpo: JSON.parse(String(init.body)) });
+        return new Response("{}");
+      }
+      if (url === "/api/config") return new Response('{"token":"t"}');
+      if (url === "/api/fila") return new Response(JSON.stringify({ prova: [], producao: [
+        linha({ id: "a", status: "interrupted", acao: "all", falha: { motivo: "parou", acao: "retomar" } }),
+        linha({ id: "b", status: "failed", acao: "all", falha: { motivo: "[Editor-Chefe] limite do Claude", acao: "trocar_motor" } }),
+      ] }));
+      if (url.startsWith("/api/capacidades")) return new Response(JSON.stringify({ gerado_em: "", resumo: {}, capacidades: [cap({ id: "SIS-7" })] }));
+      if (url.startsWith("/api/taxonomia")) return new Response(JSON.stringify({ aspectos: [], layouts: [], modos_ia: [{ id: "gemini", rotulo: "Só Gemini" }] }));
+      return new Response("{}");
+    }));
+    renderizar(<Fila />);
+    fireEvent.click(await screen.findByRole("button", { name: "Retomar" }));
+    await waitFor(() => expect(posts).toContainEqual({ url: "/api/projetos/a/run", corpo: { action: "all" } }));
+    fireEvent.change(await screen.findByLabelText("Trocar para"), { target: { value: "gemini" } });
+    fireEvent.click(screen.getByRole("button", { name: "Trocar motor e retomar" }));
+    await waitFor(() => expect(posts).toContainEqual({ url: "/api/projetos/b/run", corpo: { action: "all" } }));
+    expect(posts).toContainEqual({ url: "/api/projetos/b/settings", corpo: { ai_mode: "gemini" } });
   });
 });

@@ -13,8 +13,19 @@ MARCA = {"inicio": "2026-11-23T07:00:00+00:00", "acao": "prepare"}
 
 def test_visao_degradada_traz_o_aviso_da_w49(tmp_path: Path):
     saude = {"vision": {"status": "failed", "detail": "12 candidatos medidos, mas degradado: MediaPipe indisponível"}}
-    (visao,) = [s for s in _sinais({"evidence": {}}, saude, tmp_path) if s["chave"] == "visual"]
+    medido = {"evidence": {"vision_measured": True, "facecam_measured": False, "visual_games": 3.5}}
+    (visao,) = [s for s in _sinais(medido, saude, tmp_path) if s["chave"] == "visual"]
     assert visao["estado"] == "falhou" and "W49" in visao["motivo"] and "MediaPipe" in visao["motivo"]
+
+
+def test_corte_que_a_visao_nao_analisou_diz_isso(tmp_path: Path):
+    """A visão só analisa os primeiros candidatos: corte fora deles não 'falhou' nem 'a visão não rodou'."""
+    for saude in ({"vision": {"status": "ok", "detail": "12 candidatos medidos"}},
+                  {"vision": {"status": "failed", "detail": "12 candidatos medidos, mas degradado: MediaPipe"}}):
+        (visao,) = [s for s in _sinais({"evidence": {}}, saude, tmp_path) if s["chave"] == "visual"]
+        assert (visao["estado"], visao["motivo"]) == ("nao_medido", "a visão não analisou este corte")
+    (sem,) = [s for s in _sinais({"evidence": {}}, {}, tmp_path) if s["chave"] == "visual"]
+    assert sem["motivo"] == "a visão não rodou"  # sem a parte vision na saúde, segue igual
 
 
 def test_alertas_so_do_editor_e_do_batedor_na_ultima_execucao(tmp_path: Path):

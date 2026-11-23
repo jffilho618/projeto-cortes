@@ -105,6 +105,7 @@ def linha_da_fila(estado: dict[str, Any], alertas: list[dict[str, str]] | None =
         "fonte_url": estado.get("source"),
         "falha": _falha(estado),
         "alertas": alertas or [],
+        "acao": estado.get("acao_pedida") if estado.get("acao_pedida") in {"prepare", "render", "all"} else "prepare",
     }
 
 
@@ -116,6 +117,13 @@ def _sinais(seg: dict[str, Any], saude: dict[str, Any], pasta: Path) -> list[dic
         parte = saude.get(PARTE_SAUDE[chave]) if isinstance(saude.get(PARTE_SAUDE[chave]), dict) else {}
         if valor is not None:
             saida.append({"chave": chave, "nome": nome, "estado": "medido", "valor": valor, "motivo": ""})
+            continue
+        if (chave == "visual" and (saude.get("vision") or {}).get("status") in {"ok", "failed"}
+                and (seg.get("evidence") or {}).get("vision_measured") is not True):
+            # a visão rodou, mas só analisa os primeiros candidatos: este ficou de fora (não é falha nem "não rodou");
+            # com a visão "na" (não rodou), o motivo da saúde vale, como antes
+            saida.append({"chave": chave, "nome": nome, "estado": "nao_medido", "valor": None,
+                          "motivo": "a visão não analisou este corte"})
             continue
         if parte.get("status") == "failed":
             from picorte.services.saude import degradacao_conhecida
@@ -208,6 +216,27 @@ def _p1(pasta: Path, seg_id: str) -> dict[str, Any]:
     return {"sem_veredito": True, "geral": None, "por_rede": {}, "motivos": [], "motivos_por_rede": {}}
 
 
+EXTENSOES_VIDEO = {".mp4", ".webm", ".mkv", ".mov"}
+
+
+def fonte_so_audio(video: Any) -> bool:
+    """Live longa: o motor baixa só o áudio (audio.*); tocar a fonte deixa a tela preta."""
+    return bool(video) and Path(str(video)).name.lower().startswith("audio.")
+
+
+def imagem_proxy(pasta: Path) -> Path | None:
+    """Proxy leve da descoberta (discovery.*, 240p, sem som): dá imagem a uma fonte que é só áudio."""
+    achados = sorted(f for f in Path(pasta).glob("discovery.*") if f.suffix.lower() in EXTENSOES_VIDEO and f.is_file())
+    return achados[0] if achados else None
+
+
+def _duracao(seg: dict[str, Any]) -> float:
+    d = seg.get("duration")
+    if isinstance(d, (int, float)) and d > 0:
+        return round(float(d), 2)
+    return round(float(seg.get("end") or 0) - float(seg.get("start") or 0), 2)
+
+
 def montar_revisao(pasta: Path, estado: dict[str, Any], decisoes: dict[str, dict[str, Any]]) -> dict[str, Any]:
     pasta = Path(pasta)
     segmentos = _ler(pasta / "segments.json", [])
@@ -224,6 +253,13 @@ def montar_revisao(pasta: Path, estado: dict[str, Any], decisoes: dict[str, dict
         cortes.append({
             "n": n, "seg": seg_id,
             "start": float(seg.get("start") or 0), "end": float(seg.get("end") or 0),
+            # formato (short/vertical_longo/tiktok_60/longo_16x9/compilacao/arco_2_atos) e família (moment_id);
+            # composto: a duração é a soma dos trechos (campo duration), não end - start, que cobre a live inteira
+            "formato": seg.get("formato") if isinstance(seg.get("formato"), str) else None,
+            "moment_id": seg.get("moment_id") if isinstance(seg.get("moment_id"), str) else None,
+            "duracao": _duracao(seg),
+            "trechos": [{"start": float(t["start"]), "end": float(t["end"])} for t in seg.get("trechos") or []
+                        if isinstance(t, dict) and "start" in t and "end" in t],
             "titulo": str(seg.get("proposed_title") or seg.get("hook") or f"Corte {n}"),
             "hook": str(seg.get("hook") or ""),
             "arquetipo": seg.get("archetype"), "tier": seg.get("tier"),
@@ -232,6 +268,7 @@ def montar_revisao(pasta: Path, estado: dict[str, Any], decisoes: dict[str, dict
             "motivo": str(seg.get("why_extraordinary") or seg.get("reason") or ""),
             "sinais": sinais,
             "p1": _p1(pasta, seg_id),
+            "standalone": seg.get("standalone") if isinstance(seg.get("standalone"), (int, float)) else None,
             "render": {"clip": _arquivo(pasta, "clips", seg_id, ".mp4"),
                        "preview": _arquivo(pasta, "previews", seg_id, ".preview.mp4")},
             "decisao": {"rotulo": d.get("rotulo"), "motivo": d.get("motivo") or "",
@@ -243,7 +280,7 @@ def montar_revisao(pasta: Path, estado: dict[str, Any], decisoes: dict[str, dict
         c.pop("_concordam")
     transcricao = _ler(pasta / "transcript.json", {})
     video = (transcricao.get("video") if isinstance(transcricao, dict) else None) or estado.get("video")
-    from picorte.services.saude import degradacao_conhecida, rotulo_parte
+    from picorte.services.saude import confianca_do_projeto, degradacao_conhecida, rotulo_parte
     resumo = []
     for parte, info in saude.items():
         if isinstance(info, dict) and info.get("status") in {"failed", "na"}:
@@ -259,7 +296,10 @@ def montar_revisao(pasta: Path, estado: dict[str, Any], decisoes: dict[str, dict
             "prova": bool((estado.get("options") or {}).get("benchmark_blind")), "n_cortes": len(cortes),
             "duracao_s": meta.get("duration"), "fonte_url": estado.get("source"),
             "video_local": bool(video and Path(str(video)).is_file()),
+            "fonte_so_audio": fonte_so_audio(video),
+            "imagem_proxy": bool(fonte_so_audio(video) and imagem_proxy(pasta)),
             "energia": (pasta / "audio_features.npz").is_file(), "resumo_saude": resumo, "pedem_voce": pedem_voce,
+            "confianca": confianca_do_projeto(saude),
         },
         "cortes": cortes,
     }
