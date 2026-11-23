@@ -134,8 +134,10 @@ def detect_collective_echo(text: str) -> bool:
 
 
 def _lexicon_hits(text: str, phrases: tuple[str, ...]) -> int:
-    low = f" {(text or '').lower()} "
-    return sum(1 for phrase in phrases if phrase in low)
+    """Quantas expressões do léxico aparecem como PALAVRAS inteiras (code review 2026-11-23: antes era substring,
+    "confia" casava com "confiança" e "grava" com "gravação")."""
+    low = f" {_norm_text(text)} "
+    return sum(1 for phrase in phrases if f" {_norm_text(phrase)} " in low)
 
 
 _NON_WORD_RE = re.compile(r"[^\wÀ-ÿ]+")
@@ -431,7 +433,14 @@ def build_multitrack_pool(
         # Pista 6 (3.6.3): Vacilo / Mico — a dica vale para o candidato seja qual for a pista que o pegar
         v_score, v_hint = vacilo_mico_score(cand, sents)
         if v_hint and v_score >= VACILO_MICO_MIN_SCORE:
+            prev_source = cand.get("archetype_hint_source")
             cand["archetype_hint"] = v_hint
+            # "fala" só quando a FALA sustenta a dica (frase de vacilo/mico, anúncio de corte, silêncio de choque);
+            # se ela veio do comentário ou do chat, já conta como esse sinal (code review 2026-11-23)
+            s_c, e_c = float(cand.get("start") or 0.0), float(cand.get("end") or 0.0)
+            spoken = (_phrase_hits(text, VACILO_LEXICON_PTBR) or _phrase_hits(text, MICO_LEXICON_PTBR)
+                      or _phrase_hits(text, ANUNCIO_CORTE_PTBR) or detect_shock_silence(sents, s_c, e_c))
+            cand["archetype_hint_source"] = "fala" if spoken else (prev_source or "chat")
             pista_vacilo.append((v_score, cand))
 
     pista_energy.sort(key=lambda x: -x[0])

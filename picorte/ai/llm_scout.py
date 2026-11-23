@@ -17,6 +17,18 @@ LONG_VOD_MAPREDUCE_SECONDS = 5400.0  # 90 min
 MAX_DIRECT_CHARS = 16000
 BLOCK_SECONDS = 420.0  # blocos de 7 min para Map-Reduce
 
+
+class ScoutUnavailable(RuntimeError):
+    """O batedor não conseguiu ler a live (provedor fora, resposta sem JSON, todos os blocos falharam).
+
+    Code review 2026-11-23: antes essas falhas viravam `return []` e a saúde dizia "nenhum achado".
+    """
+
+
+def _model_for(provider: str, model: str | None) -> str | None:
+    """`model` é o modelo do Ollama (--llm); nunca vai como --model para Claude/Gemini."""
+    return model if provider == "ollama" else None
+
 SCOUT_SYSTEM_PROMPT = (
     "Você é o Caçador Narrativo Global (Full-VOD Scout) do Picorte para lives de games em PT-BR. "
     "Leia TODA a transcrição numerada ([S0001]...) e encontre até 15 momentos EXTRAORDINÁRIOS — "
@@ -44,6 +56,20 @@ def _fmt_mmss(sec: float) -> str:
     h, rem = divmod(total, 3600)
     m, s = divmod(rem, 60)
     return f"{h:02d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+
+
+def _line_chunks(text: str, limit: int) -> list[str]:
+    """Quebra a transcrição numerada em blocos de linhas inteiras (nunca corta um [Sxxxx] no meio)."""
+    chunks, cur, size = [], [], 0
+    for line in text.splitlines():
+        if cur and size + len(line) + 1 > limit:
+            chunks.append("\n".join(cur))
+            cur, size = [], 0
+        cur.append(line)
+        size += len(line) + 1
+    if cur:
+        chunks.append("\n".join(cur))
+    return chunks
 
 
 def build_numbered_transcript(sentences: list[dict[str, Any]]) -> tuple[str, dict[str, int]]:
@@ -132,8 +158,13 @@ def scout_full_vod(
     model: str | None = None,
     end_breath_sec: float = 1.5,
     max_workers: int = 3,
+    report: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Executa busca narrativa global sobre o VOD inteiro retornando candidatos validados."""
+    """Executa busca narrativa global sobre o VOD inteiro retornando candidatos validados.
+
+    Falha do provedor ou resposta sem JSON levanta (`ScoutUnavailable` ou o erro do provedor). No Map-Reduce, um
+    bloco que falha não derruba o resto, mas é contado em `report` ({"blocos", "blocos_falhos", "motivo"}).
+    """
     if not sentences:
         return []
     provider = _resolve_scout_provider(ai_mode, filter_provider, companion_provider)
@@ -166,10 +197,15 @@ def scout_full_vod(
             )
             prompt_block = f"{header}\n\nBLOCO DA TRANSCRIÇÃO:\n{block_text}".strip()
             try:
-                raw_block = router.provider_runner(map_provider, model, MAP_BLOCK_SYSTEM_PROMPT, prompt_block)
-                entries = _extract_json_array(raw_block) or []
-            except Exception:
-                entries = []
+                raw_block = router.provider_runner(map_provider, _model_for(map_provider, model),
+                                                   MAP_BLOCK_SYSTEM_PROMPT, prompt_block)
+            except Exception as exc:
+                block_failures.append(f"bloco {b_idx}: {type(exc).__name__}: {exc}")
+                return []
+            entries = _extract_json_array(raw_block)
+            if entries is None:
+                block_failures.append(f"bloco {b_idx}: resposta sem JSON válido")
+                return []
             local_events: list[str] = []
             for ev in entries:
                 if not isinstance(ev, dict):
@@ -183,6 +219,7 @@ def scout_full_vod(
 
         indexed_blocks = list(enumerate(blocks, 1))
         map_events: list[str] = []
+        block_failures: list[str] = []
         if workers > 1:
             with ThreadPoolExecutor(max_workers=workers) as pool:
                 for chunk_events in pool.map(_map_one, indexed_blocks):
@@ -191,6 +228,11 @@ def scout_full_vod(
             for item in indexed_blocks:
                 map_events.extend(_map_one(item))
 
+        if report is not None:
+            report.update(blocos=total_blocks, blocos_falhos=len(block_failures),
+                          motivo=block_failures[0] if block_failures else "")
+        if block_failures and len(block_failures) >= total_blocks:
+            raise ScoutUnavailable(f"todos os {total_blocks} blocos falharam ({block_failures[0]})")
         if not map_events:
             return []
         print(f"  [scout global] consolidando {len(map_events)} eventos em até {max_findings} destaques...", flush=True)
@@ -205,11 +247,10 @@ def scout_full_vod(
             f"{numbered}"
         ).strip()
 
-    try:
-        raw = router.provider_runner(provider, model, SCOUT_SYSTEM_PROMPT, user_prompt)
-    except Exception:
-        return []
+    raw = router.provider_runner(provider, _model_for(provider, model), SCOUT_SYSTEM_PROMPT, user_prompt)
     parsed = _extract_json_array(raw)
+    if parsed is None:
+        raise ScoutUnavailable("resposta sem JSON válido")
     if not parsed:
         return []
 
@@ -307,17 +348,20 @@ def query_vod_clips(
         or (sentences[-1].get("end") if sentences else 0.0)
         or 0.0
     )
-    user_prompt = (
-        f"PERGUNTA DO OPERADOR: {clean_query}\n\n"
-        f"{header}\n\n"
-        f"TRANSCRIÇÃO NUMERADA:\n{numbered[:MAX_DIRECT_CHARS]}"
-    ).strip()
-
-    try:
-        raw = router.provider_runner(provider, model, QUERY_SCOUT_SYSTEM_PROMPT, user_prompt)
-    except Exception:
-        return []
-    parsed = _extract_json_array(raw)
+    # Code review 2026-11-23: antes só os primeiros 16 mil caracteres (~15–20 min de live) eram lidos.
+    # Agora a transcrição vai em blocos de linhas inteiras e as respostas são somadas.
+    parsed: list[dict[str, Any]] = []
+    for chunk in _line_chunks(numbered, MAX_DIRECT_CHARS):
+        user_prompt = (
+            f"PERGUNTA DO OPERADOR: {clean_query}\n\n"
+            f"{header}\n\n"
+            f"TRANSCRIÇÃO NUMERADA:\n{chunk}"
+        ).strip()
+        raw = router.provider_runner(provider, _model_for(provider, model), QUERY_SCOUT_SYSTEM_PROMPT, user_prompt)
+        part = _extract_json_array(raw)
+        if part is None:
+            raise ScoutUnavailable("busca livre: resposta sem JSON válido")
+        parsed.extend(part)
     if not parsed:
         return []
 

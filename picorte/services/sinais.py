@@ -18,8 +18,10 @@ def sinais_medidos(seg: dict[str, Any]) -> dict[str, float | None]:
     partes = seg.get("score_parts") if isinstance(seg.get("score_parts"), dict) else {}
     chat = _numero(ev.get("chat")) if ev.get("chat_measured") is True else None
     visual = _numero(ev.get("visual"))
-    if visual is None and ev.get("vision_measured") is True:
-        visual = _numero(ev.get("visual_games"))  # sem a marca, visual_games só herda a nota geral
+    # sem a marca, visual_games só herda a nota geral; com facecam_measured False é só movimento do quadro
+    # (detector de rosto indisponível — code review do motor, 2026-11-23)
+    if visual is None and ev.get("vision_measured") is True and ev.get("facecam_measured") is not False:
+        visual = _numero(ev.get("visual_games"))
     return {
         "score_chat": chat,
         "score_audio": _numero(ev.get("audio")),

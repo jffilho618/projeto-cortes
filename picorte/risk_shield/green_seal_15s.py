@@ -12,12 +12,15 @@ import cv2
 import numpy as np
 
 # Camada 3: violação grave em QUALQUER segundo do clipe -> HARD_BLOCK
+# W55 (code review 2026-11-23, decisão do dono, julgada pelo cortes-pilares): só termos SEM colisão com jogo;
+# "suicidio", "se matar" e "nazismo" desceram para a Camada 2 (Suicide Squad, Wolfenstein dublado, Call of Duty).
 TIER_3_HARD_BLOCK_TERMS: tuple[str, ...] = (
-    "suicidio",
-    "se matar",
-    "nazismo",
     "estupro",
     "pedofilia",
+    "rape",
+    "pedophile",
+    "pedophilia",
+    "child porn",
 )
 
 # Camada 2: termos sensíveis para anunciantes (drogas pesadas, automutilação, terror) nos primeiros 15s
@@ -32,6 +35,13 @@ TIER_2_REVIEW_TERMS: tuple[str, ...] = (
     "terrorista",
     "atentado",
     "massacre",
+    # W55: colidem com títulos e personagens de jogos -> revisão humana, nunca aborto automático
+    "suicidio",
+    "se matar",
+    "nazismo",
+    "suicide",
+    "kill myself",
+    "nazi",
 )
 
 # Camada 1: palavrões severos que custam monetização nos primeiros 15s (e no Cold Open) -> bleep + ***

@@ -42,6 +42,10 @@ def detect_laugh_rhythm_cpu(samples: np.ndarray, *, sample_rate: int = 16000) ->
     return round(min(1.0, max(0.0, band_power / total_ac)), 3)
 
 
+JUMPSCARE_FLOOR_DB = -80.0           # = evidence.SILENCE_DB
+JUMPSCARE_LOUDER_THAN_REST_DB = 10.0  # pico ao menos 10 dB acima do volume alto do resto do trecho (grito, estouro)
+
+
 def detect_jumpscare_spike(
     samples: np.ndarray,
     *,
@@ -61,7 +65,18 @@ def detect_jumpscare_spike(
 
     framed = arr[: n_bins * hop].reshape((n_bins, hop))
     rms = np.sqrt(np.mean(framed * framed, axis=1) + 1e-12)
-    db = 20.0 * np.log10(rms + 1e-12)
+    # Code review 2026-11-23: piso igual ao da linha do tempo de áudio (−80 dB); sem ele o zero absoluto do
+    # noise gate vira −120 dB e qualquer volta do som parecia um "salto" de ~97 dB.
+    db = np.maximum(20.0 * np.log10(rms + 1e-12), JUMPSCARE_FLOOR_DB)
+    audible = db > JUMPSCARE_FLOOR_DB + 0.5
+    spike_span = max(rise_bins, int(round(1.0 / 0.05)))  # o pico e o segundo seguinte não entram na régua
+
+    def _rest_level(at: int) -> float:
+        """Volume alto do RESTO do trecho (p90, sem o pico): fala de sempre voltando não passa disso."""
+        mask = audible.copy()
+        mask[max(0, at - 1): at + spike_span] = False
+        rest = db[mask]
+        return float(np.percentile(rest, 90)) if rest.size else JUMPSCARE_FLOOR_DB
 
     best_jump = 0.0
     best_idx: int | None = None
@@ -71,10 +86,16 @@ def detect_jumpscare_spike(
         if float(np.std(prev_window)) > 6.0:
             continue
         base_db = float(np.median(prev_window))
+        if base_db <= JUMPSCARE_FLOOR_DB + 0.5:
+            continue  # volta de silêncio digital (noise gate, live caiu) não é susto — é a falha técnica
         local_slice = db[i : min(n_bins, i + rise_bins)]
         peak_offset = int(np.argmax(local_slice))
         local_peak = float(local_slice[peak_offset])
         jump = local_peak - base_db
+        if jump < float(spike_db) or jump <= best_jump:
+            continue
+        if local_peak < _rest_level(i) + JUMPSCARE_LOUDER_THAN_REST_DB:
+            continue  # fala voltando no volume de sempre depois de uma pausa não é susto
         if jump > best_jump:
             best_jump = jump
             best_idx = i + peak_offset
@@ -145,7 +166,10 @@ def detect_nonverbal_audio_events(
 
 
 LAUGH_MIN = 0.35
-PROSODY_BONUS = {"laugh": 0.6, "jumpscare": 0.8, "fast_panic": 0.3}
+# Sem bônus para o pico de som (decisão do dono, 2026-11-23): de 3 picos ouvidos, 1 era susto, 1 era som do jogo
+# (granada) e 1 era o streamer gritando para agradecer doação. Continua medido em `evidence.jumpscare_db` e vai ao
+# Editor-Chefe como "pico_sonoro_db", que separa os casos pela fala.
+PROSODY_BONUS = {"laugh": 0.6, "fast_panic": 0.3}
 
 
 def _ffmpeg_window(audio_path: Any, start: float, end: float, sample_rate: int = 16000) -> np.ndarray:
@@ -200,8 +224,6 @@ def attach_prosody_evidence(
         bonus = 0.0
         if laugh >= LAUGH_MIN:
             bonus += PROSODY_BONUS["laugh"]
-        if scare["detected"]:
-            bonus += PROSODY_BONUS["jumpscare"]
         if rate == "fast_panic":
             bonus += PROSODY_BONUS["fast_panic"]
         cand["evidence"].update({

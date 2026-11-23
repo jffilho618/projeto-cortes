@@ -19,7 +19,8 @@ PASSOS = {"source": "Baixando", "transcribe": "Transcrevendo", "discover": "Esco
 ORDEM_TIER = {"ouro": 0, "forte": 1, "experimental": 2}
 NOMES_SINAL = {"chat": "Chat", "audio": "Energia do áudio", "visual": "Visão (facecam e HUD)", "texto": "Texto"}
 CHAVE_SINAL = {"chat": "score_chat", "audio": "score_audio", "visual": "score_visual", "texto": "score_text"}
-PARTE_SAUDE = {"chat": "chat", "visual": "vision", "audio": "prosody", "texto": "editor"}
+# "audio": o motor grava a parte própria desde o code review de 2026-11-23 (antes o painel olhava a prosódia)
+PARTE_SAUDE = {"chat": "chat", "visual": "vision", "audio": "audio", "texto": "editor"}
 CONCORDA = 5.0  # meio da escala 0–10: sinal medido a partir daqui conta a favor na ordem padrão
 
 

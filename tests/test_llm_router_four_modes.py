@@ -9,6 +9,22 @@ def _index_of(user_prompt: str, needle: str) -> int:
     return next(r["index"] for r in rows if needle in r["text"])
 
 
+def _com_o_resto(user_prompt: str, entries: list[dict]) -> str:
+    """Code review 2026-11-23: lote parcial agora para (Decisão B) — os outros candidatos voltam com ajuste 0."""
+    rows = json.loads(user_prompt[user_prompt.index("[{"):])
+    feitos = {e["index"] for e in entries}
+    return json.dumps(entries + [{"index": r["index"], "adjustment": 0.0, "reason": "neutro"}
+                                 for r in rows if r["index"] not in feitos])
+
+
+def _sem_repetir(seq):
+    out = []
+    for x in seq:
+        if not out or out[-1] != x:
+            out.append(x)
+    return out
+
+
 class TestLLMRouterFourModes(unittest.TestCase):
     def _sample_candidates(self):
         return [
@@ -24,7 +40,7 @@ class TestLLMRouterFourModes(unittest.TestCase):
 
         def fake_runner(provider: str, model: str | None, system_prompt: str, user_prompt: str) -> str:
             calls.append((provider, model))
-            return json.dumps([
+            return _com_o_resto(user_prompt, [
                 {
                     "index": _index_of(user_prompt, "carro voando"),
                     "adjustment": 0.8,
@@ -46,7 +62,8 @@ class TestLLMRouterFourModes(unittest.TestCase):
             self.assertEqual(res["candidates"][0]["context_banner_2s"], "Tentando fugir da polícia a 200km/h")
             self.assertEqual(res["candidates"][0]["pinned_comment_debate"], "Foi bug ou física quebrada?")
 
-        self.assertEqual([c[0] for c in calls], ["ollama", "claude", "gemini"])
+        # com o lote inteiro a 2ª passada (3.6.4) também roda: cada modo chama o próprio provedor, em ordem
+        self.assertEqual(_sem_repetir([c[0] for c in calls]), ["ollama", "claude", "gemini"])
 
     def test_dupla_mode_runs_filter_then_companion(self):
         from picorte.ai.llm_router import LLMRouter
@@ -63,7 +80,7 @@ class TestLLMRouterFourModes(unittest.TestCase):
                     {"index": _index_of(user_prompt, "inventário"), "adjustment": -0.9, "reason": "Sem graça"},
                 ])
             # Acompanhante (claude) recebe os filtrados e lapida o campeão
-            return json.dumps([
+            return _com_o_resto(user_prompt, [
                 {
                     "index": _index_of(user_prompt, "carro voando"),
                     "adjustment": 0.5,
@@ -82,7 +99,7 @@ class TestLLMRouterFourModes(unittest.TestCase):
             filter_provider="ollama",
             companion_provider="claude",
         )
-        self.assertEqual([c[0] for c in calls], ["ollama", "claude"])
+        self.assertEqual(_sem_repetir([c[0] for c in calls]), ["ollama", "claude"])
         self.assertIn("Triagem", calls[1][1])
         self.assertEqual(res["llm_mode_used"], "dupla:ollama->claude")
         self.assertEqual(res["candidates"][0]["llm_mode_used"], "dupla:ollama->claude")

@@ -82,6 +82,32 @@
       "twitch": "https://www.twitch.tv/brksedu",
       "youtube": "https://www.youtube.com/@BRKsEDU",
       "handle": "@BRKsEDU"
+    },
+    {
+      "slug": "rodrigof",
+      "display_name": "RODRIGO F",
+      "aliases": [
+        "rodrigof",
+        "rodrigo f",
+        "el gato",
+        "elgato"
+      ],
+      "accent_hex": "#9333EA",
+      "youtube": "https://www.youtube.com/@RodrigoF",
+      "handle": "@RodrigoF"
+    },
+    {
+      "slug": "paulinho-loko",
+      "display_name": "PAULINHO O LOKO",
+      "aliases": [
+        "paulinho o loko",
+        "paulinho loko",
+        "paulinholoko",
+        "paulinholokooficial"
+      ],
+      "accent_hex": "#DB2777",
+      "youtube": "https://www.youtube.com/@PaulinhoLOKOoficial",
+      "handle": "@PaulinhoLOKOoficial"
     }
   ]
 }
