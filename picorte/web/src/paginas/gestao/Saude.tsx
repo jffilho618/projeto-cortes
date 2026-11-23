@@ -5,6 +5,7 @@ import { useBenchmark, useSaudeMotor, type Benchmark } from "../../api/gestao";
 import { Carregando, ErroCarregar, Vazio } from "../../ui/Estados";
 import { Icone, type NomeIcone } from "../../ui/Icone";
 import { PocoTravado } from "../../ui/PocoTravado";
+import { haQuanto } from "../lives/regras";
 import { FuncoesDaArea } from "../PaginaArea";
 
 type Aba = "motor" | "benchmark" | "sistema";
@@ -29,7 +30,7 @@ function Motor() {
       {!q.data.projetos.length ? <Vazio frase="Nenhum projeto na fila ainda." /> : (
         <div className="folha overflow-x-auto">
           <table className="matriz">
-            <thead><tr><th scope="col">Projeto</th><th scope="col">Resumo</th>{q.data.partes.map((p) => <th key={p} scope="col">{p}</th>)}</tr></thead>
+            <thead><tr><th scope="col">Projeto</th><th scope="col">Resumo</th>{q.data.partes.map((p) => <th key={p} scope="col" title={p}>{q.data.rotulos[p] ?? p}</th>)}</tr></thead>
             <tbody>
               {q.data.projetos.map((p) => (
                 <tr key={p.id}>
@@ -39,7 +40,12 @@ function Motor() {
                     const c = p.celulas[parte];
                     if (!c) return <td key={parte} className="meta">—</td>;
                     const v = celula(c.status);
-                    return <td key={parte} title={c.detalhe || undefined}><span className={`cel ${v.tom}`}><Icone nome={v.icone} pequeno />{v.rotulo}</span></td>;
+                    const dica = [c.detalhe, c.conhecida, c.em ? `gravado ${haQuanto(c.em)}` : null].filter(Boolean).join("\n");
+                    return (
+                      <td key={parte} title={dica || undefined}>
+                        <span className={`cel ${v.tom}`}><Icone nome={v.icone} pequeno />{c.conhecida ? "degradado" : v.rotulo}</span>
+                      </td>
+                    );
                   })}
                 </tr>
               ))}

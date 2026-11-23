@@ -70,7 +70,24 @@ def _titulo(estado: dict[str, Any]) -> str:
     return str(meta.get("title") or (Path(fonte).name if fonte and "://" not in fonte else fonte) or estado.get("id"))
 
 
-def linha_da_fila(estado: dict[str, Any]) -> dict[str, Any]:
+PARTES_ALERTA = ("full_vod_scout", "editor")  # falham sem derrubar o job: lote parcial, 2ª passada, batedor
+
+
+def saude_atual(pasta: Path) -> dict[str, Any]:
+    """W32: só as partes da última execução (marca `_execucao` do motor)."""
+    from picorte.engine.health import partes_da_execucao
+    dados = _ler(Path(pasta) / "engine_health.json", {})
+    return partes_da_execucao(dados if isinstance(dados, dict) else {})
+
+
+def alertas_da_saude(pasta: Path) -> list[dict[str, str]]:
+    from picorte.services.saude import rotulo_parte
+    saude = saude_atual(pasta)
+    return [{"parte": rotulo_parte(p), "detalhe": str(saude[p].get("detail") or "falhou")}
+            for p in PARTES_ALERTA if (saude.get(p) or {}).get("status") == "failed"]
+
+
+def linha_da_fila(estado: dict[str, Any], alertas: list[dict[str, str]] | None = None) -> dict[str, Any]:
     meta = estado.get("source_meta") or {}
     portao = estado.get("source_gate") or {}
     opcoes = estado.get("options") or {}
@@ -87,6 +104,7 @@ def linha_da_fila(estado: dict[str, Any]) -> dict[str, Any]:
         "criado_em": estado.get("created"),
         "fonte_url": estado.get("source"),
         "falha": _falha(estado),
+        "alertas": alertas or [],
     }
 
 
@@ -100,8 +118,11 @@ def _sinais(seg: dict[str, Any], saude: dict[str, Any], pasta: Path) -> list[dic
             saida.append({"chave": chave, "nome": nome, "estado": "medido", "valor": valor, "motivo": ""})
             continue
         if parte.get("status") == "failed":
+            from picorte.services.saude import degradacao_conhecida
+            detalhe = str(parte.get("detail") or "a medição falhou")
+            aviso = degradacao_conhecida(PARTE_SAUDE[chave], "failed", detalhe)
             saida.append({"chave": chave, "nome": nome, "estado": "falhou", "valor": None,
-                          "motivo": str(parte.get("detail") or "a medição falhou")})
+                          "motivo": f"{detalhe}. {aviso}" if aviso else detalhe})
             continue
         if parte.get("status") == "na" and parte.get("detail"):
             motivo = str(parte["detail"])
@@ -126,21 +147,67 @@ def _arquivo(pasta: Path, sub: str, seg_id: str, sufixo: str) -> str | None:
     return None
 
 
+PORTOES_P1 = {
+    "source_permission": "Permissão da fonte", "publisher_policy": "Política do publisher",
+    "green_seal_15s": "Selo Verde 15s", "react_guard": "React perigoso", "music_surgeon": "Música licenciada",
+    "ypp_and_dedup": "YPP e duplicata",
+}
+_PESO_P1 = {"pass": 0, "auto_fixed": 0, "human_review": 1, "hard_block": 2, "audit_error": 2}
+_SEM_MOTIVO = {1: "revisão humana pedida pelo P1 (motivo não registrado)", 2: "barrado pelo P1 (motivo não registrado)"}
+
+
+def _peso(status: Any) -> int:
+    return _PESO_P1.get(str(status or ""), 2)  # status desconhecido conta como barrado (falha fechada)
+
+
+def motivos_do_veredito(veredito: dict[str, Any]) -> dict[str, Any]:
+    """Por que o P1 barrou, só com o texto gravado no risk_verdict (nada inventado).
+
+    Os portões valem para todas as redes; por rede o `_compact` guarda só o status, então uma rede pior que os
+    portões tem causa própria não gravada. A lista por rede só aparece quando as redes diferem.
+    """
+    if veredito.get("overall_status") == "audit_error":
+        return {"motivos": [{"portao": "Auditoria", "texto": str(veredito.get("error") or _SEM_MOTIVO[2])}],
+                "motivos_por_rede": {}}
+    gerais, pior = [], 0
+    for nome, g in (veredito.get("gates") or {}).items():
+        peso = _peso((g or {}).get("status"))
+        if peso == 0:
+            continue
+        pior = max(pior, peso)
+        textos = list((g or {}).get("reasons") or []) or ([g["reason"]] if (g or {}).get("reason") else [])
+        portao = PORTOES_P1.get(nome, nome.replace("_", " "))
+        gerais += [{"portao": portao, "texto": str(t)} for t in textos] or [{"portao": portao, "texto": _SEM_MOTIVO[peso]}]
+    redes = veredito.get("per_platform") or {}
+    if not redes:
+        return {"motivos": gerais, "motivos_por_rede": {}}
+    por_rede = {}
+    for rede, status in redes.items():
+        peso = _peso(status)
+        itens = gerais if peso else []
+        if peso > pior:
+            itens = itens + [{"portao": "Esta rede", "texto": _SEM_MOTIVO[peso]}]
+        por_rede[rede] = itens
+    listas = list(por_rede.values())
+    if all(l == listas[0] for l in listas):
+        return {"motivos": listas[0], "motivos_por_rede": {}}
+    return {"motivos": [], "motivos_por_rede": por_rede}
+
+
 def _p1(pasta: Path, seg_id: str) -> dict[str, Any]:
     for meta in sorted((pasta / "clips").glob(f"{seg_id}-*.meta.json")):
         veredito = _ler(meta, {}).get("risk_verdict")
         if isinstance(veredito, dict) and veredito.get("overall_status"):
             return {"sem_veredito": False, "geral": veredito["overall_status"],
-                    "por_rede": dict(veredito.get("per_platform") or {})}
-    return {"sem_veredito": True, "geral": None, "por_rede": {}}
+                    "por_rede": dict(veredito.get("per_platform") or {}), **motivos_do_veredito(veredito)}
+    return {"sem_veredito": True, "geral": None, "por_rede": {}, "motivos": [], "motivos_por_rede": {}}
 
 
 def montar_revisao(pasta: Path, estado: dict[str, Any], decisoes: dict[str, dict[str, Any]]) -> dict[str, Any]:
     pasta = Path(pasta)
     segmentos = _ler(pasta / "segments.json", [])
     segmentos = segmentos if isinstance(segmentos, list) else []
-    saude = _ler(pasta / "engine_health.json", {})
-    saude = saude if isinstance(saude, dict) else {}
+    saude = saude_atual(pasta)
     meta = estado.get("source_meta") or {}
     cortes = []
     for n, seg in enumerate(segmentos, 1):
@@ -171,8 +238,14 @@ def montar_revisao(pasta: Path, estado: dict[str, Any], decisoes: dict[str, dict
         c.pop("_concordam")
     transcricao = _ler(pasta / "transcript.json", {})
     video = (transcricao.get("video") if isinstance(transcricao, dict) else None) or estado.get("video")
-    resumo = [f"{parte}: {info.get('detail') or info.get('status')}" for parte, info in saude.items()
-              if isinstance(info, dict) and info.get("status") in {"failed", "na"}]
+    from picorte.services.saude import degradacao_conhecida, rotulo_parte
+    resumo = []
+    for parte, info in saude.items():
+        if isinstance(info, dict) and info.get("status") in {"failed", "na"}:
+            detalhe = str(info.get("detail") or info.get("status"))
+            aviso = degradacao_conhecida(parte, str(info.get("status")), detalhe)
+            resumo.append(f"{rotulo_parte(parte)}: {aviso} ({detalhe})" if aviso else f"{rotulo_parte(parte)}: {detalhe}")
+    pedem_voce = sum(1 for c in cortes if c["p1"].get("geral") == "human_review")
     return {
         "projeto": {
             "id": estado.get("id") or pasta.name, "titulo": _titulo(estado),
@@ -181,7 +254,7 @@ def montar_revisao(pasta: Path, estado: dict[str, Any], decisoes: dict[str, dict
             "prova": bool((estado.get("options") or {}).get("benchmark_blind")), "n_cortes": len(cortes),
             "duracao_s": meta.get("duration"), "fonte_url": estado.get("source"),
             "video_local": bool(video and Path(str(video)).is_file()),
-            "energia": (pasta / "audio_features.npz").is_file(), "resumo_saude": resumo,
+            "energia": (pasta / "audio_features.npz").is_file(), "resumo_saude": resumo, "pedem_voce": pedem_voce,
         },
         "cortes": cortes,
     }

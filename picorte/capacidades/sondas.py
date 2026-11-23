@@ -81,6 +81,15 @@ def sonda_binario(nome: str, resolver=resolve_cli_binary) -> ResultadoSonda:
     return ResultadoSonda(True, f"{nome} em {caminho}", {"caminho": str(caminho)})
 
 
+SEM_API_PAGA = "sem ele o Editor-Chefe para; não há troca automática para API paga (regra 6)"
+
+
+def sonda_cli_ia(nome: str, resolver=resolve_cli_binary) -> ResultadoSonda:
+    """CLI de assinatura (claude): sem ele, o painel diz a consequência em vez de sugerir API paga."""
+    r = sonda_binario(nome, resolver=resolver)
+    return r if r.ok else ResultadoSonda(False, f"{r.detalhe}; {SEM_API_PAGA}", r.dados)
+
+
 def sonda_gpu(probe=probe_nvidia_smi) -> ResultadoSonda:
     vram, nome = probe()
     if vram <= 0:
@@ -139,7 +148,7 @@ def sonda_agy(raiz, resolver=resolve_cli_binary, janela_h: float = 24.0,
     limite = (agora or datetime.now(timezone.utc)) - timedelta(hours=janela_h)
     ultima = _ultima_falha_gemini(Path(raiz), limite) if presente else None
     if not presente:
-        detalhe = "CLI do Gemini (agy/gemini) não encontrada"
+        detalhe = f"CLI do Gemini (agy/gemini) não encontrada; {SEM_API_PAGA}"
     elif ultima:
         detalhe = f"o Gemini falhou num job em {ultima} (cota/429 provável)"
     else:
@@ -154,7 +163,7 @@ def sondas_padrao(raiz) -> CacheSondas:
         "gpu": (300.0, sonda_gpu),
         "ollama": (30.0, sonda_ollama),
         "agy": (300.0, lambda: sonda_agy(raiz)),
-        "claude": (dia, lambda: sonda_binario("claude")),
+        "claude": (dia, lambda: sonda_cli_ia("claude")),
         "yt-dlp": (dia, lambda: sonda_binario("yt-dlp")),
         "node": (dia, lambda: sonda_binario("node")),
         "demucs": (dia, lambda: sonda_binario("demucs")),

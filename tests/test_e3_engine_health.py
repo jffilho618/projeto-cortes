@@ -118,3 +118,40 @@ def test_select_records_editor_ok(tmp_path: Path, monkeypatch):
                                               "llm_mode_used": "claude"})
     score_clips.select(tmp_path, min_score=0.0, ai_mode="claude")
     assert health.load(tmp_path)["editor"]["status"] == "ok"
+
+
+def test_marca_de_execucao_e_partes_da_ultima_execucao(tmp_path: Path):
+    """W32: o prepare grava o início da execução; só as partes depois dela são desta execução."""
+    from picorte.engine import health
+
+    (tmp_path / health.HEALTH_FILE).write_text(json.dumps({"vision": {
+        "status": "failed", "detail": "execução velha", "at": "2026-11-20T10:00:00+00:00"}}), encoding="utf-8")
+    marca = health.marcar_execucao(tmp_path, "prepare")
+    assert health.load(tmp_path)["_execucao"] == {"inicio": marca, "acao": "prepare"}
+    assert health.failures(tmp_path) == ["vision"]  # a chave da marca não é parte nem falha
+    health.record(tmp_path, "audio", "ok", "36448 s medidos")
+    atual = health.partes_da_execucao(health.load(tmp_path))
+    assert list(atual) == ["audio"]
+    sem_marca = {"vision": {"status": "ok", "at": "2026-01-01T00:00:00+00:00"}}
+    assert health.partes_da_execucao(sem_marca) == sem_marca  # projeto antigo: tudo vale
+
+
+def test_prepare_grava_a_marca_antes_do_primeiro_passo(tmp_path: Path, monkeypatch):
+    import projects
+
+    state = projects.create_project(tmp_path / "projects", str(tmp_path / "x.mp4"), {"aspect": "9:16"})
+    pasta = tmp_path / "projects" / state["id"]
+
+    def parar(*_a, **_k):
+        raise RuntimeError("parar no primeiro passo")
+
+    monkeypatch.setattr(projects.ingest, "is_url", parar)
+    with pytest.raises(RuntimeError, match="primeiro passo"):
+        projects.run_project(pasta, "prepare")
+    marca = json.loads((pasta / "engine_health.json").read_text(encoding="utf-8"))["_execucao"]
+    assert marca["acao"] == "prepare" and marca["inicio"]
+
+
+def test_os_dois_projects_continuam_identicos():
+    raiz = Path(__file__).resolve().parents[1]
+    assert (raiz / "projects.py").read_bytes() == (raiz / "picorte" / "engine" / "projects.py").read_bytes()

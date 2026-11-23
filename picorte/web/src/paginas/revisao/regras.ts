@@ -4,7 +4,7 @@ export interface Filtros {
   tier: string;
   arquetipo: string;
   sinal: string; // chave do sinal que precisa estar medido
-  p1: "" | "com_veredito" | "sem_veredito";
+  p1: "" | "com_veredito" | "sem_veredito" | "precisa_de_voce";
   rotulo: "" | "bom" | "ruim" | "sem";
 }
 
@@ -17,6 +17,7 @@ export function filtrar(cortes: Corte[], f: Filtros): Corte[] {
     if (f.sinal && !c.sinais.some((s) => s.chave === f.sinal && s.estado === "medido")) return false;
     if (f.p1 === "sem_veredito" && !c.p1.sem_veredito) return false;
     if (f.p1 === "com_veredito" && c.p1.sem_veredito) return false;
+    if (f.p1 === "precisa_de_voce" && c.p1.geral !== "human_review") return false;
     if (f.rotulo === "bom" && c.decisao.rotulo !== 1) return false;
     if (f.rotulo === "ruim" && c.decisao.rotulo !== -1) return false;
     if (f.rotulo === "sem" && c.decisao.rotulo !== null) return false;

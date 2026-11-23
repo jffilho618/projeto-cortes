@@ -55,7 +55,7 @@ def catalogo() -> list[Capacidade]:
         _c("REV-4", "revisao", "Preview 480p e render final", L, None, "", "run (preview/render)", "1", "E1", escopo="corte"),
         _c("REV-5", "revisao", "Thumbnail automática", L, None, "", "*_thumb.png", "3.5", "3.5", escopo="corte"),
         _c("REV-6", "revisao", "Faixa de contexto 2s no vídeo", L, None, "", "render_clips.py", "3", "3.4", escopo="corte"),
-        _c("REV-7", "revisao", "Keyframes (o LLM vê 3 frames)", L, "escolha", "desligado por padrão; Claude Sonnet, ~US$ 0,26 de limite por VOD (medido em 20/11, auditoria E3)", "options.keyframes", "3.5", "3.5.4", escopo="projeto"),
+        _c("REV-7", "revisao", "Keyframes (o LLM vê 3 frames)", L, "escolha", "desligado por padrão; usa o claude -p da assinatura (não a API paga): ~US$ 0,26 por VOD é o consumo reportado contra o limite da assinatura (medido em 20/11, auditoria E3)", "options.keyframes", "3.5", "3.5.4", escopo="projeto"),
         _c("REV-8", "revisao", "👍/👎 por corte", L, None, "", "revisao_cortes (B10)", "6", "6.6", escopo="corte", ligou_em="2026-11-22"),
         _c("REV-9", "revisao", "Salvar como Exemplo Ouro", L, None, "", "picorte/ai/golden_examples.json", "6", "6.6", escopo="corte", ligou_em="2026-11-22"),
         _c("REV-10", "revisao", "Cold Open e Seamless Loop", T, "codigo", "render", "retention_engine", "3.7", "3.7.1", escopo="corte"),

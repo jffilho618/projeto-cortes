@@ -171,6 +171,11 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
               projeto?.prova ? "conjunto de prova" : "produção"].filter(Boolean).join(" · ")}
           </span>
           {projeto && projeto.resumo_saude.length > 0 && <p className="resumo">Saúde: {projeto.resumo_saude.join(" · ")}</p>}
+          {projeto && projeto.pedem_voce > 0 && (
+            <button type="button" className="link-fraco" onClick={() => setFiltros({ ...FILTROS_VAZIOS, p1: "precisa_de_voce" })}>
+              {projeto.pedem_voce === 1 ? "1 corte precisa de você" : `${projeto.pedem_voce} cortes precisam de você`} (Selo Verde: revisão humana antes de postar)
+            </button>
+          )}
         </div>
         <span className="mini-espaco"><Icone nome="cad" pequeno />Confiança do projeto · {confianca.motivo || "travado"}</span>
       </header>
@@ -209,6 +214,7 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
               </select>
               <select aria-label="P1" value={filtros.p1} onChange={(e) => setFiltros({ ...filtros, p1: e.target.value as Filtros["p1"] })}>
                 <option value="">P1</option><option value="com_veredito">Com veredito</option><option value="sem_veredito">Sem veredito</option>
+                <option value="precisa_de_voce">Precisa de você</option>
               </select>
               <select aria-label="Rótulo" value={filtros.rotulo} onChange={(e) => setFiltros({ ...filtros, rotulo: e.target.value as Filtros["rotulo"] })}>
                 <option value="">Rótulo</option><option value="bom">Bom</option><option value="ruim">Ruim</option><option value="sem">Sem rótulo</option>

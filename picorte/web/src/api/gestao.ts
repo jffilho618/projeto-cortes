@@ -15,7 +15,11 @@ export interface Campanha { id: string; fonte: string | null; jogo: string; cpm_
 export interface EventoPausa { tipo: "claim" | "permissao"; fonte: string | null; de: string | null; para: string; motivo: string; quando: string }
 export interface Dossie { slug: string; nome: string; aliases: string[]; atualizado_em: string | null; callbacks: unknown[]; detalhes: unknown[]; spoiler: unknown[] }
 export interface Escudo { cooldowns: Record<string, { ate: string; motivo: string; restante_h: number; pode_limpar: boolean }>; claims: EventoPausa[] }
-export interface MatrizSaude { partes: string[]; projetos: { id: string; titulo: string; resumo: string; celulas: Record<string, { status: string; detalhe: string }> }[] }
+export interface CelulaSaude { status: string; detalhe: string; em: string | null; conhecida: string | null }
+export interface MatrizSaude {
+  partes: string[]; rotulos: Record<string, string>;
+  projetos: { id: string; titulo: string; resumo: string; anteriores: number; celulas: Record<string, CelulaSaude> }[];
+}
 export interface Benchmark {
   versoes: { label: string; data: string; n: number; amostra_pequena: boolean; arquivo: string;
     ks: Record<string, { precisao: number | null; acaso: number | null; lift: number | null }> }[];

@@ -29,8 +29,8 @@ beforeEach(() => {
       cooldowns: { tiktok: { ate: new Date(Date.now() + 3 * 3600_000).toISOString(), motivo: "muitos posts", restante_h: 3, pode_limpar: true } },
       claims: [] }));
     if (url.startsWith("/api/escudo/claim/previa")) return new Response(JSON.stringify({ fonte: "Gaules", videos: 3, cortes: 12, publicacoes_pendentes: 2 }));
-    if (url === "/api/saude/motor") return new Response(JSON.stringify({ partes: ["chat", "visao"], projetos: [
-      { id: "p1", titulo: "VOD de teste", resumo: "1 parte falhou (visao), 1 ok",
+    if (url === "/api/saude/motor") return new Response(JSON.stringify({ partes: ["chat", "visao"], rotulos: { chat: "Sismógrafo do chat", visao: "visao" }, projetos: [
+      { id: "p1", titulo: "VOD de teste", resumo: "1 parte falhou (visao), 1 ok", anteriores: 0,
         celulas: { chat: { status: "ok", detalhe: "" }, visao: { status: "failed", detalhe: "sem GPU" } } }] }));
     if (url.startsWith("/api/capacidades")) return new Response(JSON.stringify({ gerado_em: "", resumo: {}, capacidades: [] }));
     return new Response('{"erro":"x"}', { status: 404 });

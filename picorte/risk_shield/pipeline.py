@@ -121,6 +121,15 @@ def _compact(verdict: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def family_clip_ids(project_id: str, segment: dict[str, Any], segments: list[dict[str, Any]]) -> list[str]:
+    """W36: ids dos outros formatos do mesmo momento (Short, versão TikTok, Longo) — família, não duplicata."""
+    momento = segment.get("moment_id")
+    if not momento:
+        return []
+    return [f"studio-{project_id}:{s['id']}" for s in segments
+            if s.get("moment_id") == momento and s.get("id") and s.get("id") != segment.get("id")]
+
+
 def attach_risk_verdict(
     db: Database,
     *,
@@ -134,6 +143,7 @@ def attach_risk_verdict(
     music_result: dict[str, Any] | None = None,
     cadence_state_path: Path | str | None = None,
     clip_id: str | None = None,
+    family_clip_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     """Audita o corte nos portões P1 e grava `risk_status` + `risk_verdict` no .meta.json (falha fechada)."""
     mp = Path(meta_path)
@@ -164,6 +174,7 @@ def attach_risk_verdict(
             music_result=music_result,
             cadence_state_path=cadence_state_path,
             clip_id=clip_id,  # a deduplicação não compara o corte com ele mesmo
+            family_clip_ids=family_clip_ids,  # W36: nem com os outros formatos do mesmo momento
         ))
     except Exception as exc:  # falha fechada: sem veredito válido, o corte não sai no Pacote do Dia
         verdict = {

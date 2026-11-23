@@ -6,7 +6,7 @@ const corte = (n: number, extra: Partial<Corte> = {}): Corte => ({
   n, seg: String(n).padStart(3, "0"), start: n * 100, end: n * 100 + 30, titulo: `Corte ${n}`, hook: "", arquetipo: "caos_coop",
   tier: "forte", faixa_2s: "", comentario: "", motivo: "",
   sinais: [{ chave: "audio", nome: "Energia do áudio", estado: "nao_medido", valor: null, motivo: "" }],
-  p1: { sem_veredito: true, geral: null, por_rede: {} }, render: { clip: null, preview: null },
+  p1: { sem_veredito: true, geral: null, por_rede: {}, motivos: [], motivos_por_rede: {} }, render: { clip: null, preview: null },
   decisao: { rotulo: null, motivo: "", descartado: false, exemplo_ouro: false }, ...extra,
 });
 
@@ -14,7 +14,7 @@ describe("filtrar", () => {
   const cortes = [
     corte(1, { tier: "ouro", arquetipo: "callback_oculto" }),
     corte(2, { sinais: [{ chave: "chat", nome: "Chat", estado: "medido", valor: 6, motivo: "" }] }),
-    corte(3, { p1: { sem_veredito: false, geral: "pass", por_rede: {} }, decisao: { rotulo: -1, motivo: "", descartado: false, exemplo_ouro: false } }),
+    corte(3, { p1: { sem_veredito: false, geral: "pass", por_rede: {}, motivos: [], motivos_por_rede: {} }, decisao: { rotulo: -1, motivo: "", descartado: false, exemplo_ouro: false } }),
   ];
   it("sem filtro, tudo", () => expect(filtrar(cortes, FILTROS_VAZIOS).map((c) => c.n)).toEqual([1, 2, 3]));
   it("por tier, arquétipo, sinal medido, P1 e rótulo", () => {
@@ -56,5 +56,13 @@ describe("navegação e bordas", () => {
     expect(textoP1("pass")).toEqual({ texto: "aprovado", tom: "ok" });
     expect(textoP1("hard_block")).toEqual({ texto: "barrado", tom: "bar" });
     expect(textoP1("human_review")).toEqual({ texto: "precisa de você", tom: "av" });
+  });
+});
+
+describe("filtro P1 'precisa de você' (Selo Verde pede revisão humana)", () => {
+  it("só os cortes com veredito human_review", () => {
+    const p1 = (geral: string | null) => ({ sem_veredito: geral === null, geral, por_rede: {}, motivos: [], motivos_por_rede: {} });
+    const cs = [corte(1, { p1: p1("human_review") }), corte(2, { p1: p1("pass") }), corte(3, { p1: p1(null) })];
+    expect(filtrar(cs, { ...FILTROS_VAZIOS, p1: "precisa_de_voce" }).map((c) => c.n)).toEqual([1]);
   });
 });

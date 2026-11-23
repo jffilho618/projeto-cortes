@@ -6,7 +6,7 @@ import { Fila } from "./Fila";
 
 const linha = (extra: Partial<LinhaFila>): LinhaFila => ({
   id: "p1", titulo: "EMBOSCADOS!", streamer: "ALANZOKA", jogo: "gta6", status: "review", estagio: "Pronto para revisar",
-  progresso: null, motor: "ollama", prova: false, criado_em: null, fonte_url: null, falha: null, ...extra,
+  progresso: null, motor: "ollama", prova: false, criado_em: null, fonte_url: null, falha: null, alertas: [], ...extra,
 });
 
 function backend(producao: LinhaFila[], prova: LinhaFila[] = []) {
@@ -33,6 +33,12 @@ describe("Fila", () => {
     renderizar(<Fila />);
     expect(await screen.findByRole("link", { name: "Cadastrar fonte" })).toHaveAttribute("href", "/fontes");
     expect(screen.getByRole("button", { name: "Retomar" })).toBeInTheDocument();
+  });
+  it("editor com lote parcial aparece como alerta sem virar falha", async () => {
+    backend([linha({ alertas: [{ parte: "Editor-Chefe", detalhe: "lote parcial: 18 de 23 candidatos avaliados" }] })]);
+    renderizar(<Fila />);
+    expect(await screen.findByText(/Editor-Chefe: lote parcial: 18 de 23/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retomar" })).toBeNull();
   });
   it("conjunto de prova fica separado da produção", async () => {
     backend([], [linha({ id: "b", titulo: "VOD do benchmark", prova: true })]);

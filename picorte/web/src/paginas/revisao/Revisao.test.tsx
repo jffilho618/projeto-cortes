@@ -9,13 +9,13 @@ const corte = (n: number, extra: Partial<Corte> = {}): Corte => ({
   n, seg: String(n).padStart(3, "0"), start: n * 100, end: n * 100 + 30, titulo: `Corte ${n}`, hook: "", arquetipo: "caos_coop",
   tier: "forte", faixa_2s: "", comentario: "", motivo: "",
   sinais: [{ chave: "chat", nome: "Chat", estado: "nao_medido", valor: null, motivo: "vídeo sem chat" }],
-  p1: { sem_veredito: true, geral: null, por_rede: {} }, render: { clip: null, preview: null },
+  p1: { sem_veredito: true, geral: null, por_rede: {}, motivos: [], motivos_por_rede: {} }, render: { clip: null, preview: null },
   decisao: { rotulo: null, motivo: "", descartado: false, exemplo_ouro: false }, ...extra,
 });
 
 const REV: TRevisao = {
   projeto: { id: "p1", titulo: "EMBOSCADOS!", streamer: "ALANZOKA", jogo: "gta6", motor: "ollama", prova: false, n_cortes: 2,
-    duracao_s: 8087, fonte_url: null, video_local: false, energia: false, resumo_saude: [] },
+    duracao_s: 8087, fonte_url: null, video_local: false, energia: false, resumo_saude: [], pedem_voce: 0 },
   cortes: [corte(1, { tier: "ouro" }), corte(2)],
 };
 
@@ -75,5 +75,23 @@ describe("Revisão", () => {
     expect(posts.filter((p) => p.url.endsWith("/run"))).toEqual([]);
     fireEvent.keyDown(window, { key: "r" });
     await waitFor(() => expect(posts).toContainEqual({ url: "/api/projetos/p1/run", corpo: { action: "render", pick: "1" } }));
+  });
+
+  it("corte barrado diz por quê com o texto do veredito; por rede quando as redes diferem", async () => {
+    const SPOILER = "Spoiler bloqueado na janela pós-lançamento de gta6 (final do jogo).";
+    const todas = { youtube_shorts: "hard_block", tiktok: "hard_block", instagram_reels: "hard_block", facebook_reels: "hard_block" };
+    REV.cortes = [corte(1, { p1: { sem_veredito: false, geral: "hard_block", por_rede: todas,
+      motivos: [{ portao: "Política do publisher", texto: SPOILER }], motivos_por_rede: {} } }),
+    corte(2, { p1: { sem_veredito: false, geral: "hard_block", por_rede: { youtube_shorts: "pass", tiktok: "hard_block" }, motivos: [],
+      motivos_por_rede: { youtube_shorts: [], tiktok: [{ portao: "Esta rede", texto: "barrado pelo P1 (motivo não registrado)" }] } } })];
+    renderizar(<Revisao />, { rota: "/revisao?projeto=p1" });
+    const porque = await screen.findByRole("list", { name: "Por que o P1 barrou" });
+    expect(porque).toHaveTextContent("Política do publisher");
+    expect(porque).toHaveTextContent(SPOILER);
+    fireEvent.keyDown(window, { key: "j" });
+    const porRede = await screen.findByRole("list", { name: "Por que o P1 barrou" });
+    expect(porRede).toHaveTextContent("TikTok");
+    expect(porRede).toHaveTextContent("barrado pelo P1 (motivo não registrado)");
+    expect(porRede).not.toHaveTextContent("YouTube Shorts");
   });
 });

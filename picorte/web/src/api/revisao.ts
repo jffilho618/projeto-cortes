@@ -15,7 +15,10 @@ export interface LinhaFila {
   criado_em: number | null;
   fonte_url: string | null;
   falha: { motivo: string; acao: "trocar_motor" | "cadastrar_fonte" | "retomar" } | null;
+  alertas: { parte: string; detalhe: string }[]; // editor e batedor que falharam sem derrubar o job
 }
+
+export interface MotivoP1 { portao: string; texto: string }
 
 export interface Sinal {
   chave: "chat" | "audio" | "visual" | "texto";
@@ -38,7 +41,11 @@ export interface Corte {
   comentario: string;
   motivo: string;
   sinais: Sinal[];
-  p1: { sem_veredito: boolean; geral: string | null; por_rede: Record<string, string> };
+  p1: {
+    sem_veredito: boolean; geral: string | null; por_rede: Record<string, string>;
+    motivos: MotivoP1[]; // por que o P1 barrou, com o texto gravado no risk_verdict (vale para todas as redes)
+    motivos_por_rede: Record<string, MotivoP1[]>; // só quando as redes diferem
+  };
   render: { clip: string | null; preview: string | null };
   decisao: { rotulo: -1 | 1 | null; motivo: string; descartado: boolean; exemplo_ouro: boolean };
 }
@@ -56,6 +63,7 @@ export interface CabecalhoRevisao {
   video_local: boolean;
   energia: boolean;
   resumo_saude: string[];
+  pedem_voce: number; // cortes com veredito human_review (Selo Verde pediu olho humano)
 }
 
 export interface Revisao {

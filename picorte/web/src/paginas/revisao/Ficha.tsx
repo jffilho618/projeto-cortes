@@ -1,6 +1,7 @@
 import { capacidadePorId } from "../../api/capacidades";
+import { rotuloRede } from "../../api/gestao";
 import type { Taxonomia } from "../../api/lives";
-import type { Corte } from "../../api/revisao";
+import type { Corte, MotivoP1 } from "../../api/revisao";
 import type { ListaCapacidades } from "../../api/tipos";
 import { Icone } from "../../ui/Icone";
 import { PicoOrigem } from "./Graficos";
@@ -34,6 +35,23 @@ interface Props {
 }
 
 /** Ficha do corte: o que o motor decidiu, o que foi medido e as decisões do dono (EXPERIENCE.md › Ficha do corte). */
+function Itens({ itens }: { itens: MotivoP1[] }) {
+  return <>{itens.map((m, i) => <li key={i}><b>{m.portao}:</b> {m.texto}</li>)}</>;
+}
+
+/** Por que o P1 barrou: só o texto gravado no risk_verdict; por rede quando as redes diferem. */
+function MotivosP1({ c }: { c: Corte }) {
+  const porRede = Object.entries(c.p1.motivos_por_rede).filter(([, itens]) => itens.length > 0);
+  if (c.p1.sem_veredito || (c.p1.motivos.length === 0 && porRede.length === 0)) return null;
+  return (
+    <ul className="motivos-p1" aria-label="Por que o P1 barrou">
+      {c.p1.motivos.length > 0 ? <Itens itens={c.p1.motivos} /> : porRede.map(([rede, itens]) => (
+        <li key={rede} className="por-rede"><span className="nome">{rotuloRede(rede)}</span><ul><Itens itens={itens} /></ul></li>
+      ))}
+    </ul>
+  );
+}
+
 export function Ficha({ corte: c, taxonomia, caps, pico, picoErro, acoes, mensagem, desfazer }: Props) {
   const standalone = capacidadePorId(caps, "REV-15");
   const redes = taxonomia?.redes?.filter((r) => r.status !== "travado") ?? [];
@@ -89,6 +107,7 @@ export function Ficha({ corte: c, taxonomia, caps, pico, picoErro, acoes, mensag
             })}
           </div>
         )}
+        <MotivosP1 c={c} />
       </div>
 
       <div className="mini-espaco"><Icone nome="cad" pequeno />Entende sozinho? · {standalone.motivo || "travado"}</div>
