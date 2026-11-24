@@ -73,6 +73,27 @@ describe("Fila", () => {
     expect(posts).toContainEqual({ url: "/api/projetos/b/settings", corpo: { ai_mode: "gemini" } });
   });
 
+  it("falha do Editor deixa tentar de novo com o MESMO motor (timeout é passageiro)", async () => {
+    const posts: { url: string; corpo: unknown }[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        posts.push({ url, corpo: JSON.parse(String(init.body)) });
+        return new Response("{}");
+      }
+      if (url === "/api/config") return new Response('{"token":"t"}');
+      if (url === "/api/fila") return new Response(JSON.stringify({ prova: [], producao: [
+        linha({ id: "g", status: "failed", acao: "all", motor: "gemini",
+                falha: { motivo: "[Editor-Chefe] gemini indisponível (lote 2/3 falhou 2x: TimeoutExpired)", acao: "trocar_motor" } }),
+      ] }));
+      if (url.startsWith("/api/capacidades")) return new Response(JSON.stringify({ gerado_em: "", resumo: {}, capacidades: [cap({ id: "SIS-7" })] }));
+      if (url.startsWith("/api/taxonomia")) return new Response(JSON.stringify({ aspectos: [], layouts: [], modos_ia: [{ id: "gemini", rotulo: "Só Gemini" }] }));
+      return new Response("{}");
+    }));
+    renderizar(<Fila />);
+    fireEvent.click(await screen.findByRole("button", { name: "Retomar com o mesmo motor" }));
+    await waitFor(() => expect(posts).toContainEqual({ url: "/api/projetos/g/run", corpo: { action: "all" } }));
+  });
+
   it("Cancelar no job rodando avisa que a etapa em andamento termina; Apagar mostra o tamanho e pede confirmação", async () => {
     const posts: { url: string; corpo: unknown }[] = [];
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {

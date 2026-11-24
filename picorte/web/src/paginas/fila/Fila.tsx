@@ -116,6 +116,7 @@ function Linha({ linha }: { linha: LinhaFila }) {
             {linha.redes.map((r) => <IconeRede key={r} rede={r} soIcone className="rede-mini" />)}
           </span>
         )}
+        {linha.progresso?.detalhe && <span className="dica">{linha.progresso.detalhe}</span>}
         {pct !== null && linha.progresso && (
           <span className="barra-prog" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
             aria-label={`${linha.estagio} ${linha.progresso.feito} de ${linha.progresso.total}`}>
@@ -139,7 +140,13 @@ function Linha({ linha }: { linha: LinhaFila }) {
           {linha.falha.acao === "cadastrar_fonte" ? (
             <Link className="pilula sec" to="/fontes">Cadastrar fonte</Link>
           ) : linha.falha.acao === "trocar_motor" ? (
-            <TrocarMotor linha={linha} aoFeito={atualizar} />
+            <>
+              {/* Falha do motor nem sempre é cota: timeout é passageiro — dá para tentar de novo com o mesmo (2026-11-24) */}
+              <button type="button" className="pilula sec" disabled={retomar.isPending} onClick={() => retomar.mutate()}>
+                {retomar.isPending ? "Enviando…" : "Retomar com o mesmo motor"}
+              </button>
+              <TrocarMotor linha={linha} aoFeito={atualizar} />
+            </>
           ) : (
             <button type="button" className="pilula sec" disabled={retomar.isPending} onClick={() => retomar.mutate()}>
               {retomar.isPending ? "Enviando…" : "Retomar"}

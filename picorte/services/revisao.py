@@ -40,14 +40,19 @@ def estagio_pt(status: str | None, stage: str | None) -> str:
     return PASSOS.get(passo, "Rodando")
 
 
-def _progresso(estado: dict[str, Any]) -> dict[str, int] | None:
+def _progresso(estado: dict[str, Any]) -> dict[str, Any] | None:
     p = estado.get("progress") or {}
     feito, total = int(p.get("done") or 0), int(p.get("total") or 0)
     if total <= 0:
         m = re.search(r"(\d+)\s*/\s*(\d+)", str(p.get("stage") or ""))
         if m:
             feito, total = int(m.group(1)), int(m.group(2))
-    return {"feito": feito, "total": total} if total > 0 and estado.get("status") == "running" else None
+    if total <= 0 or estado.get("status") != "running":
+        return None
+    out: dict[str, Any] = {"feito": feito, "total": total}
+    if p.get("detail"):
+        out["detalhe"] = str(p["detail"])  # ex.: "Batedor: bloco 18/41", "Editor-Chefe (gemini): lote 2/3"
+    return out
 
 
 def _falha(estado: dict[str, Any]) -> dict[str, str] | None:

@@ -9,7 +9,7 @@ export interface LinhaFila {
   jogo: string | null;
   status: string;
   estagio: string;
-  progresso: { feito: number; total: number } | null;
+  progresso: { feito: number; total: number; detalhe?: string } | null;
   motor: string | null;
   prova: boolean;
   criado_em: number | null;

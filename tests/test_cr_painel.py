@@ -33,3 +33,19 @@ def test_energia_do_audio_segue_a_parte_audio_da_saude(tmp_path: Path):
              "prosody": {"status": "ok", "detail": "40 candidatos medidos"}}
     (audio,) = [s for s in _sinais({"evidence": {}}, saude, tmp_path) if s["chave"] == "audio"]
     assert audio["estado"] == "falhou" and "audio.webm" in audio["motivo"]
+
+
+def test_fila_recebe_o_detalhe_do_progresso_da_selecao():
+    """Live real (2026-11-24): ~25 min em 'Escolhendo cortes' sem nenhum número na tela."""
+    from picorte.services.revisao import _progresso
+
+    estado = {"status": "running", "progress": {"stage": "select", "done": 18, "total": 41,
+                                                "detail": "Batedor: bloco 18/41"}}
+    assert _progresso(estado) == {"feito": 18, "total": 41, "detalhe": "Batedor: bloco 18/41"}
+
+
+def test_progresso_da_selecao_grava_os_numeros_do_texto():
+    import projects
+
+    assert projects._progress_numbers("Editor-Chefe (gemini): lote 2/3") == (2, 3)
+    assert projects._progress_numbers("Batedor: consolidando os destaques") == (0, 0)
