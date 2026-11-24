@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LinhaFila } from "../../api/revisao";
 import { cap, renderizar } from "../../testes/fabrica";
@@ -6,7 +6,7 @@ import { Fila } from "./Fila";
 
 const linha = (extra: Partial<LinhaFila>): LinhaFila => ({
   id: "p1", titulo: "EMBOSCADOS!", streamer: "ALANZOKA", jogo: "gta6", status: "review", estagio: "Pronto para revisar",
-  progresso: null, motor: "ollama", prova: false, criado_em: null, fonte_url: null, falha: null, alertas: [], acao: "prepare", ...extra,
+  progresso: null, motor: "ollama", prova: false, criado_em: null, fonte_url: null, falha: null, alertas: [], acao: "prepare", redes: null, ...extra,
 });
 
 function backend(producao: LinhaFila[], prova: LinhaFila[] = []) {
@@ -71,5 +71,42 @@ describe("Fila", () => {
     fireEvent.click(screen.getByRole("button", { name: "Trocar motor e retomar" }));
     await waitFor(() => expect(posts).toContainEqual({ url: "/api/projetos/b/run", corpo: { action: "all" } }));
     expect(posts).toContainEqual({ url: "/api/projetos/b/settings", corpo: { ai_mode: "gemini" } });
+  });
+
+  it("Cancelar no job rodando avisa que a etapa em andamento termina; Apagar mostra o tamanho e pede confirmação", async () => {
+    const posts: { url: string; corpo: unknown }[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        posts.push({ url, corpo: JSON.parse(String(init.body)) });
+        return new Response(JSON.stringify({ ok: true, cancelamento: "pedido" }));
+      }
+      if (url === "/api/config") return new Response('{"token":"t"}');
+      if (url === "/api/projetos/b/apagar") return new Response(JSON.stringify({ bytes: 1331439861, gb: 1.24, cortes: 12 }));
+      if (url === "/api/fila") return new Response(JSON.stringify({ prova: [], producao: [
+        linha({ id: "a", titulo: "Rodando", status: "running", estagio: "Transcrevendo", redes: ["youtube_shorts", "tiktok"] }),
+        linha({ id: "b", titulo: "Parado" }),
+        linha({ id: "c", titulo: "Cancelado", status: "cancelled", estagio: "Cancelado", acao: "all",
+          falha: { motivo: "Cancelado pelo operador.", acao: "retomar" } }),
+      ] }));
+      return new Response("{}");
+    }));
+    renderizar(<Fila />);
+    const rodando = (await screen.findByText("Rodando")).closest("li") as HTMLElement;
+    expect(within(rodando).getByText("YouTube Shorts")).toBeInTheDocument();
+    expect(within(rodando).queryByRole("button", { name: "Apagar" })).toBeNull();
+    fireEvent.click(within(rodando).getByRole("button", { name: "Cancelar" }));
+    await waitFor(() => expect(posts).toContainEqual({ url: "/api/projetos/a/cancelar", corpo: {} }));
+    expect(await within(rodando).findByText(/a etapa em andamento termina antes/)).toBeInTheDocument();
+
+    const parado = screen.getByText("Parado").closest("li") as HTMLElement;
+    expect(within(parado).queryByRole("button", { name: "Cancelar" })).toBeNull();
+    fireEvent.click(within(parado).getByRole("button", { name: "Apagar" }));
+    expect(await within(parado).findByText(/1,24 GB e 12 cortes renderizados/)).toBeInTheDocument();
+    expect(posts.some((p) => p.url.endsWith("/apagar"))).toBe(false);
+    fireEvent.click(within(parado).getByRole("button", { name: "Apagar de vez" }));
+    await waitFor(() => expect(posts).toContainEqual({ url: "/api/projetos/b/apagar", corpo: { confirmar: "b" } }));
+
+    const cancelado = screen.getByText("Cancelado", { selector: ".titulo-fila" }).closest("li") as HTMLElement;
+    expect(within(cancelado).getByRole("button", { name: "Retomar" })).toBeInTheDocument();
   });
 });

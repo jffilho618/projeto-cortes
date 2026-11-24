@@ -95,3 +95,15 @@ def preparar_banco(db, raiz) -> dict[str, Any]:
 
     db.init_schema()
     return {"politicas": sync_publisher_policies(db), **reconciliar(db, raiz)}
+
+
+def arquivar_projeto(db, pid: str) -> bool:
+    """Apagar pela UI: o vídeo e os cortes do projeto saem das listas, mas ficam no banco (histórico, publicações)."""
+    from datetime import datetime, timezone
+    video_id = f"studio-{pid}"
+    if not db.fetch_one("SELECT id FROM videos WHERE id = ?", (video_id,)):
+        return False
+    agora = datetime.now(timezone.utc).isoformat()
+    db.execute("UPDATE videos SET archived_at = COALESCE(archived_at, ?) WHERE id = ?", (agora, video_id))
+    db.execute("UPDATE clips SET archived_at = COALESCE(archived_at, ?) WHERE video_id = ?", (agora, video_id))
+    return True

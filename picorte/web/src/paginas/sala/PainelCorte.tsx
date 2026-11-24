@@ -3,11 +3,12 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { capacidadePorId, rotuloDoStatus } from "../../api/capacidades";
 import { enviar } from "../../api/cliente";
-import { useConfig } from "../../api/gestao";
+import { rotuloRede, useConfig } from "../../api/gestao";
 import { CHAVE_MESA, type ItemTaxonomia, type Sala, type Taxonomia } from "../../api/lives";
 import { CHAVE_PROJETOS } from "../../api/projetos";
 import type { Capacidade, ListaCapacidades } from "../../api/tipos";
 import { Icone } from "../../ui/Icone";
+import { IconeRede } from "../../ui/IconeRede";
 
 const MOTOR_CAP: Record<string, string> = { heuristic: "SIS-10", ollama: "SIS-6", claude: "SIS-8", gemini: "SIS-7", dupla: "SIS-9" };
 const PREFERENCIA = ["ollama", "dupla", "claude", "gemini", "heuristic"];
@@ -25,6 +26,16 @@ export function motorPadrao(modos: ItemTaxonomia[], caps: ListaCapacidades | und
 function chegaNa(c: Capacidade): string {
   return c.origem.historia ? ` · ${c.origem.historia}` : "";
 }
+
+// opção `redes` do motor: TikTok gera a versão de 60–75 s, YouTube Longo o 16:9; o resto usa o mesmo Short
+const REDES_SALA: { id: string; dica: string }[] = [
+  { id: "youtube_shorts", dica: "O Short de até 59 s." },
+  { id: "tiktok", dica: "Versão de 60–75 s do mesmo momento." },
+  { id: "youtube_longo", dica: "Longo 16:9 de 3–5 min dos cortes ouro e forte." },
+  { id: "instagram_reels", dica: "O mesmo Short." },
+  { id: "facebook", dica: "O mesmo Short." },
+];
+const REDES_PADRAO = ["youtube_shorts", "tiktok"];
 
 function OpcaoTravada({ c, rotulo }: { c: Capacidade; rotulo: string }) {
   return (
@@ -59,7 +70,7 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
   const [caca, setCaca] = useState<"fast" | "deep">("fast");
   const [frames, setFrames] = useState(false);
   const [sozinho, setSozinho] = useState(true);
-  const [versoes, setVersoes] = useState(true); // 3.7.3: versões TikTok e Longo do mesmo momento (formatos_extras)
+  const [redes, setRedes] = useState<string[]>(REDES_PADRAO); // opção `redes` do motor (escolha do dono)
   // Duração do corte (padrão aprovado pelo dono: 15–58 s); começa no padrão do motor que o /api/config devolve
   const padrao = useConfig().data?.defaults as { min_len?: number; max_len?: number } | undefined;
   const [minimo, setMinimo] = useState<string | null>(null);
@@ -74,8 +85,7 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
     mutationFn: () => enviar<{ projetos: { id: string }[] }>("/api/lote", {
       sources: [sala?.video.url],
       options: { aspect: aspecto, layout: layoutAtual, ai_mode: motorAtual, hunt_mode: caca, keyframes: frames,
-        min_len: Number(minAtual), max_len: Number(maxAtual),
-        ...(capacidadePorId(caps, "REV-12").status !== "travado" ? { formatos_extras: versoes } : {}) },
+        min_len: Number(minAtual), max_len: Number(maxAtual), redes: REDES_SALA.map((r) => r.id).filter((r) => redes.includes(r)) },
       acao: sozinho ? "all" : "prepare",
     }),
     onSuccess: () => {
@@ -156,6 +166,21 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
           )}
         </div>
 
+        <div className="passo"><span className="rotulo">Redes</span>
+          {REDES_SALA.map((r) => {
+            const ligada = redes.includes(r.id);
+            return (
+              <div key={r.id} className="troca">
+                <span className="flex items-center gap-2.5"><IconeRede rede={r.id} soIcone />
+                  <span><b>{rotuloRede(r.id)}</b><br /><span className="dica">{r.dica}</span></span>
+                </span>
+                <button type="button" role="switch" className="sw" aria-checked={ligada} aria-label={rotuloRede(r.id)}
+                  onClick={() => setRedes(ligada ? redes.filter((x) => x !== r.id) : [...redes, r.id])} />
+              </div>
+            );
+          })}
+        </div>
+
         <div className="passo"><span className="rotulo">Duração de cada corte</span>
           <div className="opcoes">
             <label className="campo-form"><span>Duração mínima (s)</span>
@@ -184,10 +209,7 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
               </div>
             ) : <span className="dica">Cold Open e Seamless Loop: {c.motivo}.</span>;
           })()}
-          {capacidadePorId(caps, "REV-12").status !== "travado" && (
-            <Interruptor ligado={versoes} onTrocar={setVersoes} rotulo="Versões TikTok e Longo"
-              dica="Cada Short ganha a versão TikTok de 60–75 s e, se ouro ou forte, a proposta de Longo 16:9." />
-          )}
+
         </div>
 
         <div className="passo"><span className="rotulo">Preview do enquadramento</span>
@@ -231,6 +253,7 @@ export function PainelCorte({ sala, caps, taxonomia }: Props) {
             onClick={() => {
               const [a, b] = [Number(minAtual), Number(maxAtual)];
               if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || a >= b) return setAviso("A duração mínima precisa ser menor que a máxima.");
+              if (redes.length === 0) return setAviso("Ligue ao menos uma rede.");
               setAviso("");
               cortar.mutate();
             }}>{cortar.isPending ? "Enviando…" : "Cortar este vídeo"}</button>

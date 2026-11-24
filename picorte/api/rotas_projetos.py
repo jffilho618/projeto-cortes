@@ -63,7 +63,7 @@ def midia(pid: str, pasta: str, arquivo: str, request: Request):
 
 
 REDES_MANUAIS = {"youtube_shorts", "tiktok", "instagram_reels", "facebook_reels"}
-ACOES_LIVRES = {"mark-posted", "open-folder", "export-bundle"}  # não editam o projeto
+ACOES_LIVRES = {"mark-posted", "open-folder", "export-bundle", "cancelar"}  # não editam o projeto
 NOME_MARCA = re.compile(r"[a-zA-Z0-9_-]{1,60}")
 
 
@@ -98,6 +98,24 @@ def lote(request: Request, corpo: dict = Body(...)):
     return {"projetos": criados}
 
 
+def _arquivar_no_banco(pid: str) -> None:
+    """Melhor esforço: se o banco não abrir, a reconciliação do próximo boot arquiva a pasta sumida."""
+    try:
+        from picorte.db.connection import get_default_db
+        from picorte.services.reconciliacao import arquivar_projeto
+        arquivar_projeto(get_default_db(), pid)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+@rotas.get("/api/projetos/{pid}/apagar")
+def previa_apagar(pid: str, request: Request):
+    from picorte.services.apagar import previa
+    path = projects.project_path(request.app.state.raiz, pid)
+    projects.read_project(path)  # 404 se não existe
+    return previa(path)
+
+
 @rotas.post("/api/projetos/{pid}/{acao}")
 def acao_projeto(pid: str, acao: str, request: Request, corpo: dict = Body(default_factory=dict)):
     corpo = _corpo(corpo)
@@ -107,6 +125,16 @@ def acao_projeto(pid: str, acao: str, request: Request, corpo: dict = Body(defau
     estado = projects.read_project(path)
     if acao not in ACOES_LIVRES and fila.ocupado(pid):
         raise ProjetoOcupado("Espere o job deste projeto terminar antes de editar.")
+    if acao == "cancelar":
+        return {"ok": True, "cancelamento": fila.cancelar(pid)}
+    if acao == "apagar":  # só com o job parado (o ocupado acima devolve 409); confirmar = o id do projeto
+        if corpo.get("confirmar") != pid:
+            raise ValueError("Para apagar, confirme com o id do projeto.")
+        from picorte.services.apagar import apagar
+        apagar(path)
+        _arquivar_no_banco(pid)
+        request.app.state.barramento.publicar("job", {"projeto": pid, "fase": "apagado"})
+        return {"ok": True}
     if acao == "settings":
         ajustes = dict(corpo)
         if "brand_name" in ajustes:

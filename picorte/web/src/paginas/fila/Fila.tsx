@@ -2,12 +2,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
 import { capacidadePorId, useCapacidades } from "../../api/capacidades";
-import { enviar } from "../../api/cliente";
+import { enviar, pedir } from "../../api/cliente";
 import { CHAVE_MESA, useTaxonomia } from "../../api/lives";
 import { CHAVE_PROJETOS } from "../../api/projetos";
 import { CHAVE_FILA, useFila, type LinhaFila } from "../../api/revisao";
 import { Carregando, ErroCarregar, Vazio } from "../../ui/Estados";
 import { Icone } from "../../ui/Icone";
+import { IconeRede } from "../../ui/IconeRede";
 import { haQuanto } from "../lives/regras";
 import { motorDisponivel } from "../sala/PainelCorte";
 
@@ -43,6 +44,48 @@ function TrocarMotor({ linha, aoFeito }: { linha: LinhaFila; aoFeito: () => void
   );
 }
 
+/** Cancelar: na fila sai na hora; rodando, o motor para no começo da próxima etapa (a atual termina antes). */
+function CancelarJob({ linha, aoFeito }: { linha: LinhaFila; aoFeito: () => void }) {
+  const cancelar = useMutation({
+    mutationFn: () => enviar<{ cancelamento: "fila" | "pedido" }>(`/api/projetos/${linha.id}/cancelar`, {}), onSuccess: aoFeito });
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button type="button" className="pilula sec" disabled={cancelar.isPending || cancelar.isSuccess} onClick={() => cancelar.mutate()}>
+        {cancelar.isPending ? "Enviando…" : "Cancelar"}
+      </button>
+      {cancelar.data?.cancelamento === "fila" && <span className="dica" role="status">Saiu da fila.</span>}
+      {cancelar.data?.cancelamento === "pedido" && (
+        <span className="dica" role="status">Pedido enviado: o motor para no começo da próxima etapa; a etapa em andamento termina antes (uma transcrição longa vai até o fim).</span>
+      )}
+      {cancelar.isError && <span className="resultado" role="alert">{cancelar.error.message}</span>}
+    </div>
+  );
+}
+
+/** Apagar a pasta inteira (cortes renderizados inclusos), só com o job parado, depois de ver quanto vai junto. */
+function ApagarProjeto({ linha, aoFeito }: { linha: LinhaFila; aoFeito: () => void }) {
+  const [previa, setPrevia] = useState<{ gb: number; cortes: number } | null>(null);
+  const [erro, setErro] = useState("");
+  const apagar = useMutation({ mutationFn: () => enviar(`/api/projetos/${linha.id}/apagar`, { confirmar: linha.id }), onSuccess: aoFeito,
+    onError: (e) => setErro(e instanceof Error ? e.message : String(e)) });
+  const verPrevia = async () => {
+    try {
+      setPrevia(await pedir<{ gb: number; cortes: number }>(`/api/projetos/${linha.id}/apagar`));
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    }
+  };
+  if (!previa) return <button type="button" className="link-fraco" onClick={() => void verPrevia()}>Apagar</button>;
+  return (
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={`Apagar ${linha.titulo}`}>
+      <span className="dica">Apaga a pasta inteira: {previa.gb.toLocaleString("pt-BR")} GB e {previa.cortes} cortes renderizados vão junto. Não dá para desfazer.</span>
+      <button type="button" className="pilula" disabled={apagar.isPending} onClick={() => apagar.mutate()}>Apagar de vez</button>
+      <button type="button" className="pilula sec" onClick={() => setPrevia(null)}>Manter</button>
+      {erro && <span className="resultado" role="alert">{erro}</span>}
+    </div>
+  );
+}
+
 function Linha({ linha }: { linha: LinhaFila }) {
   const cliente = useQueryClient();
   const atualizar = () => {
@@ -68,6 +111,11 @@ function Linha({ linha }: { linha: LinhaFila }) {
         <span className={`est ${linha.falha ? "bar" : linha.status === "running" || linha.status === "queued" ? "av" : "ok"}`}>
           <Icone nome={linha.falha ? "av" : linha.status === "running" ? "vivo" : "ok"} pequeno />{linha.estagio}
         </span>
+        {linha.redes && (
+          <span className="flex items-center gap-1" aria-label="Redes do projeto">
+            {linha.redes.map((r) => <IconeRede key={r} rede={r} soIcone className="rede-mini" />)}
+          </span>
+        )}
         {pct !== null && linha.progresso && (
           <span className="barra-prog" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
             aria-label={`${linha.estagio} ${linha.progresso.feito} de ${linha.progresso.total}`}>
@@ -75,6 +123,8 @@ function Linha({ linha }: { linha: LinhaFila }) {
           </span>
         )}
       </div>
+      {(linha.status === "running" || linha.status === "queued") ? <CancelarJob linha={linha} aoFeito={atualizar} />
+        : <ApagarProjeto linha={linha} aoFeito={atualizar} />}
       {!linha.falha && linha.alertas.length > 0 && (
         <div className="falha-fila">
           {linha.alertas.map((a) => (

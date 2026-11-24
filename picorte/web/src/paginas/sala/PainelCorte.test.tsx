@@ -72,12 +72,13 @@ describe("PainelCorte", () => {
     expect((lote?.init?.headers as Record<string, string>)["X-Picorte-Token"]).toBe("tok");
     expect(JSON.parse(String(lote?.init?.body))).toEqual({
       sources: ["https://www.youtube.com/watch?v=q4ekFpRjgKQ"],
-      options: { aspect: "9:16", layout: "games", ai_mode: "ollama", hunt_mode: "deep", keyframes: false, min_len: 15, max_len: 58 },
+      options: { aspect: "9:16", layout: "games", ai_mode: "ollama", hunt_mode: "deep", keyframes: false, min_len: 15, max_len: 58,
+        redes: ["youtube_shorts", "tiktok"] },
       acao: "prepare",
     });
   });
 
-  it("com a 3.7 ligada: efeitos explicados e versões TikTok e Longo num interruptor real", async () => {
+  it("com a 3.7 ligada: efeitos explicados e um interruptor por rede (Shorts e TikTok ligados)", async () => {
     const chamadas: { url: string; init?: RequestInit }[] = [];
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
       chamadas.push({ url, init });
@@ -93,13 +94,25 @@ describe("PainelCorte", () => {
     renderizar(<PainelCorte sala={sala()} caps={ligadas} taxonomia={TAX} />);
     expect(screen.getByText(/Cold Open e Seamless Loop: entram sozinhos no render/)).toBeInTheDocument();
     expect(screen.getByText(/Layout dinâmico: automático no layout Facecam \+ jogo/)).toBeInTheDocument();
-    const versoes = screen.getByRole("switch", { name: "Versões TikTok e Longo" });
-    expect(versoes).toHaveAttribute("aria-checked", "true");
-    fireEvent.click(versoes);
+    expect(screen.queryByRole("switch", { name: "Versões TikTok e Longo" })).toBeNull();
+    const rede = (nome: string) => screen.getByRole("switch", { name: nome });
+    expect(rede("YouTube Shorts")).toHaveAttribute("aria-checked", "true");
+    expect(rede("TikTok")).toHaveAttribute("aria-checked", "true");
+    expect(rede("YouTube Longo")).toHaveAttribute("aria-checked", "false");
+    expect(rede("Instagram Reels")).toHaveAttribute("aria-checked", "false");
+    expect(rede("Facebook")).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(rede("YouTube Shorts"));
+    fireEvent.click(rede("TikTok"));
+    fireEvent.click(screen.getByRole("button", { name: "Cortar este vídeo" }));
+    expect(await screen.findByText("Ligue ao menos uma rede.")).toBeInTheDocument();
+    expect(chamadas.some((c) => c.url === "/api/lote")).toBe(false);
+    fireEvent.click(rede("TikTok"));
+    fireEvent.click(rede("YouTube Longo"));
     fireEvent.click(screen.getByRole("button", { name: "Cortar este vídeo" }));
     await screen.findByText(/Na fila/);
     const corpo = JSON.parse(String(chamadas.find((c) => c.url === "/api/lote")?.init?.body));
-    expect(corpo.options.formatos_extras).toBe(false);
+    expect(corpo.options.redes).toEqual(["tiktok", "youtube_longo"]);
+    expect(corpo.options.formatos_extras).toBeUndefined();
   });
 
   it("duração mínima e máxima à vista, com o padrão do motor, e validadas antes de enviar", async () => {

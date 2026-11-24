@@ -3,6 +3,7 @@ import { Icone, type NomeIcone } from "./Icone";
 
 const ICONE_DA_REDE: Record<string, NomeIcone> = {
   youtube_shorts: "shorts", youtube_long: "ytlongo", tiktok: "tiktok", instagram_reels: "instagram", facebook_reels: "facebook",
+  youtube_longo: "ytlongo", facebook: "facebook", // nomes da opção `redes` do motor
 };
 
 /** Rede com o ícone de linha do pacote e o nome; `soIcone` deixa o nome só para leitor de tela. */

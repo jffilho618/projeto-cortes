@@ -12,7 +12,7 @@ from typing import Any
 from picorte.services.mesa import _eh_p1
 from picorte.services.sinais import sinais_medidos
 
-ESTADOS = {"queued": "Na fila", "failed": "Falhou", "interrupted": "Interrompido", "new": "Criado",
+ESTADOS = {"queued": "Na fila", "failed": "Falhou", "cancelled": "Cancelado", "interrupted": "Interrompido", "new": "Criado",
            "review": "Pronto para revisar", "complete": "Pronto"}
 PASSOS = {"source": "Baixando", "transcribe": "Transcrevendo", "discover": "Escolhendo cortes",
           "select": "Escolhendo cortes", "waiting": "Na fila"}
@@ -54,6 +54,8 @@ def _falha(estado: dict[str, Any]) -> dict[str, str] | None:
     status, erro = estado.get("status"), str(estado.get("error") or "")
     if status == "interrupted":
         return {"motivo": erro or "O job parou antes de terminar.", "acao": "retomar"}
+    if status == "cancelled":  # parou a pedido do operador: não é falha, mas o próximo passo é o mesmo (Retomar)
+        return {"motivo": erro or "Cancelado pelo operador.", "acao": "retomar"}
     if status != "failed":
         return None
     if _eh_p1(erro):
@@ -87,6 +89,12 @@ def alertas_da_saude(pasta: Path) -> list[dict[str, str]]:
             for p in PARTES_ALERTA if (saude.get(p) or {}).get("status") == "failed"]
 
 
+def _redes(estado: dict[str, Any]) -> list[str] | None:
+    """Redes que o projeto gera (opção `redes` do motor, 2026-11-23); projeto antigo não tem: None."""
+    redes = (estado.get("options") or {}).get("redes")
+    return [str(r) for r in redes] if isinstance(redes, list) and redes else None
+
+
 def linha_da_fila(estado: dict[str, Any], alertas: list[dict[str, str]] | None = None) -> dict[str, Any]:
     meta = estado.get("source_meta") or {}
     portao = estado.get("source_gate") or {}
@@ -105,6 +113,7 @@ def linha_da_fila(estado: dict[str, Any], alertas: list[dict[str, str]] | None =
         "fonte_url": estado.get("source"),
         "falha": _falha(estado),
         "alertas": alertas or [],
+        "redes": _redes(estado),
         "acao": estado.get("acao_pedida") if estado.get("acao_pedida") in {"prepare", "render", "all"} else "prepare",
     }
 
@@ -300,6 +309,7 @@ def montar_revisao(pasta: Path, estado: dict[str, Any], decisoes: dict[str, dict
             "imagem_proxy": bool(fonte_so_audio(video) and imagem_proxy(pasta)),
             "energia": (pasta / "audio_features.npz").is_file(), "resumo_saude": resumo, "pedem_voce": pedem_voce,
             "confianca": confianca_do_projeto(saude),
+            "redes": _redes(estado),
         },
         "cortes": cortes,
     }

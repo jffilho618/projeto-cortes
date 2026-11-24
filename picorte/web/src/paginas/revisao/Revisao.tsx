@@ -8,6 +8,7 @@ import { CHAVE_FILA, useEnergia, useFila, useRevisao, type Corte } from "../../a
 import { ehCampoDeTexto } from "../../casca/atalhos";
 import { Carregando, ErroCarregar, Vazio } from "../../ui/Estados";
 import { Icone } from "../../ui/Icone";
+import { IconeRede } from "../../ui/IconeRede";
 import { Ficha, type AcoesCorte } from "./Ficha";
 import { Minimapa, OndaTrecho } from "./Graficos";
 import { sincronizar } from "./sincronia";
@@ -181,6 +182,11 @@ function RevisaoDoProjeto({ pid }: { pid: string }) {
             {[projeto?.streamer, projeto?.jogo, `${projeto?.n_cortes} cortes`, projeto?.motor ? `motor ${projeto.motor}` : null,
               projeto?.prova ? "conjunto de prova" : "produção"].filter(Boolean).join(" · ")}
           </span>
+          {projeto?.redes && (
+            <span className="flex items-center gap-1.5" aria-label="Redes do projeto">
+              {projeto.redes.map((r) => <IconeRede key={r} rede={r} soIcone className="rede-mini" />)}
+            </span>
+          )}
           {projeto && projeto.resumo_saude.length > 0 && <p className="resumo">Saúde: {projeto.resumo_saude.join(" · ")}</p>}
           {projeto && projeto.pedem_voce > 0 && (
             <button type="button" className="link-fraco" onClick={() => setFiltros({ ...FILTROS_VAZIOS, p1: "precisa_de_voce" })}>

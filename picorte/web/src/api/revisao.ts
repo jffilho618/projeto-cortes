@@ -17,6 +17,7 @@ export interface LinhaFila {
   falha: { motivo: string; acao: "trocar_motor" | "cadastrar_fonte" | "retomar" } | null;
   alertas: { parte: string; detalhe: string }[]; // editor e batedor que falharam sem derrubar o job
   acao: "prepare" | "render" | "all"; // a ação pedida ao enfileirar: Retomar repete a mesma
+  redes: string[] | null; // redes que o projeto gera (opção redes do motor); projeto antigo: null
 }
 
 export interface MotivoP1 { portao: string; texto: string }
@@ -70,6 +71,7 @@ export interface CabecalhoRevisao {
   energia: boolean;
   resumo_saude: string[];
   pedem_voce: number; // cortes com veredito human_review (Selo Verde pediu olho humano)
+  redes: string[] | null; // redes que o projeto gera; projeto antigo: null
   fonte_so_audio: boolean; // a fonte é audio.* (live longa): tocar só ela deixa a tela preta
   imagem_proxy: boolean; // existe discovery.* para dar a imagem
   confianca: { nota: number; sinais_ok: string[]; sinais_falhos: string[]; sinais_ausentes: string[] } | null; // SAU-2

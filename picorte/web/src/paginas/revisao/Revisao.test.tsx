@@ -15,7 +15,7 @@ const corte = (n: number, extra: Partial<Corte> = {}): Corte => ({
 
 const REV: TRevisao = {
   projeto: { id: "p1", titulo: "EMBOSCADOS!", streamer: "ALANZOKA", jogo: "gta6", motor: "ollama", prova: false, n_cortes: 2,
-    duracao_s: 8087, fonte_url: null, video_local: false, energia: false, resumo_saude: [], pedem_voce: 0, confianca: null, fonte_so_audio: false, imagem_proxy: false },
+    duracao_s: 8087, fonte_url: null, video_local: false, energia: false, resumo_saude: [], pedem_voce: 0, confianca: null, fonte_so_audio: false, imagem_proxy: false, redes: null },
   cortes: [corte(1, { tier: "ouro" }), corte(2)],
 };
 
@@ -100,10 +100,12 @@ describe("Revisão", () => {
   it("com a 3.6.5 ligada: confiança do projeto e 'entende sozinho' com o dado real", async () => {
     const { cap } = await import("../../testes/fabrica");
     capsResposta = [cap({ id: "SAU-2" }), cap({ id: "REV-15" })];
-    REV.projeto = { ...REV.projeto, confianca: { nota: 0.43, sinais_ok: ["editor"], sinais_falhos: ["vision"], sinais_ausentes: [] } };
+    REV.projeto = { ...REV.projeto, redes: ["youtube_shorts", "youtube_longo"],
+      confianca: { nota: 0.43, sinais_ok: ["editor"], sinais_falhos: ["vision"], sinais_ausentes: [] } };
     REV.cortes = [corte(1, { standalone: 7.5 }), corte(2)];
     renderizar(<Revisao />, { rota: "/revisao?projeto=p1" });
     expect(await screen.findByText(/Confiança do projeto · 0,43/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Redes do projeto")).toHaveTextContent("YouTube Longo");
     expect(await screen.findByText("Entende sozinho? · 7,5 de 10")).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "j" });
     expect(await screen.findByText("Entende sozinho? · não medido neste corte")).toBeInTheDocument();

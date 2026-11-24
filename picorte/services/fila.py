@@ -91,9 +91,29 @@ class FilaEstudio:
         self.barramento.publicar("job", {"projeto": pid, "fase": "fim", "acao": acao,
                                          "ok": codigo == 0})
 
+    def cancelar(self, pid: str) -> str:
+        """Na fila: sai da fila na hora ("fila"). Rodando: pede ao motor, que para no começo da próxima etapa
+        ou do próximo corte; a etapa em andamento termina antes ("pedido")."""
+        with self._trava:
+            path = projects.project_path(self.raiz, pid)
+            if not self.ocupado(pid):
+                raise ValueError("Este job não está rodando nem na fila.")
+            futuro = self._futuros.get(pid)
+            if futuro is not None and futuro.cancel():  # ainda não começou
+                estado = projects.read_project(path)
+                estado.update(status="cancelled", error="Cancelado pelo operador antes de começar.")
+                projects.save_project(path, estado)
+                self.barramento.publicar("job", {"projeto": pid, "fase": "fim", "acao": estado.get("acao_pedida"),
+                                                 "ok": False})
+                return "fila"
+            projects.pedir_cancelamento(path)
+            return "pedido"
+
     @staticmethod
     def _marcar_falha(path: Path, erro: str | None) -> None:
         estado = projects.read_project(path)
+        if estado.get("status") == "cancelled":  # o motor parou a pedido do operador: não é falha
+            return
         estado.update(status="failed", error=erro or estado.get("error")
                       or "O job falhou. Abra o log do job para ver o motivo.")
         projects.save_project(path, estado)

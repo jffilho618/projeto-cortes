@@ -68,7 +68,9 @@ export const REDES: { id: string; rotulo: string }[] = [
 export const TIPOS_CLAIM: { id: string; rotulo: string }[] = [
   { id: "copyright_claim", rotulo: "Claim de bloqueio" }, { id: "strike", rotulo: "Strike" }, { id: "desmonetizacao", rotulo: "Desmonetização" },
 ];
-export const rotuloRede = (id: string) => REDES.find((r) => r.id === id)?.rotulo ?? id;
+// nomes da opção `redes` do motor (2026-11-23) que não são ids de publicação
+const REDES_DO_MOTOR: Record<string, string> = { youtube_longo: "YouTube Longo", facebook: "Facebook" };
+export const rotuloRede = (id: string) => REDES.find((r) => r.id === id)?.rotulo ?? REDES_DO_MOTOR[id] ?? id;
 
 /** Tempo que falta até `ate`, em texto curto ("17 h 05 min"); "terminou" se já passou. */
 export function faltaAte(ate: string, agora: Date = new Date()): string {
