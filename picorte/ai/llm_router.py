@@ -309,6 +309,9 @@ BENCHMARK_SEED = 3612
 # claude-opus-5-5 e ~US$ 0,085 no claude-sonnet-5-5, fora o pensamento (cobrado como saída).
 PAID_API_OFF = ("CLI {cli} indisponível. A API paga não é usada automaticamente (regra 6 do CLAUDE.md: custo "
                 "precisa de estimativa e teto antes). Instale/entre no CLI ou escolha outro Motor de IA.")
+# Live real (2026-11-23): o Gemini 4 Neon (High) passou de 180 s num lote do Editor (2x) e a seleção parou.
+# 600 s dá folga a modelo lento com raciocínio alto; um CLI travado de verdade ainda para.
+CLI_TIMEOUT_S = 600
 OLLAMA_SILENCE_TIMEOUT_S = 180
 OLLAMA_TOTAL_TIMEOUT_S = 900
 OLLAMA_THINKING_FAMILIES = ("qwen3", "deepseek-r1")
@@ -445,7 +448,7 @@ class LLMRouter:
                     text=True,
                     encoding="utf-8",
                     errors="replace",
-                    timeout=180,
+                    timeout=CLI_TIMEOUT_S,
                     check=True,
                 )
                 self._note_models("claude", _claude_models(res.stdout))
@@ -474,7 +477,7 @@ class LLMRouter:
                         text=True,
                         encoding="utf-8",
                         errors="replace",
-                        timeout=180,
+                        timeout=CLI_TIMEOUT_S,
                         check=True,
                     )
                 finally:
@@ -624,6 +627,7 @@ class LLMRouter:
         max_per_archetype: int | None = None,
         keep_overflow: bool = True,
         order_seed: int | None = None,
+        on_progress: Any = None,
     ) -> dict[str, Any]:
         if ai_mode not in VALID_AI_MODES:
             raise ValueError(f"ai_mode inválido '{ai_mode}'. Escolha: {', '.join(VALID_AI_MODES)}")
@@ -768,6 +772,9 @@ class LLMRouter:
                 for attempt in range(1, EDITOR_ATTEMPTS_PER_BATCH + 1):
                     print(f"  [editor {provider_name} lote {b_idx}/{total_batches}] avaliando candidatos"
                           f"{' (nova tentativa)' if attempt > 1 else ''}...", flush=True)
+                    if on_progress:
+                        on_progress(f"Editor-Chefe ({provider_name}): lote {b_idx}/{total_batches}"
+                                    f"{' — nova tentativa' if attempt > 1 else ''}")
                     try:
                         raw = self.provider_runner(provider_name, model_name, system_prompt, payload)
                     except Exception as exc:  # cota, timeout, CLI ausente...

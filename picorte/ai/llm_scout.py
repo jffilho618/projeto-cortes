@@ -159,6 +159,7 @@ def scout_full_vod(
     end_breath_sec: float = 1.5,
     max_workers: int = 3,
     report: dict[str, Any] | None = None,
+    on_progress: Any = None,
 ) -> list[dict[str, Any]]:
     """Executa busca narrativa global sobre o VOD inteiro retornando candidatos validados.
 
@@ -191,6 +192,8 @@ def scout_full_vod(
         def _map_one(args: tuple[int, list[tuple[str, dict[str, Any]]]]) -> list[str]:
             b_idx, block = args
             print(f"  [scout bloco {b_idx}/{total_blocks}] lendo transcrição...", flush=True)
+            if on_progress:
+                on_progress(f"Batedor: bloco {b_idx}/{total_blocks}")
             block_text = "\n".join(
                 f"[{sid}] ({_fmt_mmss(float(s.get('start') or 0.0))}) {str(s.get('text') or '').strip()}"
                 for sid, s in block
@@ -249,7 +252,10 @@ def scout_full_vod(
         ).strip()]
 
     parsed: list[dict[str, Any]] = []
-    for user_prompt in user_prompts:
+    for k, user_prompt in enumerate(user_prompts, 1):
+        if on_progress:
+            on_progress(f"Batedor: consolidando parte {k}/{len(user_prompts)}" if len(user_prompts) > 1
+                        else "Batedor: consolidando os destaques")
         raw = router.provider_runner(provider, _model_for(provider, model), SCOUT_SYSTEM_PROMPT, user_prompt)
         part = _extract_json_array(raw)
         if part is None:

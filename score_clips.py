@@ -2086,6 +2086,36 @@ def _add_composites(workdir, segments):
     return list(segments) + arcs + comps
 
 
+SCOUT_CACHE_VERSION = 1
+
+
+def _scout_cache_key(workdir, hunt_mode):
+    try:
+        digest = hashlib.sha256((Path(workdir) / "transcript.json").read_bytes()).hexdigest()
+    except OSError:
+        return None
+    return f"{SCOUT_CACHE_VERSION}:{hunt_mode}:{digest}"
+
+
+def _load_scout_cache(workdir, hunt_mode):
+    """Resultado do batedor da mesma transcrição (live real 2026-11-23: retomar refazia os 41 blocos)."""
+    key = _scout_cache_key(workdir, hunt_mode)
+    try:
+        data = json.loads((Path(workdir) / "scout_cache.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if key is None or not isinstance(data, dict) or data.get("key") != key:
+        return None
+    cands = data.get("candidates")
+    return cands if isinstance(cands, list) else None
+
+
+def _save_scout_cache(workdir, hunt_mode, candidates):
+    key = _scout_cache_key(workdir, hunt_mode)
+    if key is not None:
+        _write_json(Path(workdir) / "scout_cache.json", {"key": key, "candidates": list(candidates or [])})
+
+
 def _label_formats(segments):
     """Todo corte diz o formato (code review 2026-11-23): antes só os irmãos (tiktok_60, longo_16x9) e os compostos
     tinham `formato`, e o leitor assumia "short" — um corte de 291 s aparecia como Short."""
@@ -2480,7 +2510,8 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
            band=None, llm=None, host=OLLAMA_HOST, mode="heuristic",
            ai_mode="heuristic", ai_filter="ollama", ai_companion="claude",
-           query=None, hunt_mode="fast", keyframes=False, max_len=None, formatos_extras=True, redes=None):
+           query=None, hunt_mode="fast", keyframes=False, max_len=None, formatos_extras=True, redes=None,
+           on_progress=None):
     """Read candidates.json, write segments.json and selection.json."""
     workdir = Path(workdir)
     candidates, discovery = load_candidates(workdir)
@@ -2513,9 +2544,12 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
 
         scout_cands = []
         scout_report: dict = {}
+        scout_cached = None if query else _load_scout_cache(workdir, hunt_mode)
         if sentences:
             try:
-                if query:
+                if scout_cached is not None and not query:
+                    scout_cands = scout_cached
+                elif query:
                     scout_cands = query_vod_clips(
                         sentences,
                         query=query,
@@ -2539,6 +2573,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                         companion_provider=ai_companion,
                         model=llm,
                         report=scout_report,
+                        on_progress=on_progress,
                     )
             except Exception as scout_exc:
                 scout_cands = []
@@ -2546,11 +2581,16 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                 _health.record(workdir, "full_vod_scout", "failed", f"{type(scout_exc).__name__}: {scout_exc}")
             else:
                 from picorte.engine import health as _health
-                if scout_report.get("blocos_falhos"):  # bloco perdido = trecho da live não lido (antes: silêncio)
+                if scout_cached is not None and not query:
+                    _health.record(workdir, "full_vod_scout", "ok" if scout_cands else "na",
+                                   f"{len(scout_cands)} achados (em cache: o batedor não foi refeito)")
+                elif scout_report.get("blocos_falhos"):  # bloco perdido = trecho da live não lido (antes: silêncio)
                     _health.record(workdir, "full_vod_scout", "failed",
                                    f"{scout_report['blocos_falhos']} de {scout_report.get('blocos')} blocos falharam "
                                    f"({scout_report.get('motivo')}); {len(scout_cands)} achados no resto")
                 else:
+                    if not query:
+                        _save_scout_cache(workdir, hunt_mode, scout_cands)
                     _health.record(workdir, "full_vod_scout", "ok" if scout_cands else "na",
                                    f"{len(scout_cands)} achados" if scout_cands else "nenhum achado")
 
@@ -2588,6 +2628,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
                 golden_examples=golden_examples,
                 max_per_archetype=3,
                 keep_overflow=True,
+                on_progress=on_progress,
             )
             adjusted = routed["candidates"]
             used_mode = routed["llm_mode_used"]

@@ -1,6 +1,7 @@
 """Shared, resumable local project pipeline for CLI and dashboard."""
 import hashlib
 import json
+import threading
 import math
 import re
 import time
@@ -277,6 +278,13 @@ def validate_segments(segments, duration):
     return result
 
 
+def _progress_numbers(detail):
+    """'Batedor: bloco 18/41' -> (18, 41); sem número -> (0, 0) (o painel desenha a barra com eles)."""
+    import re
+    m = re.search(r"(\d+)\s*/\s*(\d+)", str(detail or ""))
+    return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+
+
 CANCEL_FLAG = "cancelar.flag"
 
 
@@ -329,6 +337,15 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
         print(f"[{state['id']}] {name}", flush=True)
         if progress:
             progress(name)
+
+    progress_lock = threading.Lock()
+
+    def select_progress(detail):
+        # o batedor lê blocos em paralelo: uma trava só para gravar o progresso
+        with progress_lock:
+            done, total = _progress_numbers(detail)
+            state["progress"] = {"stage": "select", "done": done, "total": total, "detail": str(detail)[:120]}
+            save_project(path, state)
 
     def transcribe_progress(done, total):
         state["progress"] = {"stage": "transcribe", "done": int(done),
@@ -560,7 +577,8 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                         keyframes=bool(options.get("keyframes", False)),
                         max_len=options["max_len"],  # 3.6.4: limite do fim estendido até o riso acabar
                         formatos_extras=options.get("formatos_extras", True),  # 3.7.3
-                        redes=options.get("redes"))
+                        redes=options.get("redes"),
+                        on_progress=select_progress)  # batedor/Editor visíveis no painel (2026-11-24)
                     state["cache"]["selection"] = selection_key
                     save_project(path, state)
 

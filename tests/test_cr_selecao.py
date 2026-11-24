@@ -612,3 +612,90 @@ def test_select_respeita_as_redes(tmp_path: Path, monkeypatch):
     assert "tiktok_60" in fmts and "longo_16x9" not in fmts
     segs, _ = sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude", redes=["youtube_shorts"])
     assert not {s.get("formato") for s in segs} & {"tiktok_60", "longo_16x9"}
+
+
+# ------------------------------------------------------------------ live real: timeout de 180 s e batedor refeito
+
+@pytest.mark.parametrize("provedor,cli", [("claude", "claude"), ("gemini", "agy")])
+def test_chamada_ao_cli_tem_tempo_para_modelo_lento(monkeypatch, provedor, cli):
+    """Live real (2026-11-23): o Gemini 4 Neon (High) levou > 180 s num lote e o Editor parou 2x por timeout."""
+    import picorte.ai.llm_router as lr
+
+    vistos = {}
+
+    def fake_run(cmd, **k):
+        vistos["timeout"] = k.get("timeout")
+        return subprocess.CompletedProcess(cmd, 0, json.dumps({"result": "[]", "response": "[]"}), "")
+
+    monkeypatch.setattr(lr, "resolve_cli_binary", lambda n: f"C:/x/{cli}.exe" if n == cli else None)
+    monkeypatch.setattr(lr.subprocess, "run", fake_run)
+    LLMRouter()._run_provider(provedor, None, "s", "u")
+    assert vistos["timeout"] >= 600
+
+
+def _contar_scout(monkeypatch, falha_bloco=False):
+    from picorte.ai import llm_router as lr_mod
+
+    chamadas = {"scout": 0}
+    original = lr_mod.LLMRouter._run_provider
+
+    def conta(self, provider, model, system_prompt, user_prompt):
+        if "Full-VOD Scout" in system_prompt or "BLOCO DA TRANSCRIÇÃO" in user_prompt:
+            chamadas["scout"] += 1
+            if falha_bloco:
+                raise RuntimeError("timeout no batedor")
+        return original(self, provider, model, system_prompt, user_prompt)
+
+    monkeypatch.setattr(lr_mod.LLMRouter, "_run_provider", conta)
+    return chamadas
+
+
+def test_batedor_nao_e_refeito_quando_a_selecao_roda_de_novo(tmp_path: Path, monkeypatch):
+    _projeto_select(tmp_path, monkeypatch)
+    chamadas = _contar_scout(monkeypatch)
+    sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="gemini")
+    primeira = chamadas["scout"]
+    assert primeira >= 1
+    sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude")  # retomada com outro motor
+    assert chamadas["scout"] == primeira, "o batedor foi refeito"
+    assert "cache" in health.load(tmp_path)["full_vod_scout"]["detail"]
+
+
+def test_batedor_que_falhou_nao_vai_para_o_cache(tmp_path: Path, monkeypatch):
+    _projeto_select(tmp_path, monkeypatch)
+    chamadas = _contar_scout(monkeypatch, falha_bloco=True)
+    sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="gemini")
+    assert not (tmp_path / "scout_cache.json").exists()
+
+
+# ------------------------------------------------------------------ progresso visível durante a seleção (live real)
+
+def test_batedor_avisa_cada_bloco_e_a_consolidacao():
+    from picorte.ai.llm_scout import LONG_VOD_MAPREDUCE_SECONDS, scout_full_vod
+
+    longo = [{"start": i * 30.0, "end": i * 30.0 + 25.0, "text": f"frase {i}"}
+             for i in range(int(LONG_VOD_MAPREDUCE_SECONDS / 30) + 60)]
+
+    def prov(provider, model, system_prompt, user_prompt):
+        if "BLOCO DA TRANSCRIÇÃO" in user_prompt:
+            return json.dumps([{"start_sid": "S0001", "end_sid": "S0001", "summary": "x"}])
+        return "[]"
+
+    avisos = []
+    scout_full_vod(longo, router=LLMRouter(provider_runner=prov), ai_mode="gemini", max_workers=1,
+                   on_progress=avisos.append)
+    assert any("Batedor: bloco 1/" in a for a in avisos)
+    assert any("Batedor: consolidando" in a for a in avisos)
+
+
+def test_editor_avisa_cada_lote():
+    avisos = []
+    LLMRouter(provider_runner=_completo).rerank_candidates(_cands(3), ai_mode="gemini", on_progress=avisos.append)
+    assert any("Editor-Chefe" in a and "lote 1/1" in a for a in avisos)
+
+
+def test_select_repassa_o_progresso(tmp_path: Path, monkeypatch):
+    _projeto_select(tmp_path, monkeypatch)
+    avisos = []
+    sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude", on_progress=avisos.append)
+    assert any("Editor-Chefe" in a for a in avisos)
