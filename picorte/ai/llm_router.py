@@ -264,6 +264,16 @@ def _extract_json_array(raw_text: str) -> list[dict[str, Any]] | None:
     text = (raw_text or "").strip()
     if not text:
         return None
+    # Envelope do CLI ({"result"|"response"|"text": "..."}) primeiro: a cerca ```json``` pode estar DENTRO dele, ainda
+    # escapada; tirá-la antes de abrir o envelope quebrava a leitura (live real 2026-11-23: 3 de 41 blocos perdidos).
+    try:
+        envelope = json.loads(text)
+    except json.JSONDecodeError:
+        envelope = None
+    if isinstance(envelope, dict):
+        inner = envelope.get("result") or envelope.get("response") or envelope.get("text")
+        if isinstance(inner, str):
+            return _extract_json_array(inner)
     # Strip markdown code fences if present
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
     if fence:

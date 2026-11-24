@@ -552,3 +552,63 @@ def test_select_grava_o_formato_no_segments_json(tmp_path: Path, monkeypatch):
     segs, _ = sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude")
     gravados = json.loads((tmp_path / "segments.json").read_text(encoding="utf-8"))
     assert gravados and all(s.get("formato") for s in gravados)
+
+
+# ------------------------------------------------------------------ envelope do agy com bloco de código (live real)
+
+def test_resposta_do_agy_com_bloco_de_codigo_e_lida():
+    """Live real (2026-11-23): 3 de 41 blocos do batedor 'sem JSON' — o modelo pôs ```json``` dentro do
+    envelope {"response": ...} do agy e o leitor tirava a cerca antes de abrir o envelope."""
+    from picorte.ai.llm_router import _extract_json_array
+
+    interno = '```json\n[\n  {"start_sid": "S1010", "end_sid": "S1012", "summary": "é assim que o cego vê a balada"}\n]\n```'
+    raw = json.dumps({"conversation_id": "x", "status": "SUCCESS", "response": interno})
+    out = _extract_json_array(raw)
+    assert out == [{"start_sid": "S1010", "end_sid": "S1012", "summary": "é assim que o cego vê a balada"}]
+
+
+def test_resposta_do_claude_com_bloco_de_codigo_e_lida():
+    from picorte.ai.llm_router import _extract_json_array
+
+    raw = json.dumps({"result": '```json\n[{"index": 0, "adjustment": 1.0}]\n```', "modelUsage": {}})
+    assert _extract_json_array(raw) == [{"index": 0, "adjustment": 1.0}]
+
+
+# ------------------------------------------------------------------ redes escolhidas pelo dono (padrão: YouTube Shorts + TikTok)
+
+def test_redes_padrao_sao_youtube_shorts_e_tiktok():
+    import projects
+
+    assert projects.validate_options({})["redes"] == ["youtube_shorts", "tiktok"]
+    with pytest.raises(ValueError):
+        projects.validate_options({"redes": ["orkut"]})
+    with pytest.raises(ValueError):
+        projects.validate_options({"redes": []})
+
+
+def test_trocar_as_redes_refaz_a_selecao():
+    import projects
+
+    a = projects.validate_options({})
+    b = projects.validate_options({"redes": ["youtube_shorts", "tiktok", "youtube_longo"]})
+    assert projects.score_keys("t", {"words": []}, a)[1] != projects.score_keys("t", {"words": []}, b)[1]
+
+
+def test_irmaos_so_das_redes_ligadas():
+    from picorte.engine.formats import add_format_siblings
+
+    sents = [{"start": float(i * 3), "end": float(i * 3 + 2.5), "text": f"frase {i}"} for i in range(200)]
+    seg = {"start": 300.0, "end": 340.0, "tier": "ouro", "overall": 9.0}
+    so_tiktok = add_format_siblings([seg], sents, heatmap_peaks=[], source_duration=600.0, tiktok=True, longo=False)
+    assert {s.get("formato") for s in so_tiktok if s.get("formato")} == {"tiktok_60"}
+    nada = add_format_siblings([seg], sents, heatmap_peaks=[], source_duration=600.0, tiktok=False, longo=False)
+    assert not [s for s in nada if s.get("formato")]
+
+
+def test_select_respeita_as_redes(tmp_path: Path, monkeypatch):
+    _projeto_select(tmp_path, monkeypatch)
+    segs, _ = sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude", redes=["youtube_shorts", "tiktok"])
+    fmts = {s.get("formato") for s in segs}
+    assert "tiktok_60" in fmts and "longo_16x9" not in fmts
+    segs, _ = sc.select(tmp_path, min_score=7.0, max_clips=5, ai_mode="claude", redes=["youtube_shorts"])
+    assert not {s.get("formato") for s in segs} & {"tiktok_60", "longo_16x9"}
