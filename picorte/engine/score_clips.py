@@ -2041,7 +2041,7 @@ def _apply_seamless_loop(workdir, segments, max_len=None):
     return out
 
 
-def _add_format_siblings(workdir, segments, source_duration):
+def _add_format_siblings(workdir, segments, source_duration, redes=None):
     """3.7.3: versão TikTok 60–75 s de cada Short e Longo 16:9 de 3–5 min dos ouro/forte (no fim, sem rank)."""
     from picorte.engine import health as _health
     from picorte.engine.formats import add_format_siblings
@@ -2057,7 +2057,9 @@ def _add_format_siblings(workdir, segments, source_duration):
         _health.record(workdir, "formatos_extras", "na", "sem transcrição com frases")
         return segments
     peaks = _gabarito_heatmap_peaks(workdir, _load_source_meta(workdir))
-    out = add_format_siblings(segments, sents, heatmap_peaks=peaks, source_duration=duration)
+    out = add_format_siblings(segments, sents, heatmap_peaks=peaks, source_duration=duration,
+                                   tiktok=redes is None or "tiktok" in redes,
+                                   longo=redes is None or "youtube_longo" in redes)
     tk = sum(1 for s in out if s.get("formato") == "tiktok_60")
     lg = sum(1 for s in out if s.get("formato") == "longo_16x9")
     _health.record(workdir, "formatos_extras", "ok",
@@ -2478,7 +2480,7 @@ def discover(workdir, min_len=15, max_len=300, preferred_len=None,
 def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
            band=None, llm=None, host=OLLAMA_HOST, mode="heuristic",
            ai_mode="heuristic", ai_filter="ollama", ai_companion="claude",
-           query=None, hunt_mode="fast", keyframes=False, max_len=None, formatos_extras=True):
+           query=None, hunt_mode="fast", keyframes=False, max_len=None, formatos_extras=True, redes=None):
     """Read candidates.json, write segments.json and selection.json."""
     workdir = Path(workdir)
     candidates, discovery = load_candidates(workdir)
@@ -2656,7 +2658,7 @@ def select(workdir, min_score=8.0, max_clips=None, preferred_len=None,
     segments = _apply_seamless_loop(workdir, segments, max_len=max_len)
     segments = _split_standalone(workdir, segments)
     if formatos_extras and not _benchmark_blind(workdir):
-        segments = _add_format_siblings(workdir, segments, discovery.get("source_duration"))
+        segments = _add_format_siblings(workdir, segments, discovery.get("source_duration"), redes=redes)
         segments = _add_composites(workdir, segments)
     _label_formats(segments)
     _write_json(workdir / "segments.json", segments)

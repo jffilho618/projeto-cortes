@@ -85,15 +85,18 @@ def long_proposal(short: dict[str, Any], sentences: list[dict[str, Any]] | None,
 
 
 def add_format_siblings(segments: list[dict[str, Any]], sentences: list[dict[str, Any]] | None, *,
-                        heatmap_peaks: list[dict[str, Any]] | None, source_duration: float) -> list[dict[str, Any]]:
-    """Shorts ganham `moment_id`; cada Short ganha a versão TikTok e, se ouro/forte, a proposta de Longo (no fim)."""
+                        heatmap_peaks: list[dict[str, Any]] | None, source_duration: float,
+                        tiktok: bool = True, longo: bool = True) -> list[dict[str, Any]]:
+    """Shorts ganham `moment_id`; cada Short ganha a versão TikTok e, se ouro/forte, a proposta de Longo (no fim).
+    `tiktok`/`longo`: só gera o formato das redes que o dono ligou (2026-11-23)."""
     shorts = [dict(s, moment_id=moment_id_for(s)) for s in segments or []]
     extras: list[dict[str, Any]] = []
     for sh in shorts:
         if float(sh["end"]) - float(sh["start"]) > SHORT_MAX_S or sh.get("formato", "short") != "short":
             continue
-        for sib in (tiktok_version(sh, sentences, source_duration=source_duration),
-                    long_proposal(sh, sentences, heatmap_peaks=heatmap_peaks, source_duration=source_duration)):
+        for sib in ((tiktok_version(sh, sentences, source_duration=source_duration) if tiktok else None),
+                    (long_proposal(sh, sentences, heatmap_peaks=heatmap_peaks, source_duration=source_duration)
+                     if longo else None)):
             if sib is not None:
                 extras.append(sib)
     return shorts + extras

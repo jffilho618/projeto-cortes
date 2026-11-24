@@ -29,7 +29,8 @@ DEFAULT_OPTIONS = {"aspect": "16:9", "style": "default", "tighten": False,
                    "embed_model": "nomic-embed-text", "brand": None,
                    "layout": "single", "centers": [0.25, 0.75], "caption": None,
                    "source_owner": None, "keyframes": False,
-                   "benchmark_blind": False, "formatos_extras": True}
+                   "benchmark_blind": False, "formatos_extras": True,
+                   "redes": ["youtube_shorts", "tiktok"]}  # escolha do dono (2026-11-23)
 
 
 def digest(value):
@@ -51,6 +52,11 @@ def file_identity(path):
     path = Path(path).resolve()
     stat = path.stat()
     return [str(path), stat.st_size, stat.st_mtime_ns]
+
+
+# Redes que o dono pode ligar. YouTube Shorts, Reels e Facebook usam o mesmo Short; TikTok liga a versão de
+# 60–75 s; YouTube longo liga o Longo 16:9 (3–5 min).
+REDES = ("youtube_shorts", "tiktok", "youtube_longo", "instagram_reels", "facebook")
 
 
 def validate_options(options):
@@ -129,6 +135,10 @@ def validate_options(options):
         raise ValueError("benchmark_blind must be true or false.")
     if not isinstance(result["formatos_extras"], bool):
         raise ValueError("formatos_extras must be true or false.")
+    redes = result["redes"]
+    if (not isinstance(redes, list) or not redes or any(r not in REDES for r in redes)):
+        raise ValueError(f"redes deve ser uma lista não vazia de: {', '.join(REDES)}.")
+    result["redes"] = [r for r in REDES if r in redes]  # ordem estável (entra na chave de cache)
     return result
 
 
@@ -156,6 +166,8 @@ def score_keys(transcript_key, data, options):
     }
     if options.get("formatos_extras") is False:  # 3.7.3: só entra na chave quando desligado (cache atual vale)
         selection_options["formatos_extras"] = False
+    if options.get("redes"):  # redes escolhidas mudam os formatos gerados
+        selection_options["redes"] = list(options["redes"])
     selection_key = digest([discovery_key, selection_options])
     return discovery_key, selection_key
 
@@ -265,6 +277,29 @@ def validate_segments(segments, duration):
     return result
 
 
+CANCEL_FLAG = "cancelar.flag"
+
+
+class JobCancelado(RuntimeError):
+    """O operador cancelou o job pelo painel; o motor para no começo da próxima etapa ou do próximo corte."""
+
+
+def pedir_cancelamento(path):
+    """Chamado pelo painel: grava o pedido na pasta do projeto (a etapa em andamento termina antes de parar)."""
+    (Path(path) / CANCEL_FLAG).write_text("1", encoding="utf-8")
+
+
+def _limpar_cancelamento(path):
+    (Path(path) / CANCEL_FLAG).unlink(missing_ok=True)
+
+
+def _check_cancel(path):
+    flag = Path(path) / CANCEL_FLAG
+    if flag.exists():
+        flag.unlink(missing_ok=True)
+        raise JobCancelado("Cancelado pelo operador.")
+
+
 def run_project(path, action="all", preview=False, pick=None, resume=True, progress=None):
     """Prepare candidates or render saved candidates; checkpoint every successful clip.
 
@@ -283,7 +318,10 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
     options = validate_options(state["options"])
     if action not in {"all", "prepare", "render"}:
         raise ValueError("Unknown project action.")
+    _limpar_cancelamento(path)  # pedido de uma execução anterior não cancela esta
+
     def stage(name):
+        _check_cancel(path)  # cancelar pelo painel: para no começo da próxima etapa / do próximo corte
         state.update(status="running", stage=name, error=None,
                      progress={"stage": name, "done": 0, "total": 0,
                                "detail": ""})
@@ -335,6 +373,7 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                 get_default_db(), source_input=source_input, meta=meta,
                 owner=options.get("source_owner"))
             save_project(path, state)
+            _check_cancel(path)  # antes do download (o passo mais pesado da etapa)
 
             source = Path(state.get("video", "__missing__"))
             media_kind = str(meta.get("media_kind") or "")
@@ -520,7 +559,8 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
                         hunt_mode=options.get("hunt_mode", "fast"),
                         keyframes=bool(options.get("keyframes", False)),
                         max_len=options["max_len"],  # 3.6.4: limite do fim estendido até o riso acabar
-                        formatos_extras=options.get("formatos_extras", True))  # 3.7.3
+                        formatos_extras=options.get("formatos_extras", True),  # 3.7.3
+                        redes=options.get("redes"))
                     state["cache"]["selection"] = selection_key
                     save_project(path, state)
 
@@ -794,6 +834,10 @@ def _run_project(path, action="all", preview=False, pick=None, resume=True, prog
         except Exception as db_exc:  # o banco não derruba o job, mas a falha fica visível na Saúde
             from picorte.engine import health as _health
             _health.record(path, "banco", "failed", f"{type(db_exc).__name__}: {db_exc}")
+        return state
+    except JobCancelado as exc:  # pedido do operador: não é falha (pedido do dono, 2026-11-23)
+        state.update(status="cancelled", error=str(exc), stage=state.get("stage", "cancelled"))
+        save_project(path, state)
         return state
     except (Exception, SystemExit) as exc:
         state.update(status="failed", error=str(exc), stage=state.get("stage", "failed"))
